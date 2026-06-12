@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TailorMe — by Res.Me
 
-## Getting Started
+Your experience is stronger than your resume makes it look. Paste the job you want; we tailor your resume to it, run specialist AI reviewer agents over every line (ATS/keywords, impact/metrics, role fit), and offer a paid Res.Me human expert review (+$49/application). Pay per application with credit packs; first application is the free audit.
 
-First, run the development server:
+Positioning is driven by the ResMe customer-profile research (`Resume Research From Client Data/Summarized/`): flagship homepage persona is RESME-P01 (Senior Software Engineer, 19% of dataset, ~77% of customers senior+). Homepage walks the 5-step journey: I have a resume → I want this job → we tailor it → agents give actionable feedback → optional human review. Copy guardrails: no guaranteed interviews/jobs/ATS-bypass claims; transformation examples are labeled composites, never real client resumes.
+
+A Res.Me product (sub-brand of Res.Me, Technical Resume Writing). Web repackaging of the [ai-job-search](https://github.com/Balzermw/ai-job-search-resme) Claude Code workflow.
+
+Brand: Res.Me blue `#4373db`, green `#2dbd8b`, light gray `#eceef0`. Logo mark recreated as inline SVG in `src/components/logo.tsx` — replace with official assets in `public/` when available.
+
+## Status
+
+- [x] Landing page (hero before/after, auto-playing pipeline demo, pricing, trust strip)
+- [ ] Auth + profile storage (Supabase)
+- [ ] Stripe credit packs + ledger
+- [ ] Onboarding: CV upload → profile extraction
+- [ ] Apply pipeline (fit score → draft → reviewer → compile/inspect PDF)
+- [ ] Watermarked preview + credit-gated download
+- [ ] Application tracker
+- [ ] GDPR: consent, retention, one-click erasure
+
+## Architecture decisions
+
+- **Pricing:** credit packs ($19/5, $49/15, $99/40), no BYOK, no subscription. One free run per new account, paywall on the PDF download (watermarked preview free).
+- **Cost guardrails (required before launch):** Sonnet 4.6 as default model, reviewer capped at one research pass, PDF compile loop capped at 2 iterations. Target ≤$1.50 inference cost per run.
+- **v1 scope:** no job scraping/aggregation, no upskill reports — users paste a job URL or text.
+- **Backend:** Claude API vs. Managed Agents still open; Managed Agents favored because the compile-and-inspect LaTeX loop runs unchanged in a session container.
+
+## Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Copy `.env.example` to `.env.local` and fill in keys as integrations land.

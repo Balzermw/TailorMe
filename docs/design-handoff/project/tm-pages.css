@@ -1,0 +1,127 @@
+/* tm-pages.css — Pricing + Coaching page specifics (loads after tailorme.css) */
+
+/* ---------- page headers ---------- */
+.tmP-head { text-align: center; padding-bottom: 0; }
+.tmP-head .tm-h1 { font-size: clamp(34px, 4.6vw, 54px); max-width: 20ch; margin: 18px auto 0; }
+.tmP-head .tm-body { max-width: 54ch; margin: 18px auto 0; }
+
+/* ---------- pricing: use-case packs ---------- */
+.tmP-packs { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--g); align-items: stretch; }
+.tmP-pack { padding: 30px 28px; display: flex; flex-direction: column; gap: 0; }
+.tmP-pack.is-em { border: 0.5px solid var(--tm-blue-600); }
+.tmP-pack-chip { margin-bottom: 14px; align-self: flex-start; visibility: hidden; }
+.tmP-pack.has-chip .tmP-pack-chip { visibility: visible; }
+.tmP-pack-use { font-size: 13.5px; font-weight: 500; color: var(--tm-blue-600); }
+.tmP-pack-name { font-size: 22px; font-weight: 500; letter-spacing: -0.01em; margin-top: 4px; }
+.tmP-pack-price { display: flex; align-items: baseline; gap: 8px; margin-top: 16px; }
+.tmP-pack-price strong { font-size: 44px; font-weight: 500; letter-spacing: -0.02em; }
+.tmP-pack-price span { font-size: var(--small); color: var(--tm-zinc); }
+.tmP-pack-per { font-size: var(--small); color: var(--tm-zinc); margin-top: 2px; }
+.tmP-pack-per b { font-weight: 500; color: var(--tm-ink); }
+.tmP-pack-desc { font-size: var(--small); color: var(--tm-zinc); line-height: 1.55; margin-top: 14px; }
+.tmP-pack-who { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 0.5px solid var(--tm-border); }
+.tmP-pack-who span { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--tm-zinc); line-height: 1.45; }
+.tmP-pack-who svg { color: var(--tm-mint-600); flex: none; margin-top: 2px; }
+.tmP-pack .tm-btn { margin-top: 22px; justify-content: center; }
+
+/* every-application strip */
+.tmP-includes { display: flex; align-items: center; justify-content: center; gap: 14px 28px; flex-wrap: wrap; }
+.tmP-includes-label { font-size: var(--small); font-weight: 500; }
+.tmP-include { display: flex; align-items: center; gap: 7px; font-size: var(--small); color: var(--tm-zinc); }
+.tmP-include svg { color: var(--tm-blue-600); flex: none; }
+
+/* which pack mini-guide */
+.tmP-guide { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--g); }
+.tmP-guide-item { padding: 20px 22px; }
+.tmP-guide-item q { font-size: var(--body); font-weight: 500; line-height: 1.45; quotes: "\201C" "\201D"; }
+.tmP-guide-item p { font-size: var(--small); color: var(--tm-zinc); margin-top: 10px; line-height: 1.5; }
+.tmP-guide-item p b { font-weight: 500; color: var(--tm-blue-600); }
+
+/* refund note */
+.tmP-refund {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  font-size: var(--small); color: var(--tm-zinc); margin-top: 26px; text-align: center;
+}
+.tmP-refund svg { color: var(--tm-mint-600); flex: none; }
+
+/* ---------- coaching ---------- */
+.tmC-hero2 { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 56px; align-items: center; }
+.tmC-hero2 .tm-h1 { font-size: clamp(34px, 4.4vw, 52px); margin-top: 18px; }
+.tmC-hero2 .tm-body { margin-top: 16px; max-width: 48ch; }
+.tmC-hero2-ctas { display: flex; gap: 12px; margin-top: 26px; flex-wrap: wrap; }
+.tmC-hero2-rating { display: flex; align-items: center; gap: 14px; margin-top: 26px; flex-wrap: wrap; }
+.tmC-rating-num { font-size: 22px; font-weight: 500; }
+.tmC-rating-sub { font-size: 12.5px; color: var(--tm-zinc); }
+.tmC-stars { display: flex; gap: 2px; color: var(--tm-mint-600); }
+
+.tmC-photo-wrap { position: relative; justify-self: center; }
+.tmC-photo {
+  width: 100%; max-width: 360px; aspect-ratio: 4 / 4.6; object-fit: cover;
+  border-radius: 16px; border: 0.5px solid var(--tm-border); display: block;
+}
+.tmC-photo-badge {
+  position: absolute; left: 18px; bottom: 18px;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #fff; border: 0.5px solid var(--tm-border); border-radius: 999px;
+  padding: 7px 14px; font-size: 12.5px; font-weight: 500;
+}
+.tmC-photo-badge svg { color: var(--tm-mint-600); }
+
+.tmC-about { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+.tmC-about .tmB-creds { margin-top: 0; gap: 12px; }
+
+/* coaching steps */
+.tmC-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--g); }
+.tmC-step { padding: 26px; }
+.tmC-step i { font-style: normal; font-size: 14px; font-weight: 500; color: var(--tm-blue-600); display: block; }
+.tmC-step h3 { font-size: var(--h3); font-weight: 500; margin-top: 10px; }
+.tmC-step p { font-size: var(--small); color: var(--tm-zinc); line-height: 1.55; margin-top: 8px; }
+
+/* coaching packages */
+.tmC-pkgs { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--g); align-items: stretch; }
+.tmC-pkg { padding: 28px 26px; display: flex; flex-direction: column; }
+.tmC-pkg.is-em { border: 0.5px solid var(--tm-mint-400); }
+.tmC-pkg-name { font-size: 18px; font-weight: 500; }
+.tmC-pkg-price { display: flex; align-items: baseline; gap: 8px; margin-top: 12px; }
+.tmC-pkg-price strong { font-size: 36px; font-weight: 500; letter-spacing: -0.02em; }
+.tmC-pkg-price span { font-size: 12.5px; color: var(--tm-zinc); }
+.tmC-pkg-items { display: flex; flex-direction: column; gap: 9px; margin-top: 16px; padding-top: 16px; border-top: 0.5px solid var(--tm-border); }
+.tmC-pkg-items span { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--tm-zinc); line-height: 1.45; }
+.tmC-pkg-items svg { color: var(--tm-mint-600); flex: none; margin-top: 2px; }
+.tmC-pkg .tm-btn { margin-top: 22px; justify-content: center; }
+.tmC-pkg-chip { align-self: flex-start; margin-bottom: 12px; visibility: hidden; }
+.tmC-pkg.has-chip .tmC-pkg-chip { visibility: visible; }
+
+/* testimonials */
+.tmC-tsts { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--g); }
+.tmC-tst { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+.tmC-tst q { font-size: var(--body); line-height: 1.55; quotes: "\201C" "\201D"; }
+.tmC-tst-who { display: flex; align-items: center; gap: 11px; margin-top: auto; }
+.tmC-tst-avatar {
+  width: 36px; height: 36px; border-radius: 50%; flex: none;
+  background: var(--tm-blue-50); color: var(--tm-blue-800);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12.5px; font-weight: 500;
+}
+.tmC-tst-who b { font-size: 13.5px; font-weight: 500; display: block; }
+.tmC-tst-who span { font-size: 12px; color: var(--tm-zinc); }
+
+/* tailorme cross-sell band */
+.tmC-band {
+  display: flex; align-items: center; gap: 24px; padding: 26px 30px;
+  flex-wrap: wrap;
+}
+.tmC-band-body { flex: 1; min-width: 260px; }
+.tmC-band-body h3 { font-size: var(--h3); font-weight: 500; }
+.tmC-band-body p { font-size: var(--small); color: var(--tm-zinc); margin-top: 6px; line-height: 1.55; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1080px) {
+  .tmP-packs, .tmP-guide, .tmC-steps, .tmC-pkgs, .tmC-tsts { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 760px) {
+  .tmP-packs, .tmP-guide, .tmC-steps, .tmC-pkgs, .tmC-tsts { grid-template-columns: 1fr; }
+  .tmC-hero2 { grid-template-columns: 1fr; gap: 32px; }
+  .tmC-about { grid-template-columns: 1fr; gap: 28px; }
+  .tmC-photo-wrap { justify-self: start; }
+}
