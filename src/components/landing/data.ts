@@ -114,7 +114,7 @@ export const HERO_STAGES = [
   ["Build the final PDF", "compiled, then checked page by page"],
 ];
 
-// Route map for CTAs and nav — pages beyond the homepage ship incrementally.
+// Route map for CTAs and nav.
 export const ROUTES = {
   home: "/",
   audit: "/audit",
@@ -122,8 +122,101 @@ export const ROUTES = {
   pricing: "/pricing",
   coaching: "/coaching",
   signIn: "/signin",
+  forgotPassword: "/forgot-password",
+  dashboard: "/dashboard",
+  settings: "/settings",
   buyCredits: "/buy-credits",
+  bookSession: "/book-session",
   privacy: "/privacy",
   terms: "/terms",
   contact: "/contact",
 };
+
+// Five-dimension fit scoring (sample run — flagship composite persona).
+export const SCORES = [
+  { l: "Technical skills", v: 88 },
+  { l: "Experience match", v: 80 },
+  { l: "Culture fit", v: 74 },
+  { l: "Career alignment", v: 90 },
+];
+
+// Full agent notes (homepage shows only the first note of each).
+export const AGENTS_FULL = [
+  {
+    icon: "search",
+    name: "ATS & keywords",
+    notes: [
+      {
+        t: "fix",
+        txt: "Posting names observability 3× — your resume names it 0×. Add your Datadog dashboard work.",
+      },
+      {
+        t: "polish",
+        txt: "Kubernetes only appears in your skills list. Surface it in an experience bullet.",
+      },
+    ],
+  },
+  {
+    icon: "trending-up",
+    name: "Impact & metrics",
+    notes: [
+      {
+        t: "fix",
+        txt: "“Mentored junior engineers” — how many, over how long? Add team scope.",
+      },
+      {
+        t: "polish",
+        txt: "The migration bullet needs a baseline: what was p95 latency before?",
+      },
+    ],
+  },
+  {
+    icon: "target",
+    name: "Role-fit",
+    notes: [
+      {
+        t: "fix",
+        txt: "This role is 80% backend/platform. Move distributed-systems work above the frontend section.",
+      },
+      {
+        t: "polish",
+        txt: "Cut the 2014 PHP role to one line — it isn’t pulling weight for this target.",
+      },
+    ],
+  },
+];
+
+// Before/after bullets (flagship transformation, composite).
+export const BULLETS = [
+  {
+    before:
+      "“Responsible for developing and maintaining features for the web app using React and Node.js.”",
+    after: [
+      "“Led migration of checkout to a ",
+      { k: "distributed Node.js service" },
+      ", cutting p95 latency ",
+      { m: "38%" },
+      " across ",
+      { m: "2.4M daily transactions" },
+      ".”",
+    ],
+  },
+  {
+    before: "“Participated in code reviews and mentoring.”",
+    after: [
+      "“Mentored ",
+      { m: "6 engineers" },
+      " through promotion cycles while owning ",
+      { k: "Kubernetes" },
+      " deployment standards.”",
+    ],
+  },
+] as const;
+
+export const KEYWORDS = [
+  "Distributed systems",
+  "Node.js at scale",
+  "Kubernetes",
+  "Observability",
+  "Mentorship",
+];

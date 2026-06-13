@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ROUTES } from "./data";
+import NavSession from "./nav-session";
 
 const LINKS = [
   ["Home", ROUTES.home],
@@ -32,13 +33,7 @@ export default function Nav({ active = "Home" }: { active?: string }) {
             {label}
           </Link>
         ))}
-        <Link href={ROUTES.signIn}>Sign in</Link>
-        <Link
-          href={ROUTES.audit}
-          className="tm-btn tm-btn--primary tm-btn--sm"
-        >
-          Get a free resume audit
-        </Link>
+        <NavSession active={active} />
       </nav>
     </header>
   );
