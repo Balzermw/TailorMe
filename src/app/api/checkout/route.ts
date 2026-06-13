@@ -4,6 +4,8 @@ import { APP_URL, stripeConfigured } from "@/lib/config";
 import { stripe } from "@/lib/stripe";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getPack, MICHAEL_ADDON_CENTS } from "@/lib/packs";
+import { CHECKOUT_RULES, rateLimitDisabled } from "@/lib/limits";
+import { consume, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   // Not configured → tell the client to run the demo success animation.
@@ -18,6 +20,14 @@ export async function POST(request: Request) {
       { error: "Sign in to buy credits.", signin: true },
       { status: 401 },
     );
+  }
+
+  // Anti-spam: bound checkout-session creation per account.
+  if (!rateLimitDisabled) {
+    const rl = consume(`checkout:${user.id}`, CHECKOUT_RULES);
+    if (!rl.allowed) {
+      return tooManyRequests("Too many checkout attempts. Try again shortly.", rl.resetAt);
+    }
   }
 
   let body: { packId?: string; addon?: boolean };

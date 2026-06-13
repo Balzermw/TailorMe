@@ -105,6 +105,32 @@ The tailored documents are generated as **real moderncv (banking) LaTeX**
   container and point `LATEX_COMPILE_URL` at it (keep it private — see the
   service README). The `.tex` it compiles is identical to the in-app preview.
 
+## Abuse prevention & cost control
+
+Claude tokens are the only per-use cost, so the ungated paths are guarded
+(`src/lib/limits.ts` + `src/lib/rate-limit.ts`), all env-tunable:
+
+- **Input-size caps** bound tokens per call — postings ≤ 8,000 chars, resumes
+  ≤ 24,000 chars (oversized → `413`; parsed resumes are truncated, not silently).
+- **Free fit-score audits** (unauthenticated) are rate-limited per IP
+  (`FREE_AUDIT_PER_HOUR`/`_PER_DAY`) with a **global daily circuit breaker**
+  (`FREE_AUDIT_GLOBAL_PER_DAY`) capping total free spend.
+- **Resume parsing** is rate-limited per IP (CPU abuse).
+- **Full runs** require auth **+ a credit** (credits cap total spend); a
+  per-account daily burst cap catches a scripted/compromised account.
+- **Checkout** is rate-limited per account (session spam).
+- **`max_tokens`** on every Claude call caps output cost.
+
+When a free user hits a limit the audit shows the **zero-inference sample**
+result plus a "create a free account" nudge — so they still see what the tool
+does, at no token cost. Tune any knob via the env vars in `.env.example`; set
+`RATE_LIMIT_DISABLED=1` for local dev.
+
+> **Scaling note:** the limiter is in-memory — correct for a single VPS Node
+> process (TailorMe's target). For multi-instance/serverless, back `consume()`
+> in `rate-limit.ts` with a shared store (a Supabase table or Upstash Redis);
+> the call sites don't change.
+
 ## Still placeholder (confirm before launch)
 
 - Refund-policy wording (Pricing FAQ, Terms, Buy credits)

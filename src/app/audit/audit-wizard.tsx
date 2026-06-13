@@ -349,11 +349,13 @@ function StepJob({
   const [view, setView] = useState<FitView>(DEMO_VIEW);
   const [w, setW] = useState<number[]>([]);
   const [why, setWhy] = useState(0);
+  const [note, setNote] = useState<string | null>(null);
 
   const score = async () => {
     if (phase !== "idle") return;
     setPhase("scoring");
     let v = DEMO_VIEW;
+    let msg: string | null = null;
     try {
       const res = await fetch("/api/apply", {
         method: "POST",
@@ -366,10 +368,17 @@ function StepJob({
         }),
       });
       const data = await res.json();
-      if (data.result) v = toView(data.result as ApplyResult);
+      if (data.result) {
+        v = toView(data.result as ApplyResult);
+      } else if (res.status === 429 || res.status === 413) {
+        // Free limit reached or input too large → show the sample, nudge signup.
+        msg = data.error as string;
+      }
+      // demo mode (data.demo) or other errors → silent simulated fallback
     } catch {
       /* fall back to the simulated result */
     }
+    setNote(msg);
     setView(v);
     setWhy(0);
     setW(v.dims.map(() => 0));
@@ -499,6 +508,21 @@ function StepJob({
           </div>
           {phase === "done" && (
             <Fragment>
+              {note && (
+                <p
+                  className="tmS-free mt-[16px]"
+                  style={{ display: "flex", gap: "10px", alignItems: "center" }}
+                >
+                  {note} This is a sample result —{" "}
+                  <Link
+                    href={ROUTES.signIn}
+                    style={{ color: "var(--tm-mint-600)", textDecoration: "underline" }}
+                  >
+                    create a free account
+                  </Link>{" "}
+                  to run your own.
+                </p>
+              )}
               <div className="tmF-verdict">
                 <b>{summaryLead}</b>
                 {summaryRest}
@@ -599,13 +623,16 @@ function StepResults({
       }
       const data = await res.json();
       if (res.status === 402 || data.needCredits) {
-        setError("You’re out of credits.");
+        setError(data.error || "You’re out of credits.");
         return;
       }
       if (data.result) {
         setFull({ result: data.result, applicationId: data.applicationId ?? null });
-      } else {
+      } else if (data.demo) {
         setDemoFull(true); // demo mode — no real documents generated
+      } else {
+        // 429 (rate limited), 413 (too large), or 5xx → show the message
+        setError(data.error || "Something went wrong. Please try again.");
       }
     } catch {
       setError("Something went wrong. Please try again.");

@@ -3,6 +3,17 @@ import { anthropicConfigured } from "@/lib/config";
 import { runFull, runScore } from "@/lib/apply/pipeline";
 import { SAMPLE_RESUME } from "@/lib/apply/sample";
 import { getServerSupabase } from "@/lib/supabase/server";
+import {
+  FREE_AUDIT_GLOBAL_RULES,
+  FREE_AUDIT_RULES,
+  FULL_RUN_RULES,
+  rateLimitDisabled,
+  validateApplyInput,
+} from "@/lib/limits";
+import { consume, getClientIp, tooManyRequests } from "@/lib/rate-limit";
+
+const FREE_LIMIT_MSG =
+  "You've used your free audits for now. Create a free account to run a full tailored application — your first one is free.";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -38,9 +49,29 @@ export async function POST(request: Request) {
     );
   }
 
+  // Cap input size → bounds tokens (and cost) per call.
+  const sizeError = validateApplyInput(resumeText, postingText);
+  if (sizeError) {
+    return NextResponse.json({ error: sizeError }, { status: 413 });
+  }
+
   try {
     // ----- free preview: fit only, no auth, no credit -----
     if (mode === "score") {
+      // Rate-limit the only ungated, token-spending path: per IP + a global
+      // circuit breaker capping total free spend.
+      if (!rateLimitDisabled) {
+        const ip = getClientIp(request);
+        const perIp = consume(`audit:${ip}`, FREE_AUDIT_RULES);
+        if (!perIp.allowed) return tooManyRequests(FREE_LIMIT_MSG, perIp.resetAt);
+        const global = consume("audit:global", FREE_AUDIT_GLOBAL_RULES);
+        if (!global.allowed) {
+          return tooManyRequests(
+            "Free audits are at capacity right now — please try again shortly, or create an account.",
+            global.resetAt,
+          );
+        }
+      }
       const result = await runScore(resumeText, postingText);
       return NextResponse.json({ result });
     }
@@ -65,6 +96,18 @@ export async function POST(request: Request) {
         { error: "You're out of credits.", needCredits: true },
         { status: 402 },
       );
+    }
+
+    // Per-account daily cap: credits bound total spend, this bounds burst rate
+    // (a scripted or compromised credit-loaded account).
+    if (!rateLimitDisabled) {
+      const burst = consume(`full:${user.id}`, FULL_RUN_RULES);
+      if (!burst.allowed) {
+        return tooManyRequests(
+          "You've hit today's application limit. Please try again tomorrow.",
+          burst.resetAt,
+        );
+      }
     }
 
     const result = await runFull(resumeText, postingText);
