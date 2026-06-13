@@ -50,6 +50,14 @@ export interface TailoredDoc {
   coverLetter: string; // plain paragraphs joined by \n\n
 }
 
+export interface ResumeStats {
+  name: string;
+  roles: number;
+  bullets: number;
+  metricBullets: number;
+  skills: string[];
+}
+
 export interface ApplyResult {
   company: string;
   role: string;
