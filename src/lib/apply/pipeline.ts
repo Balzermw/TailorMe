@@ -20,6 +20,7 @@ async function callTool<T>(
   },
   maxTokens = 2400,
   provider?: Provider,
+  model?: string,
 ): Promise<T> {
   return structured<T>({
     step,
@@ -30,6 +31,7 @@ async function callTool<T>(
     schema: tool.input_schema,
     maxTokens,
     provider,
+    model,
   });
 }
 
@@ -133,6 +135,7 @@ async function tailor(
   resumeText: string,
   postingText: string,
   provider?: Provider,
+  model?: string,
 ): Promise<{ bullets: TailoredBullet[]; keywords: string[]; doc: TailoredDoc }> {
   return callTool(
     "tailor",
@@ -201,7 +204,18 @@ async function tailor(
     },
     4000,
     provider,
+    model,
   );
+}
+
+/** Run only the tailor step on a specific provider+model (used by /api/eval). */
+export async function tailorOnce(
+  resumeText: string,
+  postingText: string,
+  provider: Provider,
+  model: string,
+): Promise<{ bullets: TailoredBullet[]; keywords: string[]; doc: TailoredDoc }> {
+  return tailor(resumeText, postingText, provider, model);
 }
 
 // ---------- 3. agent review ----------

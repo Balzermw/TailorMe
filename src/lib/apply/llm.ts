@@ -26,10 +26,18 @@ const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
 
 // $/token by model (per 1M ÷ 1e6). Used by the comparison route's cost report.
 const RATES: Record<string, { in: number; out: number }> = {
+  // Anthropic
+  "claude-haiku-4-5": { in: 1 / 1e6, out: 5 / 1e6 },
   "claude-sonnet-4-6": { in: 3 / 1e6, out: 15 / 1e6 },
-  "gpt-4.1": { in: 2 / 1e6, out: 8 / 1e6 },
-  "gpt-4.1-mini": { in: 0.4 / 1e6, out: 1.6 / 1e6 },
+  "claude-opus-4-8": { in: 5 / 1e6, out: 25 / 1e6 },
+  "claude-fable-5": { in: 10 / 1e6, out: 50 / 1e6 },
+  // OpenAI
   "gpt-4.1-nano": { in: 0.1 / 1e6, out: 0.4 / 1e6 },
+  "gpt-4.1-mini": { in: 0.4 / 1e6, out: 1.6 / 1e6 },
+  "gpt-4.1": { in: 2 / 1e6, out: 8 / 1e6 },
+  "o4-mini": { in: 0.55 / 1e6, out: 2.2 / 1e6 },
+  "gpt-5.4": { in: 2.5 / 1e6, out: 15 / 1e6 },
+  "gpt-5.5": { in: 5 / 1e6, out: 30 / 1e6 },
 };
 
 export interface CallRecord {
@@ -96,6 +104,7 @@ export interface StructuredOpts {
   schema: JsonSchema;
   maxTokens?: number;
   provider?: Provider; // override the configured provider (used by /api/compare)
+  model?: string; // override the model (used by the /api/eval model sweep)
 }
 
 export async function structured<T>(opts: StructuredOpts): Promise<T> {
@@ -104,7 +113,7 @@ export async function structured<T>(opts: StructuredOpts): Promise<T> {
 
   if (provider === "openai") {
     if (!openai) throw new Error("OpenAI not configured");
-    const model = openaiModel(opts.step);
+    const model = opts.model ?? openaiModel(opts.step);
     const resp = await openai.chat.completions.create({
       model,
       max_completion_tokens: maxTokens,
@@ -135,8 +144,9 @@ export async function structured<T>(opts: StructuredOpts): Promise<T> {
 
   // ---- anthropic (default) ----
   if (!anthropic) throw new Error("Anthropic not configured");
+  const model = opts.model ?? ANTHROPIC_MODEL;
   const msg = await anthropic.messages.create({
-    model: ANTHROPIC_MODEL,
+    model,
     max_tokens: maxTokens,
     system: opts.system,
     tools: [
@@ -151,7 +161,7 @@ export async function structured<T>(opts: StructuredOpts): Promise<T> {
   });
   records.push({
     provider,
-    model: ANTHROPIC_MODEL,
+    model,
     step: opts.step,
     inputTokens: msg.usage?.input_tokens ?? 0,
     outputTokens: msg.usage?.output_tokens ?? 0,

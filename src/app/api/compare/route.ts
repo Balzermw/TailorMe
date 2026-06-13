@@ -28,9 +28,12 @@ export async function POST(request: Request) {
       { status: 404 },
     );
   }
-  if (!anthropicConfigured || !openaiConfigured) {
+  const providers: Provider[] = [];
+  if (anthropicConfigured) providers.push("anthropic");
+  if (openaiConfigured) providers.push("openai");
+  if (providers.length === 0) {
     return NextResponse.json(
-      { error: "Set both ANTHROPIC_API_KEY and OPENAI_API_KEY to compare providers." },
+      { error: "Set ANTHROPIC_API_KEY and/or OPENAI_API_KEY to run a comparison." },
       { status: 400 },
     );
   }
@@ -74,10 +77,10 @@ export async function POST(request: Request) {
   };
 
   try {
-    // Sequential (the usage accumulator is shared) — Anthropic first, then OpenAI.
-    const anthropic = await run("anthropic");
-    const openai = await run("openai");
-    return NextResponse.json({ anthropic, openai });
+    // Sequential (the usage accumulator is shared) — one entry per configured provider.
+    const out: Record<string, Awaited<ReturnType<typeof run>>> = {};
+    for (const p of providers) out[p] = await run(p);
+    return NextResponse.json(out);
   } catch (err) {
     const message = err instanceof Error ? err.message : "comparison failed";
     return NextResponse.json({ error: message }, { status: 500 });
