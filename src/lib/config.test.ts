@@ -62,4 +62,31 @@ describe("config mode detection", () => {
     expect(c.ANTHROPIC_MODEL).toBe("claude-sonnet-4-6");
     expect(c.APP_URL).toBe("https://tailorme.app");
   });
+
+  it("defaults the LLM provider to anthropic with OpenAI model defaults", async () => {
+    const c = await loadConfig({
+      LLM_PROVIDER: undefined,
+      OPENAI_API_KEY: undefined,
+      OPENAI_MODEL_TAILOR: undefined,
+      OPENAI_MODEL_FAST: undefined,
+      ANTHROPIC_API_KEY: "sk-ant",
+    });
+    expect(c.LLM_PROVIDER).toBe("anthropic");
+    expect(c.OPENAI_MODEL_TAILOR).toBe("gpt-4.1");
+    expect(c.OPENAI_MODEL_FAST).toBe("gpt-4.1-mini");
+    expect(c.llmConfigured).toBe(true); // anthropic key present
+  });
+
+  it("openai provider gates llmConfigured on the OpenAI key", async () => {
+    let c = await loadConfig({
+      LLM_PROVIDER: "openai",
+      OPENAI_API_KEY: undefined,
+      ANTHROPIC_API_KEY: "sk-ant",
+    });
+    expect(c.LLM_PROVIDER).toBe("openai");
+    expect(c.llmConfigured).toBe(false); // openai selected, no openai key
+
+    c = await loadConfig({ LLM_PROVIDER: "openai", OPENAI_API_KEY: "sk-openai" });
+    expect(c.llmConfigured).toBe(true);
+  });
 });

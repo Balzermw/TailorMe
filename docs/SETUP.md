@@ -57,10 +57,47 @@ by `middleware.ts`.
 Granting is idempotent on the Stripe session id, so a replayed webhook never
 double-credits.
 
-## 3. Anthropic (the apply pipeline)
+## 3. LLM provider (the apply pipeline)
 
-1. <https://console.anthropic.com> → **API keys** → copy into `ANTHROPIC_API_KEY`.
-2. Default model is `claude-sonnet-4-6`; override with `ANTHROPIC_MODEL`.
+> **Never paste an API key into a chat or commit it.** Keys live only in
+> `.env.local` (gitignored). If one is ever exposed, rotate it immediately in
+> the provider console.
+
+Pick the provider with `LLM_PROVIDER` (`anthropic` default, or `openai`).
+
+**Anthropic:** <https://console.anthropic.com> → API keys → `ANTHROPIC_API_KEY`.
+Default model `claude-sonnet-4-6` (override `ANTHROPIC_MODEL`).
+
+**OpenAI:** <https://platform.openai.com> → API keys → `OPENAI_API_KEY`, then set
+`LLM_PROVIDER=openai`. Models are assigned **per use case to maximize usage**:
+
+| Pipeline step | OpenAI model (env) | Why |
+|---|---|---|
+| Fit score | `OPENAI_MODEL_FAST` = `gpt-4.1-mini` | cheap, structured-output only |
+| Tailor (resume + cover letter) | `OPENAI_MODEL_TAILOR` = `gpt-4.1` | quality-sensitive writing |
+| 3-agent review | `OPENAI_MODEL_FAST` = `gpt-4.1-mini` | cheap, structured-output only |
+
+Structured output uses Anthropic forced tool-use or OpenAI strict
+Structured Outputs automatically — same JSON either way.
+
+### Comparing providers (eval)
+
+With **both** keys set and `COMPARE_ENABLED=1`, `POST /api/compare` runs the
+same resume + posting through both providers and returns each result plus real
+token usage and cost:
+
+```bash
+curl -s localhost:3000/api/compare \
+  -H 'Content-Type: application/json' \
+  -d '{"useSample":true,"postingText":"<paste a job posting>"}' | jq
+```
+
+It makes 6 billed calls per run, so it's off by default and rate-limited.
+
+> **Live customer data:** for eval, prefer the bundled composite (`useSample`)
+> or **consented/synthetic** resumes. Don't run real customer PII through a
+> comparison harness (or paste it into a chat) without consent and your DPA in
+> place — the brief's GDPR/one-click-delete promises apply here too.
 3. The free audit (`/audit`) runs **fit scoring** for real against the sample
    resume + your pasted posting — no auth, no credit. The full
    tailor + review run (`mode: "full"` on `/api/apply`) requires a signed-in

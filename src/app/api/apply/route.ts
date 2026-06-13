@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { anthropicConfigured } from "@/lib/config";
+import { llmConfigured } from "@/lib/config";
 import { runFull, runScore } from "@/lib/apply/pipeline";
 import { SAMPLE_RESUME } from "@/lib/apply/sample";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -19,8 +19,8 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
-  // Not configured → client falls back to the simulated wizard.
-  if (!anthropicConfigured) {
+  // No provider configured → client falls back to the simulated wizard.
+  if (!llmConfigured) {
     return NextResponse.json({ demo: true });
   }
 

@@ -25,11 +25,32 @@ export const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 export const ANTHROPIC_MODEL =
   process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
+// ---------- LLM provider selection ----------
+// Which provider the /apply pipeline uses: "anthropic" (default) or "openai".
+export const LLM_PROVIDER: "anthropic" | "openai" =
+  (process.env.LLM_PROVIDER || "anthropic").toLowerCase() === "openai"
+    ? "openai"
+    : "anthropic";
+
+export const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// Per-use-case OpenAI models (maximize usage): a cheap model for the structured
+// score/review steps, a stronger model for the quality-sensitive tailor step.
+export const OPENAI_MODEL_TAILOR = process.env.OPENAI_MODEL_TAILOR || "gpt-4.1";
+export const OPENAI_MODEL_FAST =
+  process.env.OPENAI_MODEL_FAST || "gpt-4.1-mini";
+
 /** True when Stripe Checkout + webhook are wired up. */
 export const stripeConfigured = Boolean(STRIPE_SECRET_KEY);
 /** True when the webhook can verify signatures and grant credits. */
 export const stripeWebhookConfigured = Boolean(
   STRIPE_SECRET_KEY && STRIPE_WEBHOOK_SECRET && SUPABASE_SERVICE_ROLE_KEY,
 );
-/** True when the Anthropic apply pipeline can run for real. */
 export const anthropicConfigured = Boolean(ANTHROPIC_API_KEY);
+export const openaiConfigured = Boolean(OPENAI_API_KEY);
+
+/** True when the *configured* provider's key is present (gates real vs demo). */
+export const llmConfigured =
+  LLM_PROVIDER === "openai" ? openaiConfigured : anthropicConfigured;
+
+/** Enables the side-by-side /api/compare eval route (off by default). */
+export const compareEnabled = process.env.COMPARE_ENABLED === "1";

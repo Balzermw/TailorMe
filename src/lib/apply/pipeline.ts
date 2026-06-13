@@ -1,6 +1,5 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
-import { ANTHROPIC_API_KEY, ANTHROPIC_MODEL } from "@/lib/config";
+import { structured, type Provider, type Step } from "@/lib/apply/llm";
 import type {
   AgentNote,
   ApplyResult,
@@ -9,31 +8,29 @@ import type {
   TailoredDoc,
 } from "@/lib/types";
 
-const client = ANTHROPIC_API_KEY
-  ? new Anthropic({ apiKey: ANTHROPIC_API_KEY })
-  : null;
-
-// Generic forced-tool call → returns the validated structured input object.
+// Generic structured call → routes to the configured (or overridden) provider.
 async function callTool<T>(
+  step: Step,
   system: string,
   user: string,
-  tool: { name: string; description: string; input_schema: Anthropic.Tool.InputSchema },
+  tool: {
+    name: string;
+    description: string;
+    input_schema: Record<string, unknown>;
+  },
   maxTokens = 2400,
+  provider?: Provider,
 ): Promise<T> {
-  if (!client) throw new Error("Anthropic not configured");
-  const msg = await client.messages.create({
-    model: ANTHROPIC_MODEL,
-    max_tokens: maxTokens,
+  return structured<T>({
+    step,
     system,
-    tools: [tool],
-    tool_choice: { type: "tool", name: tool.name },
-    messages: [{ role: "user", content: user }],
+    user,
+    name: tool.name,
+    description: tool.description,
+    schema: tool.input_schema,
+    maxTokens,
+    provider,
   });
-  const block = msg.content.find((b) => b.type === "tool_use");
-  if (!block || block.type !== "tool_use") {
-    throw new Error("No structured output returned");
-  }
-  return block.input as T;
 }
 
 const GUARDRAILS =
@@ -47,6 +44,7 @@ const GUARDRAILS =
 export async function scoreFit(
   resumeText: string,
   postingText: string,
+  provider?: Provider,
 ): Promise<{ company: string; role: string; fit: FitBreakdown }> {
   const data = await callTool<{
     company: string;
@@ -63,6 +61,7 @@ export async function scoreFit(
       gaps: string[];
     }[];
   }>(
+    "score",
     GUARDRAILS,
     `Resume:\n${resumeText}\n\nJob posting:\n${postingText}\n\n` +
       "Extract the company and role, then score fit across exactly these four 0–100 " +
@@ -111,6 +110,8 @@ export async function scoreFit(
         },
       },
     },
+    2400,
+    provider,
   );
 
   return {
@@ -131,8 +132,10 @@ export async function scoreFit(
 async function tailor(
   resumeText: string,
   postingText: string,
+  provider?: Provider,
 ): Promise<{ bullets: TailoredBullet[]; keywords: string[]; doc: TailoredDoc }> {
   return callTool(
+    "tailor",
     GUARDRAILS,
     `Resume:\n${resumeText}\n\nJob posting:\n${postingText}\n\n` +
       "Rewrite this resume for THIS posting: re-rank bullets by relevance, translate tasks " +
@@ -197,6 +200,7 @@ async function tailor(
       },
     },
     4000,
+    provider,
   );
 }
 
@@ -204,8 +208,10 @@ async function tailor(
 async function review(
   doc: TailoredDoc,
   postingText: string,
+  provider?: Provider,
 ): Promise<AgentNote[]> {
   const data = await callTool<{ notes: AgentNote[] }>(
+    "review",
     GUARDRAILS,
     `Tailored resume:\n${JSON.stringify(doc)}\n\nJob posting:\n${postingText}\n\n` +
       "Review the draft as three specialist agents — 'ATS & keywords', 'Impact & metrics', " +
@@ -233,6 +239,8 @@ async function review(
         },
       },
     },
+    2400,
+    provider,
   );
   return data.notes;
 }
@@ -241,8 +249,9 @@ async function review(
 export async function runScore(
   resumeText: string,
   postingText: string,
+  provider?: Provider,
 ): Promise<ApplyResult> {
-  const { company, role, fit } = await scoreFit(resumeText, postingText);
+  const { company, role, fit } = await scoreFit(resumeText, postingText, provider);
   return { company, role, fit, bullets: [], keywords: [], agentNotes: [], doc: null };
 }
 
@@ -250,10 +259,11 @@ export async function runScore(
 export async function runFull(
   resumeText: string,
   postingText: string,
+  provider?: Provider,
 ): Promise<ApplyResult> {
-  const { company, role, fit } = await scoreFit(resumeText, postingText);
-  const tailored = await tailor(resumeText, postingText);
-  const agentNotes = await review(tailored.doc, postingText);
+  const { company, role, fit } = await scoreFit(resumeText, postingText, provider);
+  const tailored = await tailor(resumeText, postingText, provider);
+  const agentNotes = await review(tailored.doc, postingText, provider);
   return {
     company,
     role,
