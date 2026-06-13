@@ -8,7 +8,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Download, FileText, Plus, Settings, X } from "lucide-react";
 import { ROUTES } from "@/components/landing/data";
-import { printHref } from "@/lib/apply/render";
+import { pdfHref } from "@/lib/apply/render";
 import type { ApplicationRow } from "@/lib/types";
 import type { SessionUser as AuthUser } from "@/lib/auth";
 
@@ -182,7 +182,7 @@ export default function DashboardLive({
                     <div className="tmD-drawer-sec">Files</div>
                     <Link
                       className="tm-btn tm-btn--primary tm-btn--sm justify-center"
-                      href={printHref(open.id)}
+                      href={pdfHref(open.id)}
                     >
                       <Download size={14} /> Resume + cover letter (PDF)
                     </Link>
@@ -223,7 +223,7 @@ export default function DashboardLive({
                     )}
                     <Link
                       className="tm-btn tm-btn--outline tm-btn--sm"
-                      href={printHref(a.id)}
+                      href={pdfHref(a.id)}
                     >
                       <Download size={13} /> PDF
                     </Link>

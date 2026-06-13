@@ -70,12 +70,31 @@ double-credits.
    needed, so upload works in demo mode too. The full run threads the uploaded
    resume (or the sample) through the pipeline.
 
-## 4. PDF / documents
+## 4. PDF / documents (moderncv LaTeX)
 
-Tailored documents render at `/applications/[id]/print` as a print-styled page;
-"Save as PDF" uses the browser print dialog (no external service). The
-`ResumeRenderer` seam in `src/lib/apply/render.ts` lets a moderncv/LaTeX
-renderer be swapped in later without touching callers.
+The tailored documents are generated as **real moderncv (banking) LaTeX**
+(`src/lib/apply/latex.ts`):
+
+- **Preview now:** `/applications/sample/print` renders the moderncv-banking
+  layout in-browser (no toolchain) — "Save as PDF" produces the PDF, and
+  "Download .tex" gives the actual LaTeX source. Real applications use
+  `/applications/<id>/print`.
+- **Real PDF compilation (optional):** set `LATEX_COMPILE_URL` to a self-hosted
+  endpoint that takes `{ tex, engine }` and returns a PDF. Then
+  `/api/applications/<id>/pdf` returns a compiled moderncv PDF; without it, that
+  route falls back to the print view. Keeping compilation on your own
+  infrastructure means resume content never goes to a third party.
+
+  A minimal compiler container (uses TeX Live's `xelatex`, which ships
+  `moderncv`):
+
+  ```Dockerfile
+  FROM texlive/texlive:latest
+  # POST { tex, engine } → run xelatex in a tmp dir → return application/pdf
+  ```
+
+  or point `LATEX_COMPILE_URL` at a Claude Managed-Agents container running the
+  same step. The `.tex` is identical to what the in-app preview shows.
 
 ## Still placeholder (confirm before launch)
 

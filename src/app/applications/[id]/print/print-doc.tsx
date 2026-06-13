@@ -1,13 +1,34 @@
 "use client";
 
-import { Printer } from "lucide-react";
+import { FileCode, Printer } from "lucide-react";
 import type { TailoredDoc } from "@/lib/types";
 
-// Print-styled tailored resume + cover letter. "Save as PDF" via window.print().
-export default function PrintDoc({ doc }: { doc: TailoredDoc }) {
+// moderncv-banking render of the tailored resume + cover letter.
+// "Save as PDF" via the browser; "Download .tex" fetches the real LaTeX source
+// (which a LATEX_COMPILE_URL service can compile to an identical PDF).
+export default function PrintDoc({
+  doc,
+  id,
+}: {
+  doc: TailoredDoc;
+  id: string;
+}) {
+  const first = doc.name.split(/\s+/).slice(0, -1).join(" ") || doc.name;
+  const last =
+    doc.name.split(/\s+/).length > 1
+      ? doc.name.split(/\s+/).slice(-1)[0]
+      : "";
+  const coverParas = doc.coverLetter.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+
   return (
     <div className="print-wrap">
       <div className="print-toolbar">
+        <a
+          className="tm-btn tm-btn--outline tm-btn--sm"
+          href={`/api/applications/${id}/latex`}
+        >
+          <FileCode size={14} /> Download .tex
+        </a>
         <button
           type="button"
           className="tm-btn tm-btn--primary tm-btn--sm"
@@ -17,45 +38,71 @@ export default function PrintDoc({ doc }: { doc: TailoredDoc }) {
         </button>
       </div>
 
+      {/* Résumé */}
       <article className="print-page">
-        <header className="print-head">
-          <h1>{doc.name}</h1>
-          <p>{doc.contact}</p>
+        <header className="mcv-head">
+          <div className="mcv-name">
+            {first} {last && <span>{last}</span>}
+          </div>
+          <div className="mcv-title">{doc.headline}</div>
+          <div className="mcv-contact">{doc.contact}</div>
         </header>
-        {doc.summary && <p className="print-summary">{doc.summary}</p>}
+        <div className="mcv-body">
+          {doc.summary && (
+            <>
+              <h2 className="mcv-sec">Summary</h2>
+              <p className="mcv-summary">{doc.summary}</p>
+            </>
+          )}
 
-        <h2 className="print-sec">Experience</h2>
-        {doc.experience.map((e) => (
-          <section key={`${e.company}-${e.role}`} className="print-entry">
-            <div className="print-entry-head">
-              <strong>
-                {e.role} — {e.company}
-              </strong>
-              <span>{e.dates}</span>
+          <h2 className="mcv-sec">Experience</h2>
+          {doc.experience.map((e) => (
+            <div key={`${e.company}-${e.role}`} className="mcv-entry">
+              <div className="mcv-entry-dates">{e.dates}</div>
+              <div>
+                <div className="mcv-entry-role">{e.role}</div>
+                <div className="mcv-entry-company">{e.company}</div>
+                <ul>
+                  {e.bullets.map((b, i) => (
+                    <li key={i}>{b}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
-            <ul>
-              {e.bullets.map((b, i) => (
-                <li key={i}>{b}</li>
-              ))}
-            </ul>
-          </section>
-        ))}
+          ))}
 
-        <h2 className="print-sec">Skills</h2>
-        <p className="print-skills">{doc.skills.join(" · ")}</p>
+          {doc.skills.length > 0 && (
+            <>
+              <h2 className="mcv-sec">Skills</h2>
+              <p className="mcv-skills">{doc.skills.join("  •  ")}</p>
+            </>
+          )}
+        </div>
       </article>
 
+      {/* Cover letter */}
       <article className="print-page">
-        <header className="print-head">
-          <h1>{doc.name}</h1>
-          <p>{doc.contact}</p>
+        <header className="mcv-head">
+          <div className="mcv-name">
+            {first} {last && <span>{last}</span>}
+          </div>
+          <div className="mcv-title">{doc.headline}</div>
+          <div className="mcv-contact">{doc.contact}</div>
         </header>
-        <h2 className="print-sec">Cover letter</h2>
-        {doc.coverLetter.split(/\n\n+/).map((para, i) => (
-          <p key={i} className="print-para">
-            {para}
-          </p>
-        ))}
+        <div className="mcv-body">
+          <h2 className="mcv-sec">Cover letter</h2>
+          {coverParas.map((p, i) =>
+            i === coverParas.length - 1 ? (
+              <p key={i} className="mcv-sig">
+                {p}
+              </p>
+            ) : (
+              <p key={i} className="mcv-para">
+                {p}
+              </p>
+            ),
+          )}
+        </div>
       </article>
     </div>
   );

@@ -10,7 +10,17 @@ export interface ResumeRenderer {
   render(doc: TailoredDoc): Promise<{ url: string } | { html: string }>;
 }
 
-/** Path to the printable (Save-as-PDF) view of a persisted application. */
+/** Path to the printable (Save-as-PDF) moderncv view of an application. */
 export function printHref(applicationId: string): string {
   return `/applications/${applicationId}/print`;
+}
+
+/** Compiled moderncv PDF (falls back to the print view when no compiler is set). */
+export function pdfHref(applicationId: string): string {
+  return `/api/applications/${applicationId}/pdf`;
+}
+
+/** Downloadable moderncv LaTeX source. */
+export function texHref(applicationId: string, type?: "cover"): string {
+  return `/api/applications/${applicationId}/latex${type ? `?type=${type}` : ""}`;
 }

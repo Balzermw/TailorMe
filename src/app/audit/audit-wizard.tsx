@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { AGENTS_FULL, ROUTES, SCORES } from "@/components/landing/data";
 import type { ApplyResult, ResumeStats } from "@/lib/types";
-import { printHref } from "@/lib/apply/render";
+import { pdfHref } from "@/lib/apply/render";
 import { useSession } from "@/lib/auth";
 
 // Per-dimension demo evidence (fallback when Anthropic isn't configured).
@@ -634,7 +634,7 @@ function StepResults({
             {full.applicationId && (
               <Link
                 className="tm-btn tm-btn--primary tm-btn--lg"
-                href={printHref(full.applicationId)}
+                href={pdfHref(full.applicationId)}
               >
                 <Download size={16} /> Download PDF
               </Link>
