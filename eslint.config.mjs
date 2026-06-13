@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Design handoff prototypes — reference only, not app code.
     "docs/**",
+    // Standalone LaTeX compile microservice (plain Node, its own runtime).
+    "compile-service/**",
   ]),
 ]);
 

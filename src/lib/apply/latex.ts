@@ -107,9 +107,12 @@ export function renderCoverTex(doc: TailoredDoc, company = ""): string {
 export async function compileToPdf(tex: string): Promise<Uint8Array | null> {
   const url = process.env.LATEX_COMPILE_URL;
   if (!url) return null;
+  const token = process.env.LATEX_COMPILE_TOKEN;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ tex, engine: "xelatex" }),
   });
   if (!res.ok) throw new Error(`LaTeX compile failed (${res.status})`);

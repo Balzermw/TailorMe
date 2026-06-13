@@ -85,16 +85,25 @@ The tailored documents are generated as **real moderncv (banking) LaTeX**
   route falls back to the print view. Keeping compilation on your own
   infrastructure means resume content never goes to a third party.
 
-  A minimal compiler container (uses TeX Live's `xelatex`, which ships
-  `moderncv`):
+  A ready-to-run compiler lives in [`compile-service/`](../compile-service)
+  (zero-dependency Node handler on a TeX Live base, hardened against
+  shell-escape/runaway jobs):
 
-  ```Dockerfile
-  FROM texlive/texlive:latest
-  # POST { tex, engine } → run xelatex in a tmp dir → return application/pdf
+  ```bash
+  docker build -t tailorme-latex ./compile-service
+  docker run -p 8080:8080 -e COMPILE_TOKEN=a-long-secret tailorme-latex
   ```
 
-  or point `LATEX_COMPILE_URL` at a Claude Managed-Agents container running the
-  same step. The `.tex` is identical to what the in-app preview shows.
+  Then set in `.env.local`:
+
+  ```
+  LATEX_COMPILE_URL=http://localhost:8080
+  LATEX_COMPILE_TOKEN=a-long-secret   # must match COMPILE_TOKEN above
+  ```
+
+  Deploy that container to Fly.io / Cloud Run / Render / a Claude Managed-Agents
+  container and point `LATEX_COMPILE_URL` at it (keep it private — see the
+  service README). The `.tex` it compiles is identical to the in-app preview.
 
 ## Still placeholder (confirm before launch)
 
