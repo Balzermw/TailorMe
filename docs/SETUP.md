@@ -65,10 +65,10 @@ double-credits.
    resume + your pasted posting — no auth, no credit. The full
    tailor + review run (`mode: "full"` on `/api/apply`) requires a signed-in
    user with a credit, spends one credit, and saves the application.
-
-> **Resume parsing:** uploading a PDF/Word file isn't wired to a parser yet —
-> the audit scores against the bundled sample resume. Pasted resume text is
-> supported by the pipeline; file parsing is the next addition.
+4. **Resume upload is real:** PDF (`unpdf`), Word (`mammoth`), and text files
+   are parsed to text + heuristic stats by `/api/parse-resume` — local, no key
+   needed, so upload works in demo mode too. The full run threads the uploaded
+   resume (or the sample) through the pipeline.
 
 ## 4. PDF / documents
 
