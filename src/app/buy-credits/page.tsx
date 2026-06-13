@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { FileText } from "lucide-react";
 import Nav from "@/components/landing/nav";
 import Footer from "@/components/landing/footer";
@@ -23,7 +24,9 @@ export default function BuyCreditsPage() {
             letter, full agent review. Credits never expire.
           </p>
         </section>
-        <CreditsPurchase />
+        <Suspense fallback={null}>
+          <CreditsPurchase />
+        </Suspense>
       </main>
       <Footer />
     </div>

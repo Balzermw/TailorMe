@@ -4,8 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/components/landing/data";
-import { signIn } from "@/lib/session";
-import { useDemoSession } from "@/lib/use-session";
+import {
+  signInOAuth,
+  signInPassword,
+  signUp,
+  useSession,
+  type OAuthProvider,
+} from "@/lib/auth";
 
 function GoogleMark() {
   return (
@@ -45,11 +50,53 @@ export default function SignInCard() {
   const router = useRouter();
   const [mode, setMode] = useState<"signup" | "signin">("signup");
   const [email, setEmail] = useState("");
-  const session = useDemoSession();
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState(false);
+  const { user: session } = useSession();
 
-  const go = (name?: string) => {
-    signIn(email, name);
+  const submit = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    setConfirm(false);
+    if (mode === "signup") {
+      const res = await signUp(email, password);
+      setBusy(false);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      if (res.needsConfirmation) {
+        setConfirm(true);
+        return;
+      }
+    } else {
+      const res = await signInPassword(email, password);
+      setBusy(false);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+    }
     router.push(ROUTES.dashboard);
+    router.refresh();
+  };
+
+  const oauth = async (provider: OAuthProvider) => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    const res = await signInOAuth(provider);
+    if (res.error) {
+      setBusy(false);
+      setError(res.error);
+      return;
+    }
+    // Live mode redirects to the provider; demo mode falls through to dashboard.
+    router.push(ROUTES.dashboard);
+    router.refresh();
   };
 
   return (
@@ -75,14 +122,16 @@ export default function SignInCard() {
         <button
           type="button"
           className="tm-btn tm-btn--outline"
-          onClick={() => go("Alex Mercer")}
+          disabled={busy}
+          onClick={() => oauth("google")}
         >
           <GoogleMark /> Continue with Google
         </button>
         <button
           type="button"
           className="tm-btn tm-btn--outline"
-          onClick={() => go("Alex Mercer")}
+          disabled={busy}
+          onClick={() => oauth("linkedin_oidc")}
         >
           <LinkedInMark /> Continue with LinkedIn
         </button>
@@ -93,7 +142,7 @@ export default function SignInCard() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          go();
+          void submit();
         }}
       >
         <div className="tmS-field">
@@ -102,6 +151,7 @@ export default function SignInCard() {
             id="signin-email"
             className="tmS-input"
             type="email"
+            autoComplete="email"
             placeholder="you@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -113,17 +163,41 @@ export default function SignInCard() {
             id="signin-password"
             className="tmS-input"
             type="password"
+            autoComplete={
+              mode === "signup" ? "new-password" : "current-password"
+            }
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder={
               mode === "signup" ? "At least 8 characters" : "Your password"
             }
           />
         </div>
 
+        {error && (
+          <p
+            className="tm-small"
+            style={{ color: "#b3261e", marginBottom: "12px" }}
+          >
+            {error}
+          </p>
+        )}
+        {confirm && (
+          <p className="tmS-free" style={{ marginBottom: "12px" }}>
+            Check your inbox to confirm your email, then sign in.
+          </p>
+        )}
+
         <button
           type="submit"
           className="tm-btn tm-btn--primary w-full justify-center mt-[6px]"
+          disabled={busy}
         >
-          {mode === "signup" ? "Create free account" : "Sign in"}
+          {busy
+            ? "One moment…"
+            : mode === "signup"
+              ? "Create free account"
+              : "Sign in"}
         </button>
       </form>
 

@@ -3,16 +3,22 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "./data";
-import { initials, signOut } from "@/lib/session";
-import { useDemoSession } from "@/lib/use-session";
+import { initials } from "@/lib/session";
+import { signOut, useSession, type SessionUser } from "@/lib/auth";
 
-// Session-dependent right side of the nav. Renders the signed-out state on
-// the server and swaps after hydration if a demo session exists.
-export default function NavSession({ active }: { active?: string }) {
+// Session-dependent right side of the nav. Seeded from the server (initialUser)
+// so live mode is SSR-accurate; live updates on sign-in/out via useSession.
+export default function NavSession({
+  active,
+  initialUser,
+}: {
+  active?: string;
+  initialUser?: SessionUser | null;
+}) {
   const router = useRouter();
-  const session = useDemoSession();
+  const { user } = useSession(initialUser ?? null);
 
-  if (!session) {
+  if (!user) {
     return (
       <>
         <Link href={ROUTES.signIn}>Sign in</Link>
@@ -34,17 +40,18 @@ export default function NavSession({ active }: { active?: string }) {
       <Link
         href={ROUTES.settings}
         className="tm-nav-user"
-        title={session.email}
+        title={user.email}
       >
-        <span className="tm-nav-avatar">{initials(session.name)}</span>
-        {session.name}
+        <span className="tm-nav-avatar">{initials(user.name)}</span>
+        {user.name}
       </Link>
       <a
         href={ROUTES.home}
-        onClick={(e) => {
+        onClick={async (e) => {
           e.preventDefault();
-          signOut();
+          await signOut();
           router.push(ROUTES.home);
+          router.refresh();
         }}
       >
         Sign out

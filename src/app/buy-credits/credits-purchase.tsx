@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Lock, ShieldCheck } from "lucide-react";
 import { PRICING, ROUTES } from "@/components/landing/data";
+import { packIdByName } from "@/lib/packs";
 
 const PACKS = PRICING.map((p) => ({
   ...p,
@@ -13,11 +15,46 @@ const PACKS = PRICING.map((p) => ({
 }));
 
 export default function CreditsPurchase() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [sel, setSel] = useState("Job hunt");
   const [addon, setAddon] = useState(false);
   const [paid, setPaid] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const pack = PACKS.find((p) => p.name === sel) ?? PACKS[0];
   const total = pack.priceNum + (addon ? 49 : 0);
+
+  // Returning from Stripe Checkout (?success=1) or the demo "Pay" both show success.
+  const showSuccess = paid || searchParams.get("success") === "1";
+
+  const pay = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packId: packIdByName(pack.name), addon }),
+      });
+      if (res.status === 401) {
+        router.push(ROUTES.signIn);
+        return;
+      }
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url; // → Stripe Checkout
+        return;
+      }
+      // demo mode → run the local success animation
+      setPaid(true);
+    } catch {
+      setError("Couldn’t start checkout. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <section className="tm-sec">
@@ -81,7 +118,7 @@ export default function CreditsPurchase() {
           </div>
         </div>
 
-        {paid ? (
+        {showSuccess ? (
           <div className="tm-card tmCR-sum tmF-gate items-center">
             <span className="tm-pill tm-pill--mint">
               <Check size={12} /> payment complete
@@ -97,7 +134,10 @@ export default function CreditsPurchase() {
             <span
               className="tm-small cursor-pointer underline"
               style={{ fontSize: "12px" }}
-              onClick={() => setPaid(false)}
+              onClick={() => {
+                setPaid(false);
+                router.replace(ROUTES.buyCredits);
+              }}
             >
               reset demo
             </span>
@@ -128,12 +168,21 @@ export default function CreditsPurchase() {
             <div className="tmCR-payfield">
               <Lock size={15} /> Card number · MM/YY · CVC
             </div>
+            {error && (
+              <p
+                className="tm-small"
+                style={{ color: "#b3261e", marginTop: "10px" }}
+              >
+                {error}
+              </p>
+            )}
             <button
               type="button"
               className="tm-btn tm-btn--primary mt-[14px] w-full justify-center"
-              onClick={() => setPaid(true)}
+              disabled={busy}
+              onClick={() => void pay()}
             >
-              Pay ${total}
+              {busy ? "Starting checkout…" : `Pay $${total}`}
             </button>
             <p className="tmCR-paynote">
               <ShieldCheck size={13} /> Secured by Stripe · unused credits

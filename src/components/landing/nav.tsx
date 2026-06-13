@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ROUTES } from "./data";
 import NavSession from "./nav-session";
+import { getServerUser } from "@/lib/auth-server";
 
 const LINKS = [
   ["Home", ROUTES.home],
@@ -9,7 +10,10 @@ const LINKS = [
   ["Coaching", ROUTES.coaching],
 ] as const;
 
-export default function Nav({ active = "Home" }: { active?: string }) {
+export default async function Nav({ active = "Home" }: { active?: string }) {
+  // Real user in live mode (SSR-accurate, no flash); null in demo mode.
+  const initialUser = await getServerUser();
+
   return (
     <header className="tm-nav">
       <Link href={ROUTES.home} className="tm-nav-brand">
@@ -33,7 +37,7 @@ export default function Nav({ active = "Home" }: { active?: string }) {
             {label}
           </Link>
         ))}
-        <NavSession active={active} />
+        <NavSession active={active} initialUser={initialUser} />
       </nav>
     </header>
   );

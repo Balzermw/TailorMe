@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Check, Lock, Trash2, Upload } from "lucide-react";
 import { ROUTES } from "@/components/landing/data";
-import { useDemoSession } from "@/lib/use-session";
+import { useSession } from "@/lib/auth";
 
 type DeleteState = "idle" | "confirm" | "done";
 
@@ -14,7 +14,7 @@ type DeleteState = "idle" | "confirm" | "done";
 export default function SettingsContent() {
   const [del, setDel] = useState<DeleteState>("idle"); // idle → confirm → done
   const [exported, setExported] = useState(false);
-  const session = useDemoSession();
+  const { user: session } = useSession();
 
   const email = session?.email || "alex.m@email.com";
 

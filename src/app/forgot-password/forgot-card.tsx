@@ -4,9 +4,21 @@ import { useState } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { ROUTES } from "@/components/landing/data";
+import { resetPassword } from "@/lib/auth";
 
 export default function ForgotCard() {
   const [sent, setSent] = useState(false);
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const send = async () => {
+    if (busy) return;
+    setBusy(true);
+    await resetPassword(email); // no-op in demo mode; real email when configured
+    setBusy(false);
+    setSent(true); // always show the neutral "sent" state (no account enumeration)
+  };
+
   return (
     <div className="tmS-card">
       {!sent ? (
@@ -24,15 +36,19 @@ export default function ForgotCard() {
               id="forgot-email"
               className="tmS-input"
               type="email"
+              autoComplete="email"
               placeholder="you@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <button
             type="button"
             className="tm-btn tm-btn--primary w-full justify-center mt-[6px]"
-            onClick={() => setSent(true)}
+            disabled={busy}
+            onClick={() => void send()}
           >
-            Send reset link
+            {busy ? "Sending…" : "Send reset link"}
           </button>
           <p className="tmS-note">
             <Link

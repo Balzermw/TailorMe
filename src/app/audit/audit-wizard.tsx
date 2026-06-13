@@ -20,6 +20,7 @@ import {
   User,
 } from "lucide-react";
 import { AGENTS_FULL, ROUTES, SCORES } from "@/components/landing/data";
+import type { ApplyResult } from "@/lib/types";
 
 // Per-dimension evidence for the fit score — what matched and what's missing.
 const FIT_WHY: { plus: string[]; minus: string[] }[] = [
@@ -63,6 +64,52 @@ const FIT_WHY: { plus: string[]; minus: string[] }[] = [
     minus: [],
   },
 ];
+
+// Unified shape the fit UI renders, fed by either a real /api/apply result or
+// the simulated demo data.
+interface FitView {
+  header: string;
+  overall: number;
+  verdictPill: string;
+  summary: string;
+  locationPass: boolean;
+  locationNote: string;
+  dims: { label: string; score: number; plus: string[]; gaps: string[] }[];
+}
+
+const DEMO_VIEW: FitView = {
+  header: "Senior Platform Engineer — Nordpeak Systems",
+  overall: 84,
+  verdictPill: "84 — strong fit",
+  summary:
+    "Why 84 — strong fit: your platform work lines up with 4 of 5 dimensions. The weakest one — culture fit — isn’t missing experience, it’s missing evidence in your bullets. That’s exactly what tailoring surfaces. Tap any dimension to see what we found.",
+  locationPass: true,
+  locationNote: "posting allows Remote EU — your profile lists Copenhagen",
+  dims: SCORES.map((s, i) => ({
+    label: s.l,
+    score: s.v,
+    plus: FIT_WHY[i].plus,
+    gaps: FIT_WHY[i].minus,
+  })),
+};
+
+function toView(result: ApplyResult): FitView {
+  const fit = result.fit;
+  return {
+    header: `${result.role} — ${result.company}`,
+    overall: fit.overall,
+    verdictPill: `${fit.overall} — ${fit.verdict}`,
+    summary: fit.summary,
+    locationPass: fit.locationPass,
+    locationNote: fit.locationNote,
+    dims: fit.dimensions.map((d) => ({
+      label: d.label,
+      score: d.score,
+      plus: d.matched,
+      gaps: d.gaps,
+    })),
+  };
+}
 
 const STEP_LABELS = ["Your resume", "The job", "Agent audit"];
 
@@ -215,18 +262,35 @@ function StepUpload({ onNext }: { onNext: () => void }) {
 function StepJob({ onNext }: { onNext: () => void }) {
   const [phase, setPhase] = useState<"idle" | "scoring" | "done">("idle");
   const [text, setText] = useState("");
-  const [w, setW] = useState<number[]>([0, 0, 0, 0]);
+  const [view, setView] = useState<FitView>(DEMO_VIEW);
+  const [w, setW] = useState<number[]>([]);
   const [why, setWhy] = useState(0); // which dimension's evidence is open
-  useEffect(() => {
-    if (phase === "scoring") {
-      const a = setTimeout(() => setW(SCORES.map((s) => s.v)), 250);
-      const b = setTimeout(() => setPhase("done"), 1300);
-      return () => {
-        clearTimeout(a);
-        clearTimeout(b);
-      };
+
+  const score = async () => {
+    if (phase !== "idle") return;
+    setPhase("scoring");
+    let v = DEMO_VIEW;
+    try {
+      const res = await fetch("/api/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "score", useSample: true, postingText: text }),
+      });
+      const data = await res.json();
+      if (data.result) v = toView(data.result as ApplyResult);
+    } catch {
+      /* fall back to the simulated result */
     }
-  }, [phase]);
+    setView(v);
+    setWhy(0);
+    setW(v.dims.map(() => 0));
+    setTimeout(() => setW(v.dims.map((d) => d.score)), 250);
+    setTimeout(() => setPhase("done"), 1100);
+  };
+
+  const ci = view.summary.indexOf(":");
+  const summaryLead = ci >= 0 ? view.summary.slice(0, ci + 1) : "";
+  const summaryRest = ci >= 0 ? view.summary.slice(ci + 1) : view.summary;
 
   const sample = "https://nordpeak.io/careers/senior-platform-engineer";
   return (
@@ -260,7 +324,7 @@ function StepJob({ onNext }: { onNext: () => void }) {
               opacity: text ? 1 : 0.45,
               pointerEvents: text ? "auto" : "none",
             }}
-            onClick={() => setPhase("scoring")}
+            onClick={() => void score()}
           >
             Score my fit <ArrowRight size={15} />
           </button>
@@ -270,13 +334,15 @@ function StepJob({ onNext }: { onNext: () => void }) {
         <div className="mt-[24px]">
           <div className="tm-fit tmF-fit">
             <div className="tm-fit-head">
-              <h3>Senior Platform Engineer — Nordpeak Systems</h3>
+              <h3>{view.header}</h3>
               {phase === "done" && (
-                <span className="tm-pill tm-pill--mint">84 — strong fit</span>
+                <span className="tm-pill tm-pill--mint">
+                  {view.verdictPill}
+                </span>
               )}
             </div>
-            {SCORES.map((s, i) => (
-              <div key={s.l}>
+            {view.dims.map((d, i) => (
+              <div key={d.label}>
                 <div
                   className={
                     "tm-fit-row tmF-why-row" +
@@ -284,14 +350,14 @@ function StepJob({ onNext }: { onNext: () => void }) {
                   }
                   onClick={() => phase === "done" && setWhy(why === i ? -1 : i)}
                 >
-                  <label>{s.l}</label>
+                  <label>{d.label}</label>
                   <div className="tm-fit-track">
                     <div
                       className="tm-fit-bar"
-                      style={{ width: w[i] + "%" }}
+                      style={{ width: (w[i] ?? 0) + "%" }}
                     ></div>
                   </div>
-                  <output>{phase === "done" ? s.v : ""}</output>
+                  <output>{phase === "done" ? d.score : ""}</output>
                   {phase === "done" && (
                     <span
                       className={
@@ -304,12 +370,12 @@ function StepJob({ onNext }: { onNext: () => void }) {
                 </div>
                 {phase === "done" && why === i && (
                   <div className="tmF-why">
-                    {FIT_WHY[i].plus.map((p) => (
+                    {d.plus.map((p) => (
                       <p key={p} className="tmF-why-line is-plus">
                         <Check size={12} /> {p}
                       </p>
                     ))}
-                    {FIT_WHY[i].minus.map((m) => (
+                    {d.gaps.map((m) => (
                       <p key={m} className="tmF-why-line is-minus">
                         <Plus size={12} style={{ transform: "rotate(45deg)" }} />{" "}
                         {m}
@@ -331,10 +397,15 @@ function StepJob({ onNext }: { onNext: () => void }) {
                     fontSize: "12.5px",
                   }}
                 >
-                  <span className="tm-pill tm-pill--mint">
-                    <Check size={12} /> pass
+                  <span
+                    className={
+                      "tm-pill " +
+                      (view.locationPass ? "tm-pill--mint" : "tm-pill--gray")
+                    }
+                  >
+                    <Check size={12} /> {view.locationPass ? "pass" : "check"}
                   </span>{" "}
-                  posting allows Remote EU — your profile lists Copenhagen
+                  {view.locationNote}
                 </span>
               ) : (
                 <span className="tm-small">checking…</span>
@@ -344,10 +415,8 @@ function StepJob({ onNext }: { onNext: () => void }) {
           {phase === "done" && (
             <Fragment>
               <div className="tmF-verdict">
-                <b>Why 84 — strong fit:</b> your platform work lines up with 4 of
-                5 dimensions. The weakest one — culture fit — isn’t missing
-                experience, it’s missing evidence in your bullets. That’s exactly
-                what tailoring surfaces. Tap any dimension to see what we found.
+                <b>{summaryLead}</b>
+                {summaryRest}
               </div>
               <div className="tmF-actions">
                 <button
