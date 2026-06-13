@@ -989,6 +989,14 @@ body {
 .tmB-rq-item .tm-pill {
   flex: none;
 }
+.tmB-ev-head {
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--tm-zinc);
+}
 .tmB-ev-file {
   display: flex;
   align-items: center;

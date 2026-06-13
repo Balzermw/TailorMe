@@ -53,7 +53,7 @@ export default function ForgotCard() {
             If an account exists for that email, a reset link is on its way. It
             expires in 30 minutes.
           </p>
-          <p className="tm-small text-[12.5px]">
+          <p className="tm-small" style={{ fontSize: "12.5px" }}>
             Nothing arriving? Check spam, or{" "}
             <Link
               href={ROUTES.contact}

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function BuyCreditsPage() {
   return (
     <div className="tm">
-      <Nav active="" />
+      <Nav active="Pricing" />
       <main>
         <section className="tm-sec tmF-head" style={{ paddingBottom: 0 }}>
           <span className="tm-pill tmCR-balance">

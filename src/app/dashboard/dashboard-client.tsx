@@ -152,7 +152,11 @@ const FILTERS: [Filter, string][] = [
 
 function FitCell({ fit, tier }: { fit: number | null; tier: Tier | null }) {
   if (fit == null)
-    return <span className="tm-small text-[12.5px]">scoring…</span>;
+    return (
+      <span className="tm-small" style={{ fontSize: "12.5px" }}>
+        scoring…
+      </span>
+    );
   const cls =
     tier === "strong" || tier === "good"
       ? "is-mint"
@@ -226,7 +230,11 @@ function Drawer({ app, onClose }: { app: App; onClose: () => void }) {
         <>
           <p className="tmD-drawer-sec">Agent notes (top fixes)</p>
           {AGENTS_FULL.map((a) => (
-            <p key={a.name} className="tmB-rq-item text-[12.5px]">
+            <p
+              key={a.name}
+              className="tmB-rq-item"
+              style={{ fontSize: "12.5px" }}
+            >
               <span className="tm-pill">{a.name}</span>
               {a.notes[0].txt}
             </p>

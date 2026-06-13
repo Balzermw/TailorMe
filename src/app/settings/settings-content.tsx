@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { Check, Lock, Trash2, Upload } from "lucide-react";
 import { ROUTES } from "@/components/landing/data";
-import { signIn, signOut } from "@/lib/session";
 import { useDemoSession } from "@/lib/use-session";
 
 type DeleteState = "idle" | "confirm" | "done";
@@ -149,10 +148,7 @@ export default function SettingsContent() {
                   <button
                     type="button"
                     className="tm-btn tm-btn--sm tmSet-danger-fill"
-                    onClick={() => {
-                      signOut();
-                      setDel("done");
-                    }}
+                    onClick={() => setDel("done")}
                   >
                     Yes, delete everything
                   </button>
@@ -165,10 +161,7 @@ export default function SettingsContent() {
                 <button
                   type="button"
                   className="underline cursor-pointer"
-                  onClick={() => {
-                    if (session) signIn(session.email, session.name);
-                    setDel("idle");
-                  }}
+                  onClick={() => setDel("idle")}
                 >
                   reset
                 </button>
