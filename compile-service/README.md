@@ -35,10 +35,38 @@ LATEX_COMPILE_URL=http://localhost:8080
 LATEX_COMPILE_TOKEN=choose-a-long-secret
 ```
 
-(For production, deploy the container to your platform — Fly.io, Cloud Run,
-Render, ECS, or a Claude Managed-Agents container — and point
-`LATEX_COMPILE_URL` at its URL. Keep it private/internal; the token is a second
-layer, not a substitute for network isolation.)
+## Deploy
+
+Ready-made configs are included. Pick one host:
+
+**Fly.io** (one command, uses [`fly.toml`](./fly.toml)):
+
+```bash
+cd compile-service
+fly launch --copy-config --no-deploy        # choose an app name + region
+fly secrets set COMPILE_TOKEN="$(openssl rand -hex 24)"
+fly deploy
+```
+
+**Render** (uses [`render.yaml`](./render.yaml)): dashboard → New → Web Service →
+build from this repo → Root Directory `compile-service`, Runtime `Docker`,
+Health Check Path `/healthz`, add a `COMPILE_TOKEN` env var. (Or any Docker host —
+Cloud Run, ECS, a Claude Managed-Agents container — the image just needs port
+8080 reachable and `COMPILE_TOKEN` set.)
+
+Then point the app at it in `.env.local` and restart:
+
+```
+LATEX_COMPILE_URL=https://<your-service-url>
+LATEX_COMPILE_TOKEN=<the COMPILE_TOKEN you set>
+```
+
+`/api/applications/<id>/pdf` will now return a compiled moderncv PDF; if the
+service is ever down or unset, the app silently falls back to the print view.
+
+Keep it private/internal — the token is a second layer, not a substitute for
+network isolation. Fly's config scales to zero when idle (first request after
+idle cold-starts in a few seconds); set `min_machines_running = 1` to avoid that.
 
 ## Safety
 

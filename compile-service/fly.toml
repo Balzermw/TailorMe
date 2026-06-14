@@ -1,0 +1,35 @@
+# Fly.io deploy config for the TailorMe LaTeX compile service.
+#
+#   cd compile-service
+#   fly launch --copy-config --no-deploy        # pick an app name + region, keep this config
+#   fly secrets set COMPILE_TOKEN="$(openssl rand -hex 24)"
+#   fly deploy
+#
+# Then in the app's .env.local:
+#   LATEX_COMPILE_URL=https://<your-app>.fly.dev
+#   LATEX_COMPILE_TOKEN=<the COMPILE_TOKEN you set above>
+
+app = "tailorme-latex"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0  # scale to zero when idle; set 1 to avoid cold starts
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/healthz"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "1gb"  # TeX Live + xelatex; 512mb is too tight

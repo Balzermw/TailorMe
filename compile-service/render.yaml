@@ -1,0 +1,21 @@
+# Render blueprint for the TailorMe LaTeX compile service.
+#
+# Easiest path (dashboard): New → Web Service → build from this repo →
+#   Root Directory = compile-service, Runtime = Docker,
+#   Health Check Path = /healthz, add env var COMPILE_TOKEN.
+#
+# Or as a Blueprint: place this file at the repo root (or point Render at it),
+# then set COMPILE_TOKEN in the dashboard. After deploy, copy the service URL
+# into the app's LATEX_COMPILE_URL (+ LATEX_COMPILE_TOKEN to match COMPILE_TOKEN).
+services:
+  - type: web
+    name: tailorme-latex
+    runtime: docker
+    rootDir: compile-service
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    plan: starter
+    autoDeploy: false
+    envVars:
+      - key: COMPILE_TOKEN
+        sync: false # set this secret in the Render dashboard
