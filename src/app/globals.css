@@ -2070,7 +2070,12 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--tm-blue-400);
-  padding-top: 120px;
+  align-self: center;
+  padding-top: 0;
+}
+.tmT-doccol {
+  display: flex;
+  flex-direction: column;
 }
 .tmT-doclabel {
   margin-bottom: 12px;
@@ -2100,6 +2105,131 @@ body {
   color: var(--tm-zinc);
   margin-top: 12px;
   font-style: italic;
+}
+
+/* ---- full-page resume rendering (before/after) ---- */
+.tmT-subhead {
+  font-size: var(--body);
+  color: var(--tm-zinc);
+  max-width: 56ch;
+  margin: 12px auto 0;
+}
+.tmB-paper--page {
+  aspect-ratio: 8.5 / 11;
+  display: flex;
+  flex-direction: column;
+  padding: 36px 38px;
+  border-radius: 6px;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.06),
+    0 14px 32px rgba(16, 24, 40, 0.08);
+}
+.tmB-paper--after {
+  border-color: var(--tm-blue-200);
+  box-shadow:
+    0 1px 2px rgba(67, 115, 219, 0.12),
+    0 16px 38px rgba(67, 115, 219, 0.16);
+}
+.tmB-paper--page .tmB-pdoc-avatar {
+  width: 46px;
+  height: 46px;
+  font-size: 15px;
+}
+.tmB-paper--page .tmB-pdoc-name {
+  font-size: 22px;
+}
+.tmB-paper--page .tmB-pdoc-contact {
+  font-size: 11px;
+}
+.tmB-paper--page .tmB-pdoc-rule {
+  margin: 14px 0;
+}
+.tmB-paper--page .tmB-pdoc-sec {
+  font-size: 12.5px;
+  margin: 16px 0 5px;
+}
+.tmB-paper--page .tmB-pdoc-entry {
+  font-size: 13px;
+  margin-top: 11px;
+}
+.tmB-paper--page .tmB-pdoc-bullet {
+  font-size: 12px;
+  line-height: 1.62;
+  margin-top: 6px;
+  padding-left: 13px;
+}
+.tmB-paper--page .tmB-pdoc-skills {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.tmB-paper--page mark {
+  font-size: 11.5px;
+}
+.tmB-pdoc-summary {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+.tmB-paper--page .tmB-pdoc-foot {
+  margin-top: auto;
+  padding-top: 16px;
+  font-size: 10.5px;
+}
+.tmB-paper--page .tmT-before-bullet {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.tmB-paper--page .tmT-before-note {
+  margin-top: auto;
+  padding-top: 16px;
+  font-size: 11px;
+}
+
+/* ---- keywords pulled from the posting + anti-stuffing explainer ---- */
+.tmT-kw {
+  margin-top: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.tmT-kw-title {
+  font-size: var(--small);
+  color: var(--tm-zinc);
+  text-align: center;
+  max-width: 52ch;
+}
+.tmT-stuffing {
+  max-width: 680px;
+  margin-top: 6px;
+  background: var(--tm-mint-50);
+  border: 0.5px solid rgba(45, 189, 139, 0.3);
+  border-radius: 12px;
+  padding: 18px 24px;
+}
+.tmT-stuffing-head {
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+.tmT-stuffing ul {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.tmT-stuffing li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--tm-ink);
+}
+.tmT-stuffing li svg {
+  color: var(--tm-mint-600);
+  flex-shrink: 0;
+  margin-top: 3px;
 }
 .tmT-verdict {
   display: flex;
