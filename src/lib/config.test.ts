@@ -69,12 +69,36 @@ describe("config mode detection", () => {
       OPENAI_API_KEY: undefined,
       OPENAI_MODEL_TAILOR: undefined,
       OPENAI_MODEL_FAST: undefined,
+      TAILOR_PROVIDER: undefined,
+      TAILOR_MODEL: undefined,
       ANTHROPIC_API_KEY: "sk-ant",
     });
     expect(c.LLM_PROVIDER).toBe("anthropic");
     expect(c.OPENAI_MODEL_TAILOR).toBe("gpt-4.1-mini");
     expect(c.OPENAI_MODEL_FAST).toBe("gpt-4.1-mini");
     expect(c.llmConfigured).toBe(true); // anthropic key present
+  });
+
+  it("defaults the paid tailor override to Opus 4.8 on Anthropic", async () => {
+    const c = await loadConfig({
+      TAILOR_PROVIDER: undefined,
+      TAILOR_MODEL: undefined,
+      ANTHROPIC_API_KEY: "sk-ant",
+      OPENAI_API_KEY: undefined,
+    });
+    expect(c.TAILOR_PROVIDER).toBe("anthropic");
+    expect(c.TAILOR_MODEL).toBe("claude-opus-4-8");
+    expect(c.tailorProviderConfigured).toBe(true);
+
+    // Override + missing key → not configured (pipeline falls back to base).
+    const c2 = await loadConfig({
+      TAILOR_PROVIDER: "openai",
+      TAILOR_MODEL: "gpt-5.4",
+      OPENAI_API_KEY: undefined,
+    });
+    expect(c2.TAILOR_PROVIDER).toBe("openai");
+    expect(c2.TAILOR_MODEL).toBe("gpt-5.4");
+    expect(c2.tailorProviderConfigured).toBe(false);
   });
 
   it("openai provider gates llmConfigured on the OpenAI key", async () => {

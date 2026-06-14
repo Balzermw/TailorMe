@@ -1,5 +1,10 @@
 import "server-only";
 import { structured, type Provider, type Step } from "@/lib/apply/llm";
+import {
+  TAILOR_MODEL,
+  TAILOR_PROVIDER,
+  tailorProviderConfigured,
+} from "@/lib/config";
 import type {
   AgentNote,
   ApplyResult,
@@ -317,8 +322,25 @@ export async function runFull(
   postingText: string,
   provider?: Provider,
 ): Promise<ApplyResult> {
+  // Tiered models: the fit + review steps stay on the cheap base provider, while
+  // the tailor step (the paid customer deliverable) runs on the premium
+  // TAILOR_PROVIDER/MODEL for faithfulness. If a provider is explicitly pinned
+  // (e.g. /api/compare runs one provider end to end), honor it for every step.
+  const tailorProvider =
+    provider ?? (tailorProviderConfigured ? TAILOR_PROVIDER : undefined);
+  const tailorModel = provider
+    ? undefined
+    : tailorProviderConfigured
+      ? TAILOR_MODEL
+      : undefined;
+
   const { company, role, fit } = await scoreFit(resumeText, postingText, provider);
-  const tailored = await tailor(resumeText, postingText, provider);
+  const tailored = await tailor(
+    resumeText,
+    postingText,
+    tailorProvider,
+    tailorModel,
+  );
   const agentNotes = await review(tailored.doc, postingText, provider);
   return {
     company,

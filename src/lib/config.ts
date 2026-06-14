@@ -56,5 +56,20 @@ export const openaiConfigured = Boolean(OPENAI_API_KEY);
 export const llmConfigured =
   LLM_PROVIDER === "openai" ? openaiConfigured : anthropicConfigured;
 
+// ---------- paid-tier tailor override ----------
+// The free audit and the internal score/review steps run on the cheap base
+// provider (LLM_PROVIDER above). The paid full run's tailor step — the actual
+// customer deliverable — runs on a premium model for faithfulness. The n=7
+// judge tournament picked Claude Opus 4.8 as the most faithful, recruiter-safe
+// tailor (faithfulness 92 vs gpt-4.1-mini's 83). The pipeline falls back to the
+// base provider if this provider's key is absent.
+export const TAILOR_PROVIDER: "anthropic" | "openai" =
+  (process.env.TAILOR_PROVIDER || "anthropic").toLowerCase() === "openai"
+    ? "openai"
+    : "anthropic";
+export const TAILOR_MODEL = process.env.TAILOR_MODEL || "claude-opus-4-8";
+export const tailorProviderConfigured =
+  TAILOR_PROVIDER === "openai" ? openaiConfigured : anthropicConfigured;
+
 /** Enables the side-by-side /api/compare eval route (off by default). */
 export const compareEnabled = process.env.COMPARE_ENABLED === "1";

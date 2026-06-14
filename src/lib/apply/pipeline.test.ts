@@ -1,4 +1,10 @@
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+// Captures the (tool name, model) of every forced-tool call so tests can assert
+// per-step model routing. Hoisted so the vi.mock factory can close over it.
+const { calls } = vi.hoisted(() => ({
+  calls: [] as { name: string; model: string }[],
+}));
 
 // Mock the Anthropic SDK: every forced-tool call returns a canned tool_use
 // input keyed by the requested tool name. Lets us test the pipeline's
@@ -42,8 +48,9 @@ vi.mock("@anthropic-ai/sdk", () => {
   };
   class FakeAnthropic {
     messages = {
-      create: async (params: { tools: { name: string }[] }) => {
+      create: async (params: { model: string; tools: { name: string }[] }) => {
         const name = params.tools[0].name;
+        calls.push({ name, model: params.model });
         return { content: [{ type: "tool_use", name, input: FIXTURES[name] }] };
       },
     };
@@ -59,6 +66,10 @@ beforeAll(async () => {
   const mod = await import("./pipeline");
   runScore = mod.runScore;
   runFull = mod.runFull;
+});
+
+beforeEach(() => {
+  calls.length = 0;
 });
 
 describe("apply pipeline", () => {
@@ -81,5 +92,21 @@ describe("apply pipeline", () => {
     expect(r.doc?.name).toBe("Alex Mercer");
     expect(r.doc?.experience).toHaveLength(1);
     expect(r.agentNotes.map((n) => n.agent)).toContain("ATS & keywords");
+  });
+
+  it("runFull routes the tailor step to the premium model, fit/review to the base", async () => {
+    await runFull("resume", "posting");
+    const byTool = Object.fromEntries(calls.map((c) => [c.name, c.model]));
+    // Tailor (paid deliverable) → premium override; fit + review → base model.
+    expect(byTool.tailor_resume).toBe("claude-opus-4-8");
+    expect(byTool.report_fit).toBe("claude-sonnet-4-6");
+    expect(byTool.agent_review).toBe("claude-sonnet-4-6");
+  });
+
+  it("runScore (free audit) uses only the base model, never the premium one", async () => {
+    await runScore("resume", "posting");
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("report_fit");
+    expect(calls[0].model).toBe("claude-sonnet-4-6");
   });
 });
