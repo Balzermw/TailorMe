@@ -39,6 +39,13 @@ export const PARSE_RULES: Rule[] = [
   { limit: num("PARSE_PER_DAY", 20), windowMs: DAY },
 ];
 
+// Server-side posting-URL fetches. No tokens, but it makes an outbound request,
+// so cap it per IP to prevent the endpoint being used as a fetch proxy/scanner.
+export const FETCH_POSTING_RULES: Rule[] = [
+  { limit: num("FETCH_POSTING_PER_HOUR", 12), windowMs: HOUR },
+  { limit: num("FETCH_POSTING_PER_DAY", 40), windowMs: DAY },
+];
+
 // Full tailored runs per signed-in account per day. Credits already bound total
 // spend; this catches a scripted or compromised credit-loaded account.
 export const FULL_RUN_RULES: Rule[] = [
