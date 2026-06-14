@@ -60,18 +60,18 @@ const JUDGE_SCHEMA = {
 };
 
 function candidateBlock(c: Candidate): string {
-  const exp = c.doc.experience
+  const exp = (c.doc.experience ?? [])
     .map(
       (e) =>
-        `- ${e.role} @ ${e.company} (${e.dates}): ${e.bullets.join(" | ")}`,
+        `- ${e.role} @ ${e.company} (${e.dates}): ${(e.bullets ?? []).join(" | ")}`,
     )
     .join("\n");
   return `### Candidate ${c.letter}
-Summary: ${c.doc.summary}
+Summary: ${c.doc.summary ?? ""}
 Experience:
-${exp}
-Skills: ${c.doc.skills.join(", ")}
-Cover letter: ${c.doc.coverLetter}`;
+${exp || "(none provided)"}
+Skills: ${(c.doc.skills ?? []).join(", ")}
+Cover letter: ${c.doc.coverLetter ?? ""}`;
 }
 
 export async function judge(
@@ -98,7 +98,7 @@ export async function judge(
     `formatting (professional capitalization). Give an overall 0–100 and a ` +
     `one-line note each. Then name the single best candidate letter and explain why.`;
 
-  return structured<Judgment>({
+  const result = await structured<Judgment>({
     step: "review",
     system,
     user,
@@ -109,4 +109,9 @@ export async function judge(
     provider,
     model,
   });
+
+  // Some models return the winner as "Candidate F" rather than "F" — normalize
+  // to the bare letter so it maps back to the reveal table.
+  const letter = /\b([A-Z])\b/.exec(result.winner ?? "");
+  return letter ? { ...result, winner: letter[1] } : result;
 }

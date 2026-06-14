@@ -45,11 +45,18 @@ const DEFAULT_JUDGES: ModelSpec[] = [
 interface GenResult extends ModelSpec {
   ok?: boolean;
   error?: string;
+  incomplete?: boolean;
   doc?: TailoredDoc;
   bullets?: TailoredBullet[];
   tokens?: { input: number; output: number };
   costUsd?: number;
 }
+
+// A doc is judge-ready only if the model actually filled the array fields.
+// Anthropic's forced tool-use does not hard-enforce `required`, so a model can
+// return ok:true with experience/skills omitted — that must not be judged.
+const docComplete = (d?: TailoredDoc): d is TailoredDoc =>
+  !!d && Array.isArray(d.experience) && Array.isArray(d.skills);
 
 interface JudgeResult extends ModelSpec {
   ok?: boolean;
@@ -121,6 +128,7 @@ export async function POST(request: Request) {
       generations.push({
         ...t,
         ok: true,
+        incomplete: !docComplete(r.doc),
         doc: r.doc,
         bullets: r.bullets,
         tokens: { input: u.inputTokens, output: u.outputTokens },
@@ -131,16 +139,16 @@ export async function POST(request: Request) {
     }
   }
 
-  // Anonymize successful outputs for blind judging.
-  const candidates: Candidate[] = generations
-    .filter((g) => g.ok && g.doc)
-    .map((g, i) => ({
-      letter: String.fromCharCode(65 + i),
-      doc: g.doc as TailoredDoc,
-    }));
+  // Anonymize complete outputs for blind judging (incomplete docs are excluded
+  // so a model that dropped required fields can't crash the judges).
+  const judgeable = generations.filter((g) => g.ok && docComplete(g.doc));
+  const candidates: Candidate[] = judgeable.map((g, i) => ({
+    letter: String.fromCharCode(65 + i),
+    doc: g.doc as TailoredDoc,
+  }));
   const reveal: Record<string, string> = {};
-  candidates.forEach((c, i) => {
-    reveal[c.letter] = generations.filter((g) => g.ok && g.doc)[i].label;
+  judgeable.forEach((g, i) => {
+    reveal[String.fromCharCode(65 + i)] = g.label;
   });
 
   // ----- 2. judging: top models rank the candidates -----
