@@ -130,6 +130,7 @@ export const ROUTES = {
   privacy: "/privacy",
   terms: "/terms",
   contact: "/contact",
+  security: "/security",
 };
 
 // Five-dimension fit scoring (sample run — flagship composite persona).

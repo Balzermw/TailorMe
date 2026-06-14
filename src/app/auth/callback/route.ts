@@ -5,11 +5,18 @@ import { getServerSupabase } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  // Only allow same-origin relative paths — never an attacker-supplied
+  // absolute/protocol-relative URL (open-redirect prevention).
+  const raw = searchParams.get("next") ?? "/dashboard";
+  const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/dashboard";
 
   if (code) {
     const sb = await getServerSupabase();
-    if (sb) await sb.auth.exchangeCodeForSession(code);
+    if (sb) {
+      const { error } = await sb.auth.exchangeCodeForSession(code);
+      // Failed exchange → back to sign-in rather than a logged-out dashboard.
+      if (error) return NextResponse.redirect(`${origin}/signin?error=oauth`);
+    }
   }
   return NextResponse.redirect(`${origin}${next}`);
 }

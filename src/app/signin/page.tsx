@@ -13,6 +13,7 @@ const CREDS = [
   "No card required to start",
   "Fit scored before you spend anything",
   "Three specialist agents on every application",
+  "Your data is locked to your account — row-level security",
   "Encrypted at rest · delete everything in one click",
 ];
 

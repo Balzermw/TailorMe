@@ -26,7 +26,9 @@ Mode detection (see `src/lib/config.ts`):
      Stripe webhook to grant credits)
 3. **SQL Editor** — paste and run `supabase/migrations/0001_init.sql`. This
    creates `profiles`, `credit_transactions`, `applications`, row-level
-   security, and the credit functions. New users get **1 free credit**.
+   security, and the credit functions. New users get **1 free credit**. Then run
+   `supabase/migrations/0002_resumes.sql` — the saved-resume table for "upload
+   once," also row-level-secured to its owner.
 4. **Authentication → URL Configuration** — set the Site URL to your
    `NEXT_PUBLIC_APP_URL` and add `<APP_URL>/auth/callback` to the redirect
    allowlist.
@@ -73,9 +75,16 @@ Default model `claude-sonnet-4-6` (override `ANTHROPIC_MODEL`).
 
 | Pipeline step | OpenAI model (env) | Why |
 |---|---|---|
-| Fit score | `OPENAI_MODEL_FAST` = `gpt-4.1-mini` | cheap, structured-output only |
-| Tailor (resume + cover letter) | `OPENAI_MODEL_TAILOR` = `gpt-4.1` | quality-sensitive writing |
+| Fit score (free audit) | `OPENAI_MODEL_FAST` = `gpt-4.1-mini` | cheap, structured-output only |
+| Tailor (resume + cover letter) | `OPENAI_MODEL_TAILOR` = `gpt-4.1-mini` | best value in our eval (beat gpt-4.1) |
 | 3-agent review | `OPENAI_MODEL_FAST` = `gpt-4.1-mini` | cheap, structured-output only |
+
+**Tiered models (the paid deliverable):** the free audit + internal score/review
+steps run on the cheap base provider above, while the **paid full run's tailor
+step** runs on a premium model set by `TAILOR_PROVIDER` (default `anthropic`) +
+`TAILOR_MODEL` (default `claude-opus-4-8`) — the most faithful tailor in the n=7
+judge tournament. It falls back to the base provider if that key isn't set. Trade
+quality vs cost by changing those two env vars.
 
 Structured output uses Anthropic forced tool-use or OpenAI strict
 Structured Outputs automatically — same JSON either way.
