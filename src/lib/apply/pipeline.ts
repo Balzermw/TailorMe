@@ -9,6 +9,7 @@ import type {
   AgentNote,
   ApplyResult,
   FitBreakdown,
+  ResumeStats,
   TailoredBullet,
   TailoredDoc,
 } from "@/lib/types";
@@ -52,6 +53,100 @@ const GUARDRAILS =
   "'built/maintained' is not 'architected/owned'). Re-frame and tailor what is actually " +
   "there; if it is not in the resume, do not claim it. Plain text only — no HTML or markdown.";
 
+// ---------- 0. resume parse (free-audit "what we found" step) ----------
+const PARSE_SYSTEM =
+  "You are a precise resume parser and ATS reviewer. Extract ONLY what is actually in " +
+  "the resume — never invent skills, numbers, roles, or dates. From the text: identify " +
+  "the candidate's name and primary (most-recent) role title; estimate total years of " +
+  "professional experience from the earliest to the latest dates; count the experience " +
+  "bullet points and how many contain a quantified result (a %, $, a count, a time/scale " +
+  "figure like '40k', 'p95', '3x'); list the concrete hard skills and tools named " +
+  "(8–20, deduplicated, as written); pick 4–6 representative experience bullets verbatim " +
+  "and mark which contain a metric; and give 2–3 specific, evidence-based weaknesses that " +
+  "show the resume undersells the candidate (e.g. 'Only 3 of 18 bullets quantify impact', " +
+  "'Summary is generic', 'Skills are buried in prose, not scannable'). Plain text only.";
+
+/** AI parse: a structured ATS profile from raw resume text. Powers the free
+ * upload step (real data + the "your resume needs work" case). */
+export async function parseResume(
+  resumeText: string,
+  provider?: Provider,
+): Promise<ResumeStats> {
+  const data = await callTool<{
+    name: string;
+    primaryRole: string;
+    yearsExperience: number;
+    roleCount: number;
+    bulletCount: number;
+    metricBulletCount: number;
+    skills: string[];
+    sampleBullets: { text: string; hasMetric: boolean }[];
+    weaknesses: string[];
+  }>(
+    "parse",
+    PARSE_SYSTEM,
+    `Resume:\n${resumeText}\n\nReturn the structured ATS profile for this resume.`,
+    {
+      name: "report_profile",
+      description: "Return the structured resume profile + ATS weaknesses.",
+      input_schema: {
+        type: "object",
+        required: [
+          "name",
+          "primaryRole",
+          "yearsExperience",
+          "roleCount",
+          "bulletCount",
+          "metricBulletCount",
+          "skills",
+          "sampleBullets",
+          "weaknesses",
+        ],
+        properties: {
+          name: { type: "string" },
+          primaryRole: { type: "string" },
+          yearsExperience: { type: "integer" },
+          roleCount: { type: "integer" },
+          bulletCount: { type: "integer" },
+          metricBulletCount: { type: "integer" },
+          skills: { type: "array", items: { type: "string" } },
+          sampleBullets: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["text", "hasMetric"],
+              properties: {
+                text: { type: "string" },
+                hasMetric: { type: "boolean" },
+              },
+            },
+          },
+          weaknesses: { type: "array", items: { type: "string" } },
+        },
+      },
+    },
+    1600,
+    provider,
+  );
+
+  return {
+    name: data.name?.trim() || "Your resume",
+    primaryRole: data.primaryRole?.trim() || undefined,
+    yearsExperience:
+      typeof data.yearsExperience === "number" && data.yearsExperience > 0
+        ? data.yearsExperience
+        : undefined,
+    roles: Math.max(0, data.roleCount ?? 0),
+    bullets: Math.max(0, data.bulletCount ?? 0),
+    metricBullets: Math.max(0, data.metricBulletCount ?? 0),
+    skills: Array.isArray(data.skills) ? data.skills.slice(0, 24) : [],
+    sampleBullets: Array.isArray(data.sampleBullets)
+      ? data.sampleBullets.slice(0, 6)
+      : [],
+    weaknesses: Array.isArray(data.weaknesses) ? data.weaknesses.slice(0, 3) : [],
+  };
+}
+
 // ---------- 1. fit scoring (free audit + full run) ----------
 export async function scoreFit(
   resumeText: string,
@@ -72,6 +167,7 @@ export async function scoreFit(
       matched: string[];
       gaps: string[];
     }[];
+    keywords: { term: string; inResume: boolean }[];
   }>(
     "score",
     GUARDRAILS,
@@ -80,12 +176,14 @@ export async function scoreFit(
       "dimensions: Technical skills, Experience match, Culture fit, Career alignment. " +
       "For each, list concrete matched evidence from the resume and gaps that are likely " +
       "present but unwritten (frame gaps as missing evidence, not missing experience). " +
-      "Also judge Location & logistics as pass/fail with a one-line reason. Give an overall " +
+      "Also extract the 8–12 most important keywords/skills the posting screens for, and " +
+      "for each mark whether the resume already contains it (inResume true/false). " +
+      "Judge Location & logistics as pass/fail with a one-line reason. Give an overall " +
       "0–100, a verdict tier (Strong fit / Good fit / Moderate fit / Weak fit / Poor fit), " +
       "and a one-sentence summary starting 'Why <overall> — <verdict>:'.",
     {
       name: "report_fit",
-      description: "Return the structured five-dimension fit assessment.",
+      description: "Return the structured fit assessment + posting keyword match.",
       input_schema: {
         type: "object",
         required: [
@@ -97,6 +195,7 @@ export async function scoreFit(
           "locationNote",
           "summary",
           "dimensions",
+          "keywords",
         ],
         properties: {
           company: { type: "string" },
@@ -119,6 +218,17 @@ export async function scoreFit(
               },
             },
           },
+          keywords: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["term", "inResume"],
+              properties: {
+                term: { type: "string" },
+                inResume: { type: "boolean" },
+              },
+            },
+          },
         },
       },
     },
@@ -136,6 +246,7 @@ export async function scoreFit(
       locationPass: data.locationPass,
       locationNote: data.locationNote,
       summary: data.summary,
+      keywords: Array.isArray(data.keywords) ? data.keywords.slice(0, 14) : [],
     },
   };
 }

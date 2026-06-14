@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { analyze, extractText } from "@/lib/apply/parse";
+import { parseResume } from "@/lib/apply/pipeline";
+import { llmConfigured } from "@/lib/config";
 import { MAX_RESUME_CHARS, PARSE_RULES, rateLimitDisabled } from "@/lib/limits";
 import { consume, getClientIp, tooManyRequests } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 
@@ -48,7 +51,17 @@ export async function POST(request: Request) {
     // Cap stored/scored text so a huge document can't balloon downstream tokens.
     const truncated = raw.length > MAX_RESUME_CHARS;
     const text = truncated ? raw.slice(0, MAX_RESUME_CHARS) : raw;
-    return NextResponse.json({ text, stats: analyze(text), truncated });
+    // AI parse → real, accurate profile when a provider is configured; the local
+    // heuristic is the demo/offline fallback (and a safety net if the call fails).
+    let stats = analyze(text);
+    if (llmConfigured) {
+      try {
+        stats = await parseResume(text);
+      } catch {
+        /* keep the heuristic result */
+      }
+    }
+    return NextResponse.json({ text, stats, truncated });
   } catch {
     return NextResponse.json(
       { error: "Couldn’t parse that file. Try a PDF, Word, or text file." },

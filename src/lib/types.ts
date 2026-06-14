@@ -22,6 +22,7 @@ export interface FitBreakdown {
   locationPass: boolean;
   locationNote: string;
   summary: string; // "Why 84 — strong fit: …"
+  keywords?: { term: string; inResume: boolean }[]; // posting keywords + resume hit/miss
 }
 
 export interface AgentNote {
@@ -56,6 +57,11 @@ export interface ResumeStats {
   bullets: number;
   metricBullets: number;
   skills: string[];
+  // Richer fields from the AI parse (optional; heuristic fallback omits them).
+  primaryRole?: string; // most-recent / primary title
+  yearsExperience?: number; // total professional years (estimate)
+  sampleBullets?: { text: string; hasMetric: boolean }[]; // a few to animate in
+  weaknesses?: string[]; // evidence-based "your resume undersells you" points
 }
 
 export interface ApplyResult {

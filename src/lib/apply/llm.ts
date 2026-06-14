@@ -16,7 +16,7 @@ import {
 // comparison route can report real cost per provider.
 
 export type Provider = "anthropic" | "openai";
-export type Step = "score" | "tailor" | "review";
+export type Step = "parse" | "score" | "tailor" | "review";
 type JsonSchema = Record<string, unknown>;
 
 const anthropic = ANTHROPIC_API_KEY
