@@ -123,7 +123,7 @@ const PRICING_FAQS = [
   },
   {
     q: "What’s the refund policy?",
-    a: "If you’re not happy, contact us within 30 days and we’ll refund any unused credits in full. [Placeholder — confirm final policy.]",
+    a: "If you’re not happy, email balzermw@gmail.com within 30 days of purchase and we’ll refund any unused credits in full. Credits already spent on a tailored application, and completed human reviews, aren’t refundable.",
   },
   {
     q: "What does Michael’s review add?",

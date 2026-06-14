@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 const TM_TERMS: LegalDocData = {
   title: "Terms of service",
   updated:
-    "Last updated June 2026 · placeholder draft — requires legal review before publishing",
+    "Last updated June 14, 2026",
   sections: [
     [
       "The service",
@@ -20,7 +20,7 @@ const TM_TERMS: LegalDocData = {
     ],
     [
       "Refunds",
-      "Unused credits are refundable in full within 30 days of purchase. Used credits and completed human reviews are non-refundable. [Placeholder — confirm final policy.]",
+      "Unused credits are refundable in full within 30 days of purchase. Credits already spent on an application and completed human reviews are non-refundable. To request a refund, email balzermw@gmail.com.",
     ],
     [
       "No employment guarantees",

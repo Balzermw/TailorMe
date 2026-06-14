@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "Coaching with Michael — TailorMe by Res.Me",
 };
 
-// Package tiers are PLACEHOLDERS (per design handoff).
+// Package tiers — one-time, no subscription.
 const PKGS = [
   {
     name: "Resume rewrite",
@@ -205,7 +205,8 @@ function Packages() {
       <div className="tm-wrap">
         <h2 className="tm-h2">Choose your package</h2>
         <p className="tm-body mt-[10px] max-w-[60ch]">
-          Placeholder tiers — final scope and pricing to be confirmed.
+          One-time packages, no subscription — most clients start with Rewrite
+          + cover letter.
         </p>
         <div className="tmC-pkgs mt-[28px]">
           {PKGS.map((p) => (

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 const TM_PRIVACY: LegalDocData = {
   title: "Privacy policy",
   updated:
-    "Last updated June 2026 · placeholder draft — requires legal review before publishing",
+    "Last updated June 14, 2026",
   sections: [
     [
       "What we collect",

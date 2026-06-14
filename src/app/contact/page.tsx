@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 const CONTACT_POINTS = [
-  "support@res.me [placeholder address]",
+  "Email us anytime at balzermw@gmail.com",
   "Data requests answered within 30 days (GDPR)",
   "Coaching scheduling handled by Michael directly",
 ];
