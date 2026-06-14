@@ -12,8 +12,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowRight,
   Briefcase,
+  Calendar,
   Check,
   Download,
   FileText,
@@ -27,7 +29,7 @@ import {
 } from "lucide-react";
 import { AGENTS_FULL, ROUTES, SCORES } from "@/components/landing/data";
 import type { ApplyResult, ResumeStats } from "@/lib/types";
-import { pdfHref } from "@/lib/apply/render";
+import { pdfHref, texHref } from "@/lib/apply/render";
 import { useSession } from "@/lib/auth";
 import {
   clearSavedResume,
@@ -83,6 +85,7 @@ interface FitView {
   locationPass: boolean;
   locationNote: string;
   dims: { label: string; score: number; plus: string[]; gaps: string[] }[];
+  keywords: { term: string; inResume: boolean }[];
 }
 
 const DEMO_VIEW: FitView = {
@@ -99,6 +102,15 @@ const DEMO_VIEW: FitView = {
     plus: FIT_WHY[i].plus,
     gaps: FIT_WHY[i].minus,
   })),
+  keywords: [
+    { term: "Distributed systems", inResume: true },
+    { term: "Node.js at scale", inResume: true },
+    { term: "Kubernetes", inResume: true },
+    { term: "AWS/GCP", inResume: true },
+    { term: "Mentoring", inResume: true },
+    { term: "Observability", inResume: false },
+    { term: "Reliability / SLOs", inResume: false },
+  ],
 };
 
 function toView(result: ApplyResult): FitView {
@@ -116,6 +128,7 @@ function toView(result: ApplyResult): FitView {
       plus: d.matched,
       gaps: d.gaps,
     })),
+    keywords: fit.keywords ?? [],
   };
 }
 
@@ -145,6 +158,101 @@ function Stepper({ step }: { step: number }) {
   );
 }
 
+// Count a number up from 0 → target (easeOutCubic) when `run` flips true.
+function useCountUp(target: number, run: boolean, ms = 700) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!run || !target) return;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / ms);
+      setN(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, run, ms]);
+  return run ? n : 0;
+}
+
+// Fade + slide a block in when `show` becomes true.
+function Reveal({
+  show,
+  children,
+  style,
+}: {
+  show: boolean;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div
+      style={{
+        opacity: show ? 1 : 0,
+        transform: show ? "none" : "translateY(8px)",
+        transition: "opacity .5s ease, transform .5s ease",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function StatCard({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  value: number;
+  label: string;
+}) {
+  return (
+    <div style={{ background: "var(--tm-blue-50)", borderRadius: "10px", padding: "12px 14px" }}>
+      <span
+        style={{ display: "flex", alignItems: "center", color: "var(--tm-blue-800)" }}
+        aria-hidden="true"
+      >
+        {icon}
+      </span>
+      <div style={{ fontSize: "22px", fontWeight: 500, marginTop: "4px", color: "var(--tm-ink)" }}>
+        {value}
+      </div>
+      <div className="tm-small" style={{ fontSize: "11.5px" }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+// Sample profile (shown for the "Try with the sample resume" path).
+const SAMPLE_PROFILE: ResumeStats = {
+  name: "Alex Mercer",
+  primaryRole: "Software Engineer",
+  yearsExperience: 7,
+  roles: 2,
+  bullets: 14,
+  metricBullets: 3,
+  skills: [
+    "React", "Node.js", "TypeScript", "Kubernetes", "PostgreSQL", "AWS",
+    "Docker", "GraphQL", "Observability", "CI/CD", "Mentoring",
+  ],
+  sampleBullets: [
+    { text: "Responsible for developing and maintaining features for the web app using React and Node.js.", hasMetric: false },
+    { text: "Worked on bug fixes and performance improvements across the platform.", hasMetric: false },
+    { text: "Led migration of checkout to a distributed Node.js service, cutting p95 latency 38%.", hasMetric: true },
+    { text: "Mentored 6 engineers through promotion cycles.", hasMetric: true },
+    { text: "Participated in code reviews and sprint planning.", hasMetric: false },
+  ],
+  weaknesses: [
+    "Only 3 of 14 bullets quantify impact — recruiters skim for numbers.",
+    "Strong platform work is buried under a generic “Software Engineer” heading.",
+    "No summary tuned to the role you’re targeting.",
+  ],
+};
+
 // ---------- Step 1: upload (real parsing) ----------
 function StepUpload({
   onNext,
@@ -172,6 +280,7 @@ function StepUpload({
   );
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedResume | null>(null);
+  const [reveal, setReveal] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // "Upload once": offer a previously-saved resume (account in live mode,
@@ -189,6 +298,21 @@ function StepUpload({
   // Sample path: no upload, show the known composite profile.
   const done = phase === "done" || (fromSample && phase !== "parsing");
   const showSample = fromSample && !stats;
+  const profile = showSample ? SAMPLE_PROFILE : stats;
+
+  // Staged "filling in" reveal once parsing is done (role → bullets → counts →
+  // skills → the case). Count-ups run at stage 3.
+  const yearsN = useCountUp(profile?.yearsExperience ?? 0, reveal >= 3);
+  const rolesN = useCountUp(profile?.roles ?? 0, reveal >= 3);
+  const bulletsN = useCountUp(profile?.bullets ?? 0, reveal >= 3);
+  const metricsN = useCountUp(profile?.metricBullets ?? 0, reveal >= 3);
+  useEffect(() => {
+    if (phase !== "done") return;
+    const t = [120, 650, 1500, 2200, 2900].map((ms, i) =>
+      setTimeout(() => setReveal(i + 1), ms),
+    );
+    return () => t.forEach(clearTimeout);
+  }, [phase]);
 
   const handleFile = async (file: File) => {
     setError(null);
@@ -370,110 +494,189 @@ function StepUpload({
           </p>
         </div>
       )}
-      {done && (
+      {done && profile && (
         <div className="tmF-profile2">
-          <div className="tmF-profile2-id">
-            <div
-              className="flex h-[64px] w-[64px] flex-none items-center justify-center rounded-full bg-[var(--tm-blue-50)] text-[var(--tm-blue-800)]"
-              aria-hidden="true"
-            >
-              <User size={26} strokeWidth={1.6} />
-            </div>
-            <div>
-              <b>{showSample ? "Alex Mercer" : (stats?.name ?? "Your resume")}</b>
-              <span className="tm-small mt-[2px] block">
-                {showSample
-                  ? "Senior Software Engineer · 7 yrs · sample profile"
-                  : "parsed from your upload"}
-              </span>
-            </div>
-            <span className="tm-pill tm-pill--mint ml-auto">
-              <Check size={12} /> parsed
-            </span>
-          </div>
-          <div className="tmF-profile2-cols">
-            <div className="tmF-p2-group">
-              <p className="tmF-p2-label">What we extracted</p>
-              <div className="tmF-p2-rows">
-                <span className="tmF-p2-row">
-                  <Briefcase size={15} />{" "}
-                  <span>
-                    <b>{showSample ? 2 : (stats?.roles ?? 0)}</b> role
-                    {(showSample ? 2 : (stats?.roles ?? 0)) === 1 ? "" : "s"}
-                  </span>
-                </span>
-                <span className="tmF-p2-row">
-                  <List size={15} />{" "}
-                  <span>
-                    <b>{showSample ? 14 : (stats?.bullets ?? 0)}</b> experience
-                    bullets
-                  </span>
-                </span>
-                <span className="tmF-p2-row">
-                  <TrendingUp size={15} />{" "}
-                  <span>
-                    <b>{showSample ? 3 : (stats?.metricBullets ?? 0)}</b> bullets
-                    with metrics
-                  </span>
+          <Reveal show={reveal >= 1}>
+            <div className="tmF-profile2-id">
+              <div
+                className="flex h-[64px] w-[64px] flex-none items-center justify-center rounded-full bg-[var(--tm-blue-50)] text-[var(--tm-blue-800)]"
+                aria-hidden="true"
+              >
+                <User size={26} strokeWidth={1.6} />
+              </div>
+              <div>
+                <b>{profile.name || "Your resume"}</b>
+                <span className="tm-small mt-[2px] block">
+                  {profile.primaryRole
+                    ? profile.primaryRole +
+                      (profile.yearsExperience ? ` · ${profile.yearsExperience} yrs` : "") +
+                      (showSample ? " · sample profile" : "")
+                    : "parsed from your upload"}
                 </span>
               </div>
+              <span className="tm-pill tm-pill--mint ml-auto">
+                <Check size={12} /> parsed
+              </span>
             </div>
-            <div className="tmF-p2-group">
+          </Reveal>
+
+          {profile.sampleBullets && profile.sampleBullets.length > 0 && (
+            <Reveal show={reveal >= 2} style={{ marginTop: "18px" }}>
+              <p className="tmF-p2-label">Experience we found</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "9px", marginTop: "8px" }}>
+                {profile.sampleBullets.map((b, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      gap: "10px",
+                      alignItems: "flex-start",
+                      fontSize: "13px",
+                      lineHeight: 1.45,
+                      opacity: reveal >= 2 ? 1 : 0,
+                      transform: reveal >= 2 ? "none" : "translateY(6px)",
+                      transition: "opacity .45s ease, transform .45s ease",
+                      transitionDelay: `${i * 180}ms`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        marginTop: "2px",
+                        flex: "none",
+                        color: b.hasMetric ? "var(--tm-mint-600)" : "var(--tm-zinc)",
+                      }}
+                      aria-hidden="true"
+                    >
+                      {b.hasMetric ? <TrendingUp size={14} /> : <List size={14} />}
+                    </span>
+                    <span style={{ color: "var(--tm-ink)" }}>
+                      {b.text}
+                      {b.hasMetric && (
+                        <span
+                          className="tm-pill tm-pill--mint"
+                          style={{ marginLeft: "8px", fontSize: "10.5px", verticalAlign: "1px" }}
+                        >
+                          metric
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
+          )}
+
+          <Reveal show={reveal >= 3} style={{ marginTop: "20px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))",
+                gap: "10px",
+              }}
+            >
+              <StatCard icon={<Calendar size={15} />} value={yearsN} label="years experience" />
+              <StatCard icon={<Briefcase size={15} />} value={rolesN} label={rolesN === 1 ? "role" : "roles"} />
+              <StatCard icon={<List size={15} />} value={bulletsN} label="experience bullets" />
+              <StatCard icon={<TrendingUp size={15} />} value={metricsN} label="quantified" />
+            </div>
+          </Reveal>
+
+          {profile.skills && profile.skills.length > 0 && (
+            <Reveal show={reveal >= 4} style={{ marginTop: "20px" }}>
               <p className="tmF-p2-label">
-                Skills found{" "}
-                <span className="tmF-p2-count">
-                  {showSample ? 11 : (stats?.skills?.length ?? 0)}
-                </span>
+                Skills found <span className="tmF-p2-count">{profile.skills.length}</span>
               </p>
-              <div className="tmF-chips">
-                {(showSample
-                  ? ["React", "Node.js", "Kubernetes", "PostgreSQL", "Mentoring"]
-                  : (stats?.skills ?? []).slice(0, 5)
-                ).map((s) => (
-                  <span key={s} className="tm-pill tm-pill--gray">
+              <div className="tmF-chips" style={{ marginTop: "6px" }}>
+                {profile.skills.slice(0, 14).map((s, i) => (
+                  <span
+                    key={s}
+                    className="tm-pill tm-pill--gray"
+                    style={{
+                      opacity: reveal >= 4 ? 1 : 0,
+                      transform: reveal >= 4 ? "none" : "scale(.9)",
+                      transition: "opacity .35s ease, transform .35s ease",
+                      transitionDelay: `${i * 55}ms`,
+                    }}
+                  >
                     {s}
                   </span>
                 ))}
-                {(() => {
-                  const total = showSample ? 11 : (stats?.skills?.length ?? 0);
-                  return total > 5 ? (
-                    <span className="tm-pill tm-pill--line">
-                      +{total - 5} more
-                    </span>
-                  ) : null;
-                })()}
+                {profile.skills.length > 14 && (
+                  <span className="tm-pill tm-pill--line">+{profile.skills.length - 14} more</span>
+                )}
               </div>
+            </Reveal>
+          )}
+
+          {profile.weaknesses && profile.weaknesses.length > 0 && (
+            <Reveal show={reveal >= 5} style={{ marginTop: "20px" }}>
+              <div
+                style={{
+                  background: "#fdf3e7",
+                  border: "0.5px solid rgba(186, 117, 23, 0.3)",
+                  borderRadius: "12px",
+                  padding: "16px 18px",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    color: "#854f0b",
+                  }}
+                >
+                  <AlertTriangle size={15} /> What tailoring will fix
+                </p>
+                <ul style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {profile.weaknesses.map((wk, i) => (
+                    <li
+                      key={i}
+                      style={{
+                        fontSize: "13px",
+                        lineHeight: 1.5,
+                        color: "var(--tm-ink)",
+                        display: "flex",
+                        gap: "8px",
+                      }}
+                    >
+                      <span style={{ color: "#ba7517", flex: "none" }}>•</span> {wk}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Reveal>
+          )}
+
+          <Reveal show={reveal >= 5} style={{ marginTop: "22px" }}>
+            <div
+              className="tmF-profile2-foot"
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}
+            >
+              <button type="button" className="tm-btn tm-btn--primary" onClick={onNext}>
+                Next — pick the job <ArrowRight size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onReset();
+                  setPhase("idle");
+                }}
+                className="tm-small"
+                style={{
+                  color: "var(--tm-zinc)",
+                  textDecoration: "underline",
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                }}
+              >
+                use a different resume
+              </button>
             </div>
-          </div>
-          <div
-            className="tmF-profile2-foot"
-            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}
-          >
-            <button
-              type="button"
-              className="tm-btn tm-btn--primary"
-              onClick={onNext}
-            >
-              Next — pick the job <ArrowRight size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onReset();
-                setPhase("idle");
-              }}
-              className="tm-small"
-              style={{
-                color: "var(--tm-zinc)",
-                textDecoration: "underline",
-                cursor: "pointer",
-                background: "none",
-                border: "none",
-              }}
-            >
-              use a different resume
-            </button>
-          </div>
+          </Reveal>
         </div>
       )}
     </div>
@@ -735,6 +938,39 @@ function StepJob({
               )}
             </div>
           </div>
+          {phase === "done" && view.keywords.length > 0 && (
+            <div style={{ marginTop: "18px" }}>
+              <p
+                className="tmF-p2-label"
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <Sparkles size={13} /> Keywords this posting screens for
+              </p>
+              <div className="tmF-chips" style={{ marginTop: "8px" }}>
+                {view.keywords.map((k) => (
+                  <span
+                    key={k.term}
+                    className={"tm-pill " + (k.inResume ? "tm-pill--mint" : "tm-pill--gray")}
+                  >
+                    {k.inResume ? (
+                      <Check size={12} />
+                    ) : (
+                      <Plus size={12} style={{ transform: "rotate(45deg)" }} />
+                    )}{" "}
+                    {k.term}
+                  </span>
+                ))}
+              </div>
+              <p className="tm-small" style={{ marginTop: "8px", fontSize: "12px" }}>
+                {(() => {
+                  const miss = view.keywords.filter((k) => !k.inResume).length;
+                  return miss > 0
+                    ? `${view.keywords.length - miss} already in your resume · ${miss} missing — tailoring surfaces the ones you can genuinely back up.`
+                    : "Your resume already covers the posting’s keywords — tailoring sharpens how they read.";
+                })()}
+              </p>
+            </div>
+          )}
           {phase === "done" && (
             <Fragment>
               {note && (
@@ -903,6 +1139,14 @@ function StepResults({
               >
                 <Download size={16} /> Download PDF
               </Link>
+            )}
+            {full.applicationId && (
+              <a
+                className="tm-btn tm-btn--outline tm-btn--lg"
+                href={texHref(full.applicationId)}
+              >
+                <FileText size={16} /> LaTeX (.tex)
+              </a>
             )}
             <Link className="tm-btn tm-btn--outline tm-btn--lg" href={ROUTES.dashboard}>
               <FileText size={16} /> View in dashboard
