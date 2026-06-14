@@ -78,8 +78,13 @@ export async function POST(request: Request) {
 
     // ----- full run: requires auth + a credit -----
     const sb = await getServerSupabase();
-    const user = sb ? (await sb.auth.getUser()).data.user : null;
-    if (!sb || !user) {
+    if (!sb) {
+      // Supabase not configured (no accounts/credits) → surface the demo notice
+      // instead of redirecting to a sign-in page that can't complete the run.
+      return NextResponse.json({ demo: true });
+    }
+    const user = (await sb.auth.getUser()).data.user;
+    if (!user) {
       return NextResponse.json(
         { error: "Sign in to run a full application.", signin: true },
         { status: 401 },

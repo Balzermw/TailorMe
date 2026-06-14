@@ -7,7 +7,7 @@
 //         Signed-in → run the full tailored application (spends 1 credit),
 //         showing the real tailored bullets, agent notes, and a PDF download.
 
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -29,6 +29,12 @@ import { AGENTS_FULL, ROUTES, SCORES } from "@/components/landing/data";
 import type { ApplyResult, ResumeStats } from "@/lib/types";
 import { pdfHref } from "@/lib/apply/render";
 import { useSession } from "@/lib/auth";
+import {
+  clearSavedResume,
+  loadSavedResume,
+  saveResume,
+  type SavedResume,
+} from "@/lib/resume";
 
 // Per-dimension demo evidence (fallback when Anthropic isn't configured).
 const FIT_WHY: { plus: string[]; minus: string[] }[] = [
@@ -144,18 +150,41 @@ function StepUpload({
   onNext,
   onSample,
   onUploaded,
+  onReset,
   stats,
   fromSample,
 }: {
   onNext: () => void;
   onSample: () => void;
   onUploaded: (text: string, stats: ResumeStats) => void;
+  onReset: () => void;
   stats: ResumeStats | null;
   fromSample: boolean;
 }) {
-  const [phase, setPhase] = useState<"idle" | "parsing" | "done">("idle");
+  // Initialize from props so a resume already chosen in the parent (e.g. after
+  // navigating back from the job step) re-shows its profile instead of being lost.
+  const [phase, setPhase] = useState<"idle" | "parsing" | "done">(() =>
+    !fromSample &&
+    !!stats &&
+    (stats.roles > 0 || stats.bullets > 0 || (stats.skills?.length ?? 0) > 0)
+      ? "done"
+      : "idle",
+  );
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<SavedResume | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // "Upload once": offer a previously-saved resume (account in live mode,
+  // localStorage in demo mode).
+  useEffect(() => {
+    let active = true;
+    loadSavedResume().then((r) => {
+      if (active && r && r.text) setSaved(r);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Sample path: no upload, show the known composite profile.
   const done = phase === "done" || (fromSample && phase !== "parsing");
@@ -170,12 +199,39 @@ function StepUpload({
       const res = await fetch("/api/parse-resume", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "parse failed");
-      onUploaded(data.text, data.stats as ResumeStats);
+      const s = data.stats as ResumeStats;
+      onUploaded(data.text, s);
       setPhase("done");
+      // Persist for next time — no-op if signed out in live mode.
+      void saveResume({ name: s?.name || "My resume", text: data.text, stats: s });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn’t read that file.");
       setPhase("idle");
     }
+  };
+
+  const useSaved = () => {
+    if (!saved) return;
+    if (saved.stats) {
+      onUploaded(saved.text, saved.stats);
+      setPhase("done");
+    } else {
+      // No parsed snapshot stored — skip the empty profile panel and go straight
+      // to the job step (resume text is fully present and usable).
+      onUploaded(saved.text, {
+        name: saved.name,
+        roles: 0,
+        bullets: 0,
+        metricBullets: 0,
+        skills: [],
+      });
+      onNext();
+    }
+  };
+
+  const forgetSaved = () => {
+    setSaved(null);
+    void clearSavedResume();
   };
 
   const useSampleNow = () => {
@@ -186,8 +242,81 @@ function StepUpload({
 
   return (
     <div className="tm-card">
-      {phase === "idle" && (
+      {phase === "idle" && !done && (
         <div>
+          {saved && (
+            <div
+              style={{
+                border: "0.5px solid var(--tm-border)",
+                borderRadius: "12px",
+                padding: "16px 18px",
+                marginBottom: "16px",
+                background: "var(--tm-blue-50)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <span
+                  style={{
+                    display: "flex",
+                    height: "40px",
+                    width: "40px",
+                    flex: "none",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "50%",
+                    background: "#fff",
+                    color: "var(--tm-blue-800)",
+                  }}
+                  aria-hidden="true"
+                >
+                  <FileText size={18} />
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <b>{saved.name}</b>
+                  <span
+                    className="tm-small"
+                    style={{ display: "block", fontSize: "12.5px" }}
+                  >
+                    your saved resume — ready to reuse
+                  </span>
+                </div>
+                <span className="tm-pill tm-pill--mint" style={{ marginLeft: "auto" }}>
+                  <Check size={12} /> saved
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "14px",
+                  marginTop: "14px",
+                }}
+              >
+                <button
+                  type="button"
+                  className="tm-btn tm-btn--primary"
+                  onClick={useSaved}
+                >
+                  Use this resume <ArrowRight size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={forgetSaved}
+                  className="tm-small"
+                  style={{
+                    color: "var(--tm-zinc)",
+                    textDecoration: "underline",
+                    cursor: "pointer",
+                    background: "none",
+                    border: "none",
+                  }}
+                >
+                  forget it
+                </button>
+              </div>
+              <p className="tmF-or">or upload a different one</p>
+            </div>
+          )}
           <input
             ref={fileRef}
             type="file"
@@ -293,7 +422,7 @@ function StepUpload({
               <p className="tmF-p2-label">
                 Skills found{" "}
                 <span className="tmF-p2-count">
-                  {showSample ? 11 : (stats?.skills.length ?? 0)}
+                  {showSample ? 11 : (stats?.skills?.length ?? 0)}
                 </span>
               </p>
               <div className="tmF-chips">
@@ -306,7 +435,7 @@ function StepUpload({
                   </span>
                 ))}
                 {(() => {
-                  const total = showSample ? 11 : (stats?.skills.length ?? 0);
+                  const total = showSample ? 11 : (stats?.skills?.length ?? 0);
                   return total > 5 ? (
                     <span className="tm-pill tm-pill--line">
                       +{total - 5} more
@@ -316,13 +445,33 @@ function StepUpload({
               </div>
             </div>
           </div>
-          <div className="tmF-profile2-foot">
+          <div
+            className="tmF-profile2-foot"
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}
+          >
             <button
               type="button"
               className="tm-btn tm-btn--primary"
               onClick={onNext}
             >
               Next — pick the job <ArrowRight size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onReset();
+                setPhase("idle");
+              }}
+              className="tm-small"
+              style={{
+                color: "var(--tm-zinc)",
+                textDecoration: "underline",
+                cursor: "pointer",
+                background: "none",
+                border: "none",
+              }}
+            >
+              use a different resume
             </button>
           </div>
         </div>
@@ -350,9 +499,50 @@ function StepJob({
   const [w, setW] = useState<number[]>([]);
   const [why, setWhy] = useState(0);
   const [note, setNote] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(false);
+  const [fetchErr, setFetchErr] = useState<string | null>(null);
+  const [fetchNote, setFetchNote] = useState<string | null>(null);
+  const [demoScore, setDemoScore] = useState(false);
 
   const score = async () => {
-    if (phase !== "idle") return;
+    if (phase !== "idle" || fetching) return;
+    setFetchErr(null);
+    setDemoScore(false);
+    let postingForScore = posting.trim();
+
+    // If they pasted a link, pull the posting text server-side first (SSRF-safe).
+    // Gated only on the input being a URL — independent of which resume they use.
+    if (/^https?:\/\//i.test(postingForScore)) {
+      setFetching(true);
+      setFetchNote(null);
+      try {
+        const r = await fetch("/api/fetch-posting", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: postingForScore }),
+        });
+        const d = await r.json();
+        if (r.ok && d.text) {
+          postingForScore = d.text as string;
+          setPosting(postingForScore); // show what we pulled; carries into step 3
+          setFetchNote(
+            d.truncated
+              ? "Pulled from the link — we trimmed a long page to its most relevant part."
+              : "Pulled the posting from that link.",
+          );
+        } else {
+          setFetchErr(d.error || "Couldn’t read that link. Paste the posting text instead.");
+          setFetching(false);
+          return;
+        }
+      } catch {
+        setFetchErr("Couldn’t read that link. Paste the posting text instead.");
+        setFetching(false);
+        return;
+      }
+      setFetching(false);
+    }
+
     setPhase("scoring");
     let v = DEMO_VIEW;
     let msg: string | null = null;
@@ -364,7 +554,7 @@ function StepJob({
           mode: "score",
           useSample,
           resumeText,
-          postingText: posting,
+          postingText: postingForScore,
         }),
       });
       const data = await res.json();
@@ -373,8 +563,11 @@ function StepJob({
       } else if (res.status === 429 || res.status === 413) {
         // Free limit reached or input too large → show the sample, nudge signup.
         msg = data.error as string;
+      } else if (data.demo) {
+        // No provider configured → DEMO_VIEW is shown; flag it as a sample.
+        setDemoScore(true);
       }
-      // demo mode (data.demo) or other errors → silent simulated fallback
+      // other errors → silent simulated fallback
     } catch {
       /* fall back to the simulated result */
     }
@@ -390,7 +583,8 @@ function StepJob({
   const summaryLead = ci >= 0 ? view.summary.slice(0, ci + 1) : "";
   const summaryRest = ci >= 0 ? view.summary.slice(ci + 1) : view.summary;
 
-  const sample = "https://nordpeak.io/careers/senior-platform-engineer";
+  const sample =
+    "Senior Platform Engineer — Nordpeak Systems (Remote, EU). Own the evolution of our backend platform: lead distributed Node.js services handling millions of daily transactions, set Kubernetes deployment standards across teams, and build observability into everything we ship. Requirements: 5+ years backend at scale; distributed systems and Node.js in production; strong Kubernetes and cloud (AWS/GCP); a track record of reliability and performance wins; mentoring and technical direction. Nice to have: Datadog/Prometheus; owning a platform other teams build on.";
   return (
     <div className="tm-card">
       <label
@@ -404,29 +598,64 @@ function StepJob({
         className="tmF-ta"
         value={posting}
         placeholder="https://…  or paste the full posting"
-        onChange={(e) => setPosting(e.target.value)}
+        onChange={(e) => {
+          setPosting(e.target.value);
+          setFetchErr(null); // a prior link error no longer applies once they edit
+          // Editing after a score invalidates it — return to idle so the user
+          // re-scores the text that will actually be tailored.
+          if (phase !== "idle") {
+            setPhase("idle");
+            setNote(null);
+            setFetchNote(null);
+            setDemoScore(false);
+          }
+        }}
       ></textarea>
+      {fetchNote && (
+        <p
+          className="tm-small mt-[8px]"
+          style={{ color: "var(--tm-mint-600)", fontSize: "12px" }}
+        >
+          <Check size={12} style={{ verticalAlign: "-2px" }} /> {fetchNote}
+        </p>
+      )}
       {phase === "idle" && (
-        <div className="tmF-actions" style={{ justifyContent: "space-between" }}>
-          <button
-            type="button"
-            className="tm-btn tm-btn--ghost"
-            onClick={() => setPosting(sample)}
-          >
-            Use the sample posting
-          </button>
-          <button
-            type="button"
-            className="tm-btn tm-btn--primary"
-            style={{
-              opacity: posting ? 1 : 0.45,
-              pointerEvents: posting ? "auto" : "none",
-            }}
-            onClick={() => void score()}
-          >
-            Score my fit <ArrowRight size={15} />
-          </button>
-        </div>
+        <Fragment>
+          <p className="tm-small mt-[8px]" style={{ fontSize: "12px" }}>
+            Paste a link and we’ll pull the posting for you — or paste the text.
+          </p>
+          {fetchErr && (
+            <p className="tm-small mt-[8px]" style={{ color: "#b3261e" }}>
+              {fetchErr}
+            </p>
+          )}
+          <div className="tmF-actions" style={{ justifyContent: "space-between" }}>
+            <button
+              type="button"
+              className="tm-btn tm-btn--ghost"
+              onClick={() => setPosting(sample)}
+            >
+              Use the sample posting
+            </button>
+            <button
+              type="button"
+              className="tm-btn tm-btn--primary"
+              style={{
+                opacity: posting && !fetching ? 1 : 0.45,
+                pointerEvents: posting && !fetching ? "auto" : "none",
+              }}
+              onClick={() => void score()}
+            >
+              {fetching ? (
+                "Reading the posting…"
+              ) : (
+                <Fragment>
+                  Score my fit <ArrowRight size={15} />
+                </Fragment>
+              )}
+            </button>
+          </div>
+        </Fragment>
       )}
       {phase !== "idle" && (
         <div className="mt-[24px]">
@@ -464,13 +693,13 @@ function StepJob({
                 </div>
                 {phase === "done" && why === i && (
                   <div className="tmF-why">
-                    {d.plus.map((p) => (
-                      <p key={p} className="tmF-why-line is-plus">
+                    {d.plus.map((p, pi) => (
+                      <p key={`p-${pi}`} className="tmF-why-line is-plus">
                         <Check size={12} /> {p}
                       </p>
                     ))}
-                    {d.gaps.map((m) => (
-                      <p key={m} className="tmF-why-line is-minus">
+                    {d.gaps.map((m, mi) => (
+                      <p key={`g-${mi}`} className="tmF-why-line is-minus">
                         <Plus size={12} style={{ transform: "rotate(45deg)" }} />{" "}
                         {m}
                       </p>
@@ -521,6 +750,15 @@ function StepJob({
                     create a free account
                   </Link>{" "}
                   to run your own.
+                </p>
+              )}
+              {demoScore && (
+                <p
+                  className="tmS-free mt-[16px]"
+                  style={{ display: "flex", gap: "10px", alignItems: "center" }}
+                >
+                  Demo mode — this is a sample result, not scored from your
+                  resume. Add a provider key to score real resumes.
                 </p>
               )}
               <div className="tmF-verdict">
@@ -863,6 +1101,11 @@ export default function AuditWizard() {
                 setUseSample(false);
                 setResumeText(text);
                 setStats(s);
+              }}
+              onReset={() => {
+                setUseSample(false);
+                setStats(null);
+                setResumeText("");
               }}
               onNext={() => setStep(1)}
             />
