@@ -2,6 +2,7 @@
 
 import { FileCode, Printer } from "lucide-react";
 import type { TailoredDoc } from "@/lib/types";
+import { coverParagraphs } from "@/lib/apply/latex";
 
 // moderncv-banking render of the tailored resume + cover letter.
 // "Save as PDF" via the browser; "Download .tex" fetches the real LaTeX source
@@ -18,7 +19,7 @@ export default function PrintDoc({
     doc.name.split(/\s+/).length > 1
       ? doc.name.split(/\s+/).slice(-1)[0]
       : "";
-  const coverParas = doc.coverLetter.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+  const coverParas = coverParagraphs(doc.coverLetter);
 
   return (
     <div className="print-wrap">
@@ -55,21 +56,25 @@ export default function PrintDoc({
             </>
           )}
 
-          <h2 className="mcv-sec">Experience</h2>
-          {doc.experience.map((e) => (
-            <div key={`${e.company}-${e.role}`} className="mcv-entry">
-              <div className="mcv-entry-dates">{e.dates}</div>
-              <div>
-                <div className="mcv-entry-role">{e.role}</div>
-                <div className="mcv-entry-company">{e.company}</div>
-                <ul>
-                  {e.bullets.map((b, i) => (
-                    <li key={i}>{b}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          ))}
+          {doc.experience.length > 0 && (
+            <>
+              <h2 className="mcv-sec">Experience</h2>
+              {doc.experience.map((e, i) => (
+                <div key={i} className="mcv-entry">
+                  <div className="mcv-entry-dates">{e.dates}</div>
+                  <div>
+                    <div className="mcv-entry-role">{e.role}</div>
+                    <div className="mcv-entry-company">{e.company}</div>
+                    <ul>
+                      {e.bullets.map((b, i) => (
+                        <li key={i}>{b}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
 
           {doc.skills.length > 0 && (
             <>

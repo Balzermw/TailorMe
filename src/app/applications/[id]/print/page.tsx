@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getServerSupabase } from "@/lib/supabase/server";
 import type { ApplyResult, TailoredDoc } from "@/lib/types";
 import { SAMPLE_DOC } from "@/lib/apply/sample";
+import { clampToTwoPages } from "@/lib/apply/latex";
 import { ROUTES } from "@/components/landing/data";
 import PrintDoc from "./print-doc";
 import "./print.css";
@@ -50,7 +51,7 @@ export default async function PrintPage({
 
   return (
     <div className="tm">
-      <PrintDoc doc={doc} id={id} />
+      <PrintDoc doc={clampToTwoPages(doc)} id={id} />
     </div>
   );
 }

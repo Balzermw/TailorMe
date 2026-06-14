@@ -178,7 +178,10 @@ async function tailor(
     `Resume:\n${resumeText}\n\nJob posting:\n${postingText}\n\n` +
       "Rewrite this resume for THIS posting: re-rank bullets by relevance, translate tasks " +
       "into impact with real numbers where the resume supports them, and align keywords only " +
-      "where backed by experience. Return: a few before/after bullet pairs (the strongest " +
+      "where backed by experience. Keep the resume to a tight TWO PAGES: include the most " +
+      "relevant roles most-recent-first (at most 6 entries), 3–5 bullets for recent roles and " +
+      "2–3 for older ones, a 1–2 sentence summary, and about 10–15 skills — prioritize " +
+      "relevance over completeness. Return: a few before/after bullet pairs (the strongest " +
       "rewrites), the aligned keywords, and a complete tailored document (name, headline, " +
       "contact line, 1–2 sentence summary, experience entries with rewritten bullets, skills, " +
       "and a 3-paragraph cover letter). Plain text only.",

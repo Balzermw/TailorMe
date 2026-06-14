@@ -36,15 +36,91 @@ const PREAMBLE = (doc: TailoredDoc): string => {
     "\\moderncvstyle{banking}",
     "\\moderncvcolor{blue}",
     "\\usepackage[scale=0.84]{geometry}",
-    "\\usepackage[utf8]{inputenc}",
+    // No inputenc: the compile service uses XeLaTeX, which reads UTF-8 natively.
     `\\name{${escapeLatex(first)}}{${escapeLatex(last)}}`,
     `\\title{${escapeLatex(doc.headline)}}`,
     `\\email{${escapeLatex(doc.contact)}}`,
   ].join("\n");
 };
 
-/** moderncv-banking résumé as compilable LaTeX. */
-export function renderResumeTex(doc: TailoredDoc): string {
+// ---- two-page fit ----
+// moderncv banking at scale 0.84 holds roughly one page per ~3-4 dense entries.
+// These caps bound BOTH the count AND the per-item length of every section so the
+// rendered résumé stays within ~two pages even at the model's verbose worst case
+// (max entries × max bullets × max bullet length ≈ 1.7 pages — see the
+// "two-page line budget" regression test). Applied at render time (PDF + print
+// view) so the stored ApplyResult keeps the full content for the dashboard.
+export const TWO_PAGE = {
+  maxEntries: 6,
+  bulletsByIndex: [4, 4, 3, 3, 2, 2], // 18 bullets total; newest roles get more room
+  minBullets: 2,
+  maxSkills: 18,
+  maxSummary: 360,
+  maxBulletChars: 160, // ~2 lines each in the content column
+  maxSkillChars: 40,
+  maxCoverParas: 5,
+  maxCoverParaChars: 480, // worst case (5 × 480) fits one page
+  // Header fields also wrap to extra lines if the model echoes long values, so
+  // bound them too (the dates column in moderncv banking is especially narrow).
+  // maxNameChars is generous — no real name reaches it, so legit names are never
+  // truncated; it only caps a pathological model echo.
+  maxNameChars: 80,
+  maxHeadlineChars: 90,
+  maxContactChars: 120,
+  maxRoleChars: 90,
+  maxCompanyChars: 70,
+  maxDatesChars: 32,
+};
+
+/**
+ * Trim a string to `max` characters at a word boundary (hard-cut if no space).
+ * Iterates by code point so a surrogate pair (emoji, etc.) is never split. Caps
+ * are by character count, not visual width — fine for the Latin-script résumés
+ * this product targets.
+ */
+function clampLen(s: string, max: number): string {
+  if (!s) return s;
+  const cps = Array.from(s);
+  if (cps.length <= max) return s;
+  const cut = cps.slice(0, max).join("");
+  const atWord = cut.replace(/\s+\S*$/, "");
+  return (atWord.length >= max * 0.6 ? atWord : cut) + "…";
+}
+
+/**
+ * Trim a tailored doc so the moderncv render reliably fits two pages — bounds
+ * BOTH the number of entries/bullets/skills AND the length of each individual
+ * bullet, skill, and the summary (a count cap alone can't bound page height).
+ */
+export function clampToTwoPages(doc: TailoredDoc): TailoredDoc {
+  const experience = (doc.experience ?? [])
+    .slice(0, TWO_PAGE.maxEntries)
+    .map((e, i) => ({
+      ...e,
+      role: clampLen(e.role ?? "", TWO_PAGE.maxRoleChars),
+      company: clampLen(e.company ?? "", TWO_PAGE.maxCompanyChars),
+      dates: clampLen(e.dates ?? "", TWO_PAGE.maxDatesChars),
+      bullets: (e.bullets ?? [])
+        .slice(0, TWO_PAGE.bulletsByIndex[i] ?? TWO_PAGE.minBullets)
+        .map((b) => clampLen(b, TWO_PAGE.maxBulletChars)),
+    }));
+
+  return {
+    ...doc,
+    name: clampLen(doc.name ?? "", TWO_PAGE.maxNameChars),
+    headline: clampLen(doc.headline ?? "", TWO_PAGE.maxHeadlineChars),
+    contact: clampLen(doc.contact ?? "", TWO_PAGE.maxContactChars),
+    summary: clampLen(doc.summary ?? "", TWO_PAGE.maxSummary),
+    experience,
+    skills: (doc.skills ?? [])
+      .slice(0, TWO_PAGE.maxSkills)
+      .map((s) => clampLen(s, TWO_PAGE.maxSkillChars)),
+  };
+}
+
+/** moderncv-banking résumé as compilable LaTeX (clamped to two pages). */
+export function renderResumeTex(input: TailoredDoc): string {
+  const doc = clampToTwoPages(input);
   const lines: string[] = [PREAMBLE(doc), "\\begin{document}", "\\makecvtitle"];
 
   if (doc.summary) {
@@ -52,16 +128,18 @@ export function renderResumeTex(doc: TailoredDoc): string {
     lines.push(`\\cvitem{}{${escapeLatex(doc.summary)}}`);
   }
 
-  lines.push("\\section{Experience}");
+  if (doc.experience.length) lines.push("\\section{Experience}");
   for (const e of doc.experience) {
-    const items = e.bullets
-      .map((b) => `  \\item ${escapeLatex(b)}`)
-      .join("\n");
-    lines.push(
-      `\\cventry{${escapeLatex(e.dates)}}{${escapeLatex(e.role)}}{${escapeLatex(
-        e.company,
-      )}}{}{}{%\n\\begin{itemize}\n${items}\n\\end{itemize}}`,
-    );
+    const head = `\\cventry{${escapeLatex(e.dates)}}{${escapeLatex(
+      e.role,
+    )}}{${escapeLatex(e.company)}}{}{}`;
+    if (!e.bullets.length) {
+      // An itemize with no \item fails LaTeX — emit an empty description instead.
+      lines.push(`${head}{}`);
+      continue;
+    }
+    const items = e.bullets.map((b) => `  \\item ${escapeLatex(b)}`).join("\n");
+    lines.push(`${head}{%\n\\begin{itemize}\n${items}\n\\end{itemize}}`);
   }
 
   if (doc.skills.length) {
@@ -73,18 +151,26 @@ export function renderResumeTex(doc: TailoredDoc): string {
   return lines.join("\n");
 }
 
-/** moderncv-banking cover letter as compilable LaTeX. */
-export function renderCoverTex(doc: TailoredDoc, company = ""): string {
-  const paras = doc.coverLetter
+/** Split a cover letter into bounded paragraphs (≤1 page) for either renderer. */
+export function coverParagraphs(text: string): string[] {
+  return (text ?? "")
     .split(/\n\n+/)
     .map((p) => p.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .slice(0, TWO_PAGE.maxCoverParas)
+    .map((p) => clampLen(p, TWO_PAGE.maxCoverParaChars));
+}
+
+/** moderncv-banking cover letter as compilable LaTeX. */
+export function renderCoverTex(doc: TailoredDoc, company = ""): string {
+  const clamped = clampToTwoPages(doc); // bound name/headline/contact in the preamble too
+  const paras = coverParagraphs(doc.coverLetter);
   const opening = paras[0] ?? "Dear hiring team,";
   const closing = paras.length > 1 ? paras[paras.length - 1] : "Sincerely,";
   const body = paras.slice(1, -1); // paragraphs between the opening and closing
 
   return [
-    PREAMBLE(doc),
+    PREAMBLE(clamped),
     company ? `\\recipient{${escapeLatex(company)}}{Hiring team}` : "",
     `\\opening{${escapeLatex(opening)}}`,
     "\\begin{document}",
