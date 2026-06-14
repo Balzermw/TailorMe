@@ -33,9 +33,13 @@ export const LLM_PROVIDER: "anthropic" | "openai" =
     : "anthropic";
 
 export const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-// Per-use-case OpenAI models (maximize usage): a cheap model for the structured
-// score/review steps, a stronger model for the quality-sensitive tailor step.
-export const OPENAI_MODEL_TAILOR = process.env.OPENAI_MODEL_TAILOR || "gpt-4.1";
+// Per-use-case OpenAI models. The n=7 judge tournament showed gpt-4.1-mini is the
+// best value for tailoring — it actually OUT-scored full gpt-4.1 (higher
+// faithfulness, ~1/5 the cost) — so mini is the default for both the structured
+// score/review steps and the quality-sensitive tailor step. Override via env to
+// trade up (e.g. OPENAI_MODEL_TAILOR=gpt-5.4 for the strongest OpenAI output).
+export const OPENAI_MODEL_TAILOR =
+  process.env.OPENAI_MODEL_TAILOR || "gpt-4.1-mini";
 export const OPENAI_MODEL_FAST =
   process.env.OPENAI_MODEL_FAST || "gpt-4.1-mini";
 

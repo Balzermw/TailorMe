@@ -110,8 +110,19 @@ export async function judge(
     model,
   });
 
-  // Some models return the winner as "Candidate F" rather than "F" — normalize
-  // to the bare letter so it maps back to the reveal table.
-  const letter = /\b([A-Z])\b/.exec(result.winner ?? "");
-  return letter ? { ...result, winner: letter[1] } : result;
+  // Some models return labels as "Candidate F" rather than "F" — normalize both
+  // the winner and every ranking's candidate to the bare letter so they map back
+  // to the reveal table.
+  const bareLetter = (s: string | undefined) => {
+    const m = /\b([A-Z])\b/.exec(s ?? "");
+    return m ? m[1] : (s ?? "");
+  };
+  return {
+    ...result,
+    winner: bareLetter(result.winner),
+    rankings: (result.rankings ?? []).map((r) => ({
+      ...r,
+      candidate: bareLetter(r.candidate),
+    })),
+  };
 }

@@ -136,13 +136,38 @@ export async function scoreFit(
 }
 
 // ---------- 2. tailor (rewrite + assemble documents) ----------
+
+/** A tailor result is only usable if the model actually filled the arrays the
+ * UI and PDF renderer depend on. Guards against forced-tool-use dropping
+ * `required` fields (observed on some Anthropic models for certain resumes). */
+function tailorResultComplete(r: {
+  bullets?: unknown;
+  keywords?: unknown;
+  doc?: TailoredDoc;
+}): boolean {
+  return (
+    !!r?.doc &&
+    Array.isArray(r.doc.experience) &&
+    r.doc.experience.length > 0 &&
+    Array.isArray(r.doc.skills) &&
+    Array.isArray(r.bullets) &&
+    Array.isArray(r.keywords)
+  );
+}
+
 async function tailor(
   resumeText: string,
   postingText: string,
   provider?: Provider,
   model?: string,
 ): Promise<{ bullets: TailoredBullet[]; keywords: string[]; doc: TailoredDoc }> {
-  return callTool(
+  type TailorResult = {
+    bullets: TailoredBullet[];
+    keywords: string[];
+    doc: TailoredDoc;
+  };
+  const run = () =>
+    callTool<TailorResult>(
     "tailor",
     GUARDRAILS,
     `Resume:\n${resumeText}\n\nJob posting:\n${postingText}\n\n` +
@@ -210,7 +235,19 @@ async function tailor(
     4000,
     provider,
     model,
-  );
+    );
+
+  // Anthropic forced tool-use does not hard-enforce `required`, so a model can
+  // occasionally drop the experience/skills arrays. Retry once, then fail loud
+  // rather than handing a half-built document to the renderer/dashboard.
+  let result = await run();
+  if (!tailorResultComplete(result)) result = await run();
+  if (!tailorResultComplete(result)) {
+    throw new Error(
+      "The tailoring step returned an incomplete document. Please try again.",
+    );
+  }
+  return result;
 }
 
 /** Run only the tailor step on a specific provider+model (used by /api/eval). */

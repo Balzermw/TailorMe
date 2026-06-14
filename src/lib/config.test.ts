@@ -72,7 +72,7 @@ describe("config mode detection", () => {
       ANTHROPIC_API_KEY: "sk-ant",
     });
     expect(c.LLM_PROVIDER).toBe("anthropic");
-    expect(c.OPENAI_MODEL_TAILOR).toBe("gpt-4.1");
+    expect(c.OPENAI_MODEL_TAILOR).toBe("gpt-4.1-mini");
     expect(c.OPENAI_MODEL_FAST).toBe("gpt-4.1-mini");
     expect(c.llmConfigured).toBe(true); // anthropic key present
   });
