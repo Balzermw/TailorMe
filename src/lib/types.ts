@@ -11,8 +11,24 @@ export type MichaelStatus = "none" | "requested" | "in_review" | "returned";
 export interface FitDimension {
   label: string;
   score: number; // 0–100
-  matched: string[]; // supporting evidence
+  matched: string[]; // supporting evidence (quote the resume)
   gaps: string[]; // what's missing / unwritten
+  why?: string; // deep-dive: why this score, grounded in the resume vs posting
+}
+
+/**
+ * A drillable finding shown across the audit. The headline + summary are the
+ * at-a-glance "general info"; `quote` is verbatim text from the candidate's own
+ * resume (the proof it is real, not generic AI output); `why`/`fix` are the
+ * optional deep-dive the user opens when they want the reasoning.
+ */
+export interface ProofPoint {
+  title: string; // short headline
+  summary: string; // one-line general info
+  quote?: string; // EXACT text pulled from the resume — the proof
+  why: string; // deep-dive: why it matters (how ATS / recruiters read it)
+  fix: string; // deep-dive: how tailoring fixes it
+  severity: "high" | "medium" | "low";
 }
 
 export interface FitBreakdown {
@@ -23,6 +39,22 @@ export interface FitBreakdown {
   locationNote: string;
   summary: string; // "Why 84 — strong fit: …"
   keywords?: { term: string; inResume: boolean }[]; // posting keywords + resume hit/miss
+  recommendReview?: boolean; // weak/unclear fit → nudge a manual expert review
+}
+
+/**
+ * Lightweight, candidate-independent context about a target role, gathered by a
+ * fast background call so the parsing/loading screen reflects the user's actual
+ * target (never a default placeholder) and the fit analysis is grounded.
+ */
+export interface RoleContext {
+  role: string; // normalized title, e.g. "Senior Product Manager"
+  company?: string; // present only if a full posting was pasted
+  seniority: string; // e.g. "Senior / 8+ years"
+  responsibilities: string[]; // what this kind of role typically owns
+  typicalSkills: string[]; // hard skills/tools the role usually needs
+  keywords: string[]; // the terms ATS/recruiters screen for
+  commonGaps: string[]; // weaknesses often seen in resumes for this role
 }
 
 export interface AgentNote {
@@ -33,7 +65,10 @@ export interface AgentNote {
 
 export interface TailoredBullet {
   before: string;
-  after: string; // may contain <mark class="tm-k|tm-m"> highlights
+  // Plain text. Rendered as escaped React text children (never raw HTML) — any
+  // keyword/metric highlighting is applied client-side, so never wire this to
+  // dangerouslySetInnerHTML (the value is model output and is not sanitized).
+  after: string;
 }
 
 export interface TailoredDoc {
@@ -61,7 +96,72 @@ export interface ResumeStats {
   primaryRole?: string; // most-recent / primary title
   yearsExperience?: number; // total professional years (estimate)
   sampleBullets?: { text: string; hasMetric: boolean }[]; // a few to animate in
-  weaknesses?: string[]; // evidence-based "your resume undersells you" points
+  weaknesses?: string[]; // evidence-based "your resume undersells you" points (legacy)
+  proofPoints?: ProofPoint[]; // real, quotable weaknesses with deep-dive why/fix
+}
+
+/**
+ * One step-3 review specialist, matching the design's data contract. Exactly
+ * three are produced in fixed order (ats → impact → rolefit); each id maps to a
+ * fixed persona/accent. The behaviors are real /apply-engine work — keyword
+ * coverage, impact rewriting, relevance-weighted line cutting — split into
+ * personas for the product. `detail` is the deep-dive ("how Ada read it").
+ */
+export interface AuditAgent {
+  id: "ats" | "impact" | "rolefit";
+  persona: string; // "Ada"
+  archetype: string; // "The Parser"
+  specialty: string; // "ATS & keywords"
+  accent: "blue" | "mint" | "navy";
+  reads: string; // left-panel one-liner
+  kind: "coverage" | "impact" | "ranking"; // selects evidence layout
+  title: string;
+  subtitle: string;
+  footer: string;
+  detail: string; // deep-dive: how this agent reached its conclusion
+  chip?: string; // ranking only ("Hard limit · 2 pages")
+  // kind: "coverage"
+  matched?: number;
+  total?: number;
+  keywords?: { name: string; matched: boolean; count: string }[];
+  // kind: "impact"
+  before?: string;
+  after?: string;
+  stats?: { value: string; label: string; accent: "blue" | "mint" }[];
+  // kind: "ranking"
+  lines?: {
+    rank: number;
+    label: string;
+    score: number; // 0–100 relevance to the posting
+    status: "kept-top" | "kept" | "trimmed" | "cut";
+  }[];
+}
+
+/**
+ * One faithfulness correction the verification pass made to the tailored doc.
+ * Surfaced as a trust signal: the app shows it checked every line against the
+ * source resume and what (if anything) it pulled back. `kind` names the failure
+ * mode the offline A/B eval found most common across both prompt arms.
+ */
+export interface VerificationCorrection {
+  kind:
+    | "fabricated" // a number/tool/scope claim with no support anywhere in the resume
+    | "misattributed" // a real metric/result attached to the wrong achievement
+    | "skill-conflation" // a skills-list item asserted onto a specific role it never names
+    | "inflated-scope"; // scope/level upgraded beyond what the resume states ("assisted"→"led")
+  claim: string; // the unsupported claim that was removed or softened
+  note: string; // one-line reason, grounded in the source resume
+}
+
+export interface VerificationReport {
+  // "clean" = the pass ran and every checked line traced back to the source;
+  // "corrected" = it ran and pulled back the listed claims; "unavailable" = it
+  // did NOT complete (provider error, or the repair was structurally rejected),
+  // so no faithfulness guarantee can be made. The UI must only show the
+  // reassuring "verified" copy for "clean"/"corrected" — never "unavailable".
+  status: "clean" | "corrected" | "unavailable";
+  checked: number; // experience bullets + summary lines verified against the source
+  corrections: VerificationCorrection[];
 }
 
 export interface ApplyResult {
@@ -71,7 +171,9 @@ export interface ApplyResult {
   bullets: TailoredBullet[];
   keywords: string[];
   agentNotes: AgentNote[];
+  agents?: AuditAgent[]; // the three personified review cards (full run only)
   doc: TailoredDoc | null; // null for score-only (free preview)
+  verification?: VerificationReport; // faithfulness pass over the tailored doc (full run only)
 }
 
 export interface Profile {

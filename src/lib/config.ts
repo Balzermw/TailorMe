@@ -42,6 +42,12 @@ export const OPENAI_MODEL_TAILOR =
   process.env.OPENAI_MODEL_TAILOR || "gpt-4.1-mini";
 export const OPENAI_MODEL_FAST =
   process.env.OPENAI_MODEL_FAST || "gpt-4.1-mini";
+// Fit scoring needs an honest, calibrated model — gpt-4.1-mini rubber-stamps it
+// (marks 0 missing keywords, never flags gaps, never recommends review), so the
+// score step defaults to gpt-4.1. Bump to a stronger model (e.g. gpt-5.4 / Opus
+// via LLM_PROVIDER) through OPENAI_MODEL_SCORE for maximum honesty.
+export const OPENAI_MODEL_SCORE =
+  process.env.OPENAI_MODEL_SCORE || "gpt-4.1";
 
 /** True when Stripe Checkout + webhook are wired up. */
 export const stripeConfigured = Boolean(STRIPE_SECRET_KEY);

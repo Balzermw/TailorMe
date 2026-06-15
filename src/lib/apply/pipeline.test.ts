@@ -2,8 +2,11 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Captures the (tool name, model) of every forced-tool call so tests can assert
 // per-step model routing. Hoisted so the vi.mock factory can close over it.
-const { calls } = vi.hoisted(() => ({
+const { calls, fixtureOverrides } = vi.hoisted(() => ({
   calls: [] as { name: string; model: string }[],
+  // Per-test fixture overrides keyed by tool name. An Error value makes that
+  // tool call throw, to exercise best-effort fallback paths.
+  fixtureOverrides: {} as Record<string, unknown>,
 }));
 
 // Mock the Anthropic SDK: every forced-tool call returns a canned tool_use
@@ -45,13 +48,26 @@ vi.mock("@anthropic-ai/sdk", () => {
         { agent: "Impact & metrics", kind: "polish", text: "Add a baseline." },
       ],
     },
+    // Faithfulness pass: same shape as tailor_resume's doc, no corrections → "clean".
+    verify_faithfulness: {
+      summary: "Platform engineer.",
+      experience: [
+        { role: "SSE", company: "Brightline", dates: "2019–now", bullets: ["x"] },
+      ],
+      corrections: [],
+    },
   };
   class FakeAnthropic {
     messages = {
       create: async (params: { model: string; tools: { name: string }[] }) => {
         const name = params.tools[0].name;
         calls.push({ name, model: params.model });
-        return { content: [{ type: "tool_use", name, input: FIXTURES[name] }] };
+        const input = name in fixtureOverrides ? fixtureOverrides[name] : FIXTURES[name];
+        if (input instanceof Error) throw input; // exercise best-effort fallbacks
+        // Clone so the pipeline can't mutate a shared fixture across tests (a real
+        // API returns fresh objects each call); otherwise an adopted repair in one
+        // test leaks into later ones.
+        return { content: [{ type: "tool_use", name, input: structuredClone(input) }] };
       },
     };
   }
@@ -70,6 +86,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   calls.length = 0;
+  for (const k of Object.keys(fixtureOverrides)) delete fixtureOverrides[k];
 });
 
 describe("apply pipeline", () => {
@@ -108,5 +125,80 @@ describe("apply pipeline", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].name).toBe("report_fit");
     expect(calls[0].model).toBe("claude-sonnet-4-6");
+  });
+});
+
+describe("faithfulness verification pass (trust-signal integrity)", () => {
+  it("marks a clean run 'clean' and leaves the doc intact", async () => {
+    const r = await runFull("resume", "posting");
+    expect(r.verification?.status).toBe("clean");
+    expect(r.verification?.corrections).toEqual([]);
+    expect(r.verification?.checked).toBeGreaterThan(0);
+    expect(r.doc?.experience[0].bullets).toEqual(["x"]);
+  });
+
+  it("marks a run with applied repairs 'corrected' and adopts the repaired bullets", async () => {
+    fixtureOverrides.verify_faithfulness = {
+      summary: "Platform engineer.",
+      experience: [
+        { role: "SSE", company: "Brightline", dates: "2019–now", bullets: ["x repaired"] },
+      ],
+      corrections: [
+        { kind: "inflated-scope", claim: "global team", note: "resume says 'a team'." },
+      ],
+    };
+    const r = await runFull("resume", "posting");
+    expect(r.verification?.status).toBe("corrected");
+    expect(r.verification?.corrections).toHaveLength(1);
+    expect(r.doc?.experience[0].bullets).toEqual(["x repaired"]);
+  });
+
+  it("NEVER claims 'clean' when the verify call throws — status 'unavailable', doc untouched", async () => {
+    fixtureOverrides.verify_faithfulness = new Error("provider timeout");
+    const r = await runFull("resume", "posting");
+    expect(r.verification?.status).toBe("unavailable");
+    expect(r.verification?.corrections).toEqual([]);
+    expect(r.doc?.experience[0].bullets).toEqual(["x"]); // unchanged
+  });
+
+  it("treats a shape mismatch as 'unavailable' and discards the repair + its corrections", async () => {
+    fixtureOverrides.verify_faithfulness = {
+      summary: "Platform engineer.",
+      experience: [], // wrong role count → shape mismatch
+      corrections: [{ kind: "fabricated", claim: "z", note: "n" }],
+    };
+    const r = await runFull("resume", "posting");
+    expect(r.verification?.status).toBe("unavailable");
+    expect(r.verification?.corrections).toEqual([]); // not reported — repair was discarded
+    expect(r.doc?.experience[0].bullets).toEqual(["x"]); // original kept
+  });
+
+  it("rejects a repair that empties a bullet to '' (post-filter count guard, not pre-filter)", async () => {
+    fixtureOverrides.verify_faithfulness = {
+      summary: "Platform engineer.",
+      experience: [
+        // raw count 1 matches the draft, but filter(Boolean) makes it 0 — must NOT be adopted
+        { role: "SSE", company: "Brightline", dates: "2019–now", bullets: [""] },
+      ],
+      corrections: [{ kind: "fabricated", claim: "x", note: "unsupported" }],
+    };
+    const r = await runFull("resume", "posting");
+    expect(r.verification?.status).toBe("unavailable");
+    expect(r.doc?.experience[0].bullets).toEqual(["x"]); // bullet not silently dropped
+  });
+
+  it("treats a reordered experience array as a shape mismatch (no header/bullet desync)", async () => {
+    fixtureOverrides.verify_faithfulness = {
+      summary: "Platform engineer.",
+      experience: [
+        // same count + bullet-count profile, but a DIFFERENT company → must be rejected
+        { role: "SSE", company: "Globex", dates: "2019–now", bullets: ["y"] },
+      ],
+      corrections: [],
+    };
+    const r = await runFull("resume", "posting");
+    expect(r.verification?.status).toBe("unavailable");
+    expect(r.doc?.experience[0].company).toBe("Brightline");
+    expect(r.doc?.experience[0].bullets).toEqual(["x"]);
   });
 });

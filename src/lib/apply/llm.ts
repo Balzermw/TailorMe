@@ -7,6 +7,7 @@ import {
   LLM_PROVIDER,
   OPENAI_API_KEY,
   OPENAI_MODEL_FAST,
+  OPENAI_MODEL_SCORE,
   OPENAI_MODEL_TAILOR,
 } from "@/lib/config";
 
@@ -71,7 +72,9 @@ export function getUsage(): {
 }
 
 function openaiModel(step: Step): string {
-  return step === "tailor" ? OPENAI_MODEL_TAILOR : OPENAI_MODEL_FAST;
+  if (step === "tailor") return OPENAI_MODEL_TAILOR;
+  if (step === "score") return OPENAI_MODEL_SCORE; // honest calibration > cost
+  return OPENAI_MODEL_FAST;
 }
 
 /**

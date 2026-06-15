@@ -20,6 +20,172 @@ const YEAR_RANGE_RE = /\b(19|20)\d{2}\b.*?(present|current|(19|20)\d{2})/i;
 // a decimal, or any 2+ digit run (38%, $1, 2.4M, 40k, p95).
 const METRIC_RE = /\d+\s?%|\$\s?\d|\d+(\.\d+)?\s?[kmbx]\b|\d+\.\d+|\d{2,}/i;
 
+/** A single positioned text run from a PDF page (PDF origin is bottom-left). */
+export interface PdfTextItem {
+  str: string;
+  x: number; // left edge of the run
+  y: number; // baseline — larger y = higher on the page
+  w: number; // run width
+  h: number; // approx glyph height
+}
+
+/**
+ * Reconstruct human reading order for ONE page from positioned text runs.
+ *
+ * PDF.js returns runs in document/stream order, which interleaves multi-column
+ * resumes (a sidebar + main column produce alternating left/right runs at the
+ * same y, so flat extraction reads "Skills Experience React Led migration…").
+ * We detect a vertical gutter that almost no run crosses; if found, we emit the
+ * whole left column top-to-bottom, then the right. Otherwise we fall back to a
+ * plain top→bottom, left→right pass (correct for single-column resumes).
+ *
+ * Pure and deterministic so it can be unit-tested without a real PDF.
+ */
+export function reconstructReadingOrder(
+  items: PdfTextItem[],
+  pageWidth: number,
+): string {
+  const clean = items.filter((i) => i.str.trim().length > 0);
+  if (clean.length === 0) return "";
+
+  const heights = clean
+    .map((i) => i.h)
+    .filter((h) => h > 0)
+    .sort((a, b) => a - b);
+  const medianH = heights.length ? heights[Math.floor(heights.length / 2)] : 10;
+  const yTol = Math.max(3, medianH * 0.6);
+
+  const gutter = detectGutter(clean, pageWidth);
+  const columns =
+    gutter == null
+      ? [clean]
+      : [
+          clean.filter((i) => i.x + i.w / 2 < gutter),
+          clean.filter((i) => i.x + i.w / 2 >= gutter),
+        ];
+
+  return columns
+    .map((col) => columnToText(col, yTol))
+    .filter((t) => t.length > 0)
+    .join("\n");
+}
+
+/** Find a vertical gutter (x) that cleanly separates two columns, else null. */
+function detectGutter(items: PdfTextItem[], pageWidth: number): number | null {
+  if (items.length < 12 || pageWidth <= 0) return null;
+  const candidates = [0.42, 0.46, 0.5, 0.54, 0.58].map((f) => f * pageWidth);
+  let best: { x: number; straddle: number } | null = null;
+  for (const g of candidates) {
+    let straddle = 0;
+    let left = 0;
+    let right = 0;
+    for (const it of items) {
+      const l = it.x;
+      const r = it.x + it.w;
+      if (l < g && r > g) straddle++;
+      else if (r <= g) left++;
+      else right++;
+    }
+    if (left >= 4 && right >= 4 && (best == null || straddle < best.straddle)) {
+      best = { x: g, straddle };
+    }
+  }
+  if (best == null) return null;
+  // Only trust a gutter that almost no run crosses (≤3% of runs, or ≤2).
+  const limit = Math.max(2, Math.floor(items.length * 0.03));
+  return best.straddle <= limit ? best.x : null;
+}
+
+/** Order one column's runs into lines (top→bottom), runs left→right with spacing. */
+function columnToText(items: PdfTextItem[], yTol: number): string {
+  if (items.length === 0) return "";
+  const sorted = [...items].sort((a, b) => b.y - a.y || a.x - b.x);
+
+  const lines: PdfTextItem[][] = [];
+  let cur: PdfTextItem[] = [];
+  let anchorY = sorted[0].y;
+  for (const it of sorted) {
+    if (cur.length === 0 || Math.abs(it.y - anchorY) <= yTol) {
+      cur.push(it);
+      anchorY = (anchorY * (cur.length - 1) + it.y) / cur.length;
+    } else {
+      lines.push(cur);
+      cur = [it];
+      anchorY = it.y;
+    }
+  }
+  if (cur.length) lines.push(cur);
+
+  return lines
+    .map((line) => {
+      const runs = [...line].sort((a, b) => a.x - b.x);
+      let s = "";
+      let prevRight: number | null = null;
+      for (const it of runs) {
+        if (prevRight != null && it.x - prevRight > Math.max(1.5, it.h * 0.25)) {
+          s += " ";
+        }
+        s += it.str;
+        prevRight = it.x + it.w;
+      }
+      return s.replace(/[ \t]+/g, " ").trim();
+    })
+    .filter((l) => l.length > 0)
+    .join("\n");
+}
+
+/** True when extraction came back essentially empty — a scanned/image-only PDF. */
+export function looksScanned(text: string): boolean {
+  return text.replace(/\s+/g, "").length < 100;
+}
+
+/**
+ * Extract text from a PDF in human reading order (multi-column aware), using
+ * the raw PDF.js text-item positions unpdf already exposes — no extra deps.
+ * Falls back to unpdf's flat page-merge if reconstruction throws or yields
+ * nothing (e.g. a malformed document), so we never regress to a hard failure.
+ */
+async function extractPdfTextOrdered(bytes: ArrayBuffer): Promise<string> {
+  const { getDocumentProxy, extractText: extractFlat } = await import("unpdf");
+  const pdf = await getDocumentProxy(new Uint8Array(bytes));
+  try {
+    const pages: string[] = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      const pageWidth = page.getViewport({ scale: 1 }).width;
+      const items: PdfTextItem[] = [];
+      for (const raw of content.items as Array<{
+        str?: unknown;
+        transform?: unknown;
+        width?: unknown;
+        height?: unknown;
+      }>) {
+        if (typeof raw.str !== "string" || raw.str.length === 0) continue;
+        const tr = raw.transform;
+        if (!Array.isArray(tr) || tr.length < 6) continue;
+        const x = Number(tr[4]);
+        const y = Number(tr[5]);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+        const w = typeof raw.width === "number" ? raw.width : 0;
+        const h =
+          typeof raw.height === "number" && raw.height > 0
+            ? raw.height
+            : Math.abs(Number(tr[3])) || 10;
+        items.push({ str: raw.str, x, y, w, h });
+      }
+      const text = reconstructReadingOrder(items, pageWidth);
+      if (text) pages.push(text);
+    }
+    const joined = pages.join("\n\n").trim();
+    if (joined) return joined;
+  } catch {
+    /* fall through to flat extraction */
+  }
+  const { text } = await extractFlat(pdf, { mergePages: true });
+  return text;
+}
+
 /** Extract plain text from an uploaded resume by file type. */
 export async function extractText(
   filename: string,
@@ -27,17 +193,20 @@ export async function extractText(
 ): Promise<string> {
   const lower = filename.toLowerCase();
   if (lower.endsWith(".pdf")) {
-    const { extractText: pdfText, getDocumentProxy } = await import("unpdf");
-    const pdf = await getDocumentProxy(new Uint8Array(bytes));
-    const { text } = await pdfText(pdf, { mergePages: true });
-    return text;
+    return extractPdfTextOrdered(bytes);
   }
-  if (lower.endsWith(".docx") || lower.endsWith(".doc")) {
+  if (lower.endsWith(".docx")) {
     const mammoth = (await import("mammoth")).default;
     const { value } = await mammoth.extractRawText({
       buffer: Buffer.from(bytes),
     });
     return value;
+  }
+  if (lower.endsWith(".doc")) {
+    // Legacy Word (OLE/.doc) — mammoth only reads .docx, so use word-extractor.
+    const WordExtractor = (await import("word-extractor")).default;
+    const doc = await new WordExtractor().extract(Buffer.from(bytes));
+    return doc.getBody();
   }
   // .txt / .md / unknown → decode as UTF-8
   return new TextDecoder().decode(bytes);

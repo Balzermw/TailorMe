@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { analyze, extractText } from "@/lib/apply/parse";
+import { analyze, extractText, looksScanned } from "@/lib/apply/parse";
 import { parseResume } from "@/lib/apply/pipeline";
 import { llmConfigured } from "@/lib/config";
 import { MAX_RESUME_CHARS, PARSE_RULES, rateLimitDisabled } from "@/lib/limits";
@@ -42,9 +42,17 @@ export async function POST(request: Request) {
   try {
     const bytes = await file.arrayBuffer();
     const raw = await extractText(file.name, bytes);
-    if (!raw.trim()) {
+    // A scanned/image-only PDF extracts to (near-)nothing. Tell the user plainly
+    // instead of feeding empty text to the LLM and returning a useless profile.
+    const scanned = file.name.toLowerCase().endsWith(".pdf") && looksScanned(raw);
+    if (!raw.trim() || scanned) {
       return NextResponse.json(
-        { error: "Couldn’t read any text from that file." },
+        {
+          error: scanned
+            ? "This PDF looks scanned or image-only, so we couldn’t read its text. Upload a text-based PDF or a Word (.docx) file instead."
+            : "Couldn’t read any text from that file.",
+          scanned,
+        },
         { status: 422 },
       );
     }

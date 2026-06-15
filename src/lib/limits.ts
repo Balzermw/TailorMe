@@ -39,6 +39,12 @@ export const PARSE_RULES: Rule[] = [
   { limit: num("PARSE_PER_DAY", 20), windowMs: DAY },
 ];
 
+// Role-context research (one cheap FAST-model call). Unauthenticated, so cap it.
+export const ROLE_CONTEXT_RULES: Rule[] = [
+  { limit: num("ROLE_CONTEXT_PER_HOUR", 15), windowMs: HOUR },
+  { limit: num("ROLE_CONTEXT_PER_DAY", 40), windowMs: DAY },
+];
+
 // Server-side posting-URL fetches. No tokens, but it makes an outbound request,
 // so cap it per IP to prevent the endpoint being used as a fetch proxy/scanner.
 export const FETCH_POSTING_RULES: Rule[] = [
