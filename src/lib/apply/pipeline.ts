@@ -1201,6 +1201,27 @@ export async function runScore(
   return { company, role, fit, bullets: [], keywords: [], agentNotes: [], doc: null };
 }
 
+/**
+ * Free real audit: fit + the three review agents (Ada/Max/Remy), grounded in the
+ * candidate's OWN resume + posting — but NO tailoring, NO documents, NO credit.
+ * This is what the signed-out preview renders so the agent audit shows the user's
+ * real keyword coverage, ranked lines, and quantified wins instead of a canned
+ * sample. The downloadable tailored resume + cover letter stay gated behind an
+ * account + credit (`runFull`). One extra rank call vs. `runScore`; `buildAgents`
+ * degrades gracefully if that call fails.
+ */
+export async function runAudit(
+  resumeText: string,
+  postingText: string,
+  provider?: Provider,
+): Promise<ApplyResult> {
+  const { company, role, fit } = await scoreFit(resumeText, postingText, provider);
+  // No tailored bullets yet (tailoring is the paid step), so Max surfaces the
+  // candidate's real extracted wins; the before/after pair appears post-tailor.
+  const agents = await buildAgents(resumeText, postingText, fit, [], provider);
+  return { company, role, fit, bullets: [], keywords: [], agentNotes: [], agents, doc: null };
+}
+
 /** Full run: fit + tailor + review. Caller is responsible for spending a credit. */
 export async function runFull(
   resumeText: string,

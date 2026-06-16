@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { llmConfigured } from "@/lib/config";
-import { runFull, runScore } from "@/lib/apply/pipeline";
+import { runAudit, runFull, runScore } from "@/lib/apply/pipeline";
 import { SAMPLE_RESUME } from "@/lib/apply/sample";
 import { getServerSupabase } from "@/lib/supabase/server";
 import {
@@ -36,7 +36,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const mode = body.mode === "full" ? "full" : "score";
+  // "score" = fit only (1 call); "audit" = fit + the three real review agents
+  // (2 calls, still free + no auth); "full" = tailored documents (auth + credit).
+  const mode =
+    body.mode === "full" ? "full" : body.mode === "audit" ? "audit" : "score";
   const resumeText = body.useSample
     ? SAMPLE_RESUME
     : (body.resumeText ?? "").trim();
@@ -56,10 +59,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    // ----- free preview: fit only, no auth, no credit -----
-    if (mode === "score") {
-      // Rate-limit the only ungated, token-spending path: per IP + a global
-      // circuit breaker capping total free spend.
+    // ----- free preview: fit (+ optionally the real agent audit), no auth, no credit -----
+    if (mode === "score" || mode === "audit") {
+      // Rate-limit the only ungated, token-spending paths: per IP + a global
+      // circuit breaker capping total free spend. The agent audit costs one more
+      // call than a bare score, so it shares the same free budget.
       if (!rateLimitDisabled) {
         const ip = getClientIp(request);
         const perIp = consume(`audit:${ip}`, FREE_AUDIT_RULES);
@@ -72,7 +76,10 @@ export async function POST(request: Request) {
           );
         }
       }
-      const result = await runScore(resumeText, postingText);
+      const result =
+        mode === "audit"
+          ? await runAudit(resumeText, postingText)
+          : await runScore(resumeText, postingText);
       return NextResponse.json({ result });
     }
 

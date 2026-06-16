@@ -16,8 +16,8 @@ export default function BookSessionPage() {
           <span className="tm-pill">Coaching</span>
           <h1 className="tm-h1">Book a session with Michael</h1>
           <p className="tm-body">
-            Pick a package and an intro slot. Times are placeholders — final
-            scheduling is confirmed by email.
+            Pick a package, then grab a free 30-minute intro slot on Michael’s
+            calendar — you’ll get a confirmation and the meeting link by email.
           </p>
         </section>
         <Booking />

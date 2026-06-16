@@ -119,6 +119,8 @@ body {
   font-weight: 500;
   line-height: 1.15;
   letter-spacing: -0.02em;
+  /* Res.Me brand green (the logomark's lime band) for section headings. */
+  color: var(--tm-mint-600);
 }
 .tm-h3 {
   font-size: var(--h3);
@@ -2057,7 +2059,8 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--g);
-  align-items: start;
+  /* stretch so both cards share the taller card's height and bottom-align */
+  align-items: stretch;
 }
 .tmT-docs {
   display: grid;
@@ -2130,40 +2133,42 @@ body {
     0 1px 2px rgba(67, 115, 219, 0.12),
     0 16px 38px rgba(67, 115, 219, 0.16);
 }
+/* "Full page size" preview — sized like a real printed resume (denser/smaller
+   type) rather than oversized screen text. */
 .tmB-paper--page .tmB-pdoc-avatar {
-  width: 46px;
-  height: 46px;
-  font-size: 15px;
+  width: 38px;
+  height: 38px;
+  font-size: 12.5px;
 }
 .tmB-paper--page .tmB-pdoc-name {
-  font-size: 22px;
+  font-size: 16px;
 }
 .tmB-paper--page .tmB-pdoc-contact {
-  font-size: 11px;
+  font-size: 9px;
 }
 .tmB-paper--page .tmB-pdoc-rule {
-  margin: 14px 0;
+  margin: 11px 0;
 }
 .tmB-paper--page .tmB-pdoc-sec {
-  font-size: 12.5px;
-  margin: 16px 0 5px;
+  font-size: 10px;
+  margin: 13px 0 4px;
 }
 .tmB-paper--page .tmB-pdoc-entry {
-  font-size: 13px;
-  margin-top: 11px;
+  font-size: 10.5px;
+  margin-top: 9px;
 }
 .tmB-paper--page .tmB-pdoc-bullet {
-  font-size: 12px;
-  line-height: 1.62;
-  margin-top: 6px;
-  padding-left: 13px;
+  font-size: 9.5px;
+  line-height: 1.5;
+  margin-top: 5px;
+  padding-left: 11px;
 }
 .tmB-paper--page .tmB-pdoc-skills {
-  font-size: 12px;
-  line-height: 1.7;
+  font-size: 9.5px;
+  line-height: 1.6;
 }
 .tmB-paper--page mark {
-  font-size: 11.5px;
+  font-size: 9.5px;
 }
 .tmB-pdoc-summary {
   font-family: Georgia, "Times New Roman", serif;
@@ -2171,19 +2176,23 @@ body {
   line-height: 1.6;
   margin-top: 4px;
 }
+.tmB-paper--page .tmB-pdoc-summary {
+  font-size: 9.5px;
+  line-height: 1.55;
+}
 .tmB-paper--page .tmB-pdoc-foot {
   margin-top: auto;
   padding-top: 16px;
   font-size: 10.5px;
 }
 .tmB-paper--page .tmT-before-bullet {
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 9.5px;
+  line-height: 1.5;
 }
 .tmB-paper--page .tmT-before-note {
   margin-top: auto;
   padding-top: 16px;
-  font-size: 11px;
+  font-size: 9px;
 }
 
 /* ---- keywords pulled from the posting + anti-stuffing explainer ---- */
@@ -3472,5 +3481,26 @@ body {
   /* lines otherwise animate from opacity 0 — keep them visible */
   .tmF-parse-line {
     opacity: 1 !important;
+  }
+}
+
+/* Entrance for swapped content (wizard step changes, score loader → results)
+   so transitions fade/slide in instead of hard-cutting. */
+@keyframes tmFadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.tmF-anim {
+  animation: tmFadeSlideIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tmF-anim {
+    animation: none;
   }
 }

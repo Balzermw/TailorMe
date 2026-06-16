@@ -18,11 +18,19 @@ function FitBars({ title }: { title: string }) {
           <output>{s.v}</output>
         </div>
       ))}
-      <div className="tm-fit-pass">
-        <label>Location & logistics</label>
-        <span className="tm-pill tm-pill--mint justify-self-start">
-          <Check size={12} /> pass
-        </span>
+      {/* Location is a pass/fail gate, not a 0–100 score — a full green bar +
+          plain-language "Eligible" reads clearer than a bare "pass" pill. */}
+      <div className="tm-fit-row">
+        <label>Location</label>
+        <div className="tm-fit-track">
+          <div
+            className="tm-fit-bar"
+            style={{ width: "100%", background: "var(--tm-mint-600)" }}
+          ></div>
+        </div>
+        <output style={{ color: "var(--tm-mint-600)", fontWeight: 600 }}>
+          <Check size={14} aria-label="eligible" />
+        </output>
       </div>
     </div>
   );
@@ -58,7 +66,8 @@ export default function JobFit() {
             <div>
               <span className="tm-pill tm-pill--mint">strong fit</span>
               <p className="tm-small mt-[6px]">
-                Scored before drafting — weak fits get flagged, not flattered.
+                An honest fit score before we write a word — we won’t dress up a
+                weak match.
               </p>
             </div>
           </div>

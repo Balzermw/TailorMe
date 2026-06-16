@@ -89,6 +89,7 @@ const FIT_WHY: { plus: string[]; minus: string[] }[] = [
 interface FitView {
   header: string;
   overall: number;
+  verdict: string; // clean verdict tier, e.g. "Strong fit"
   verdictPill: string;
   summary: string;
   locationPass: boolean;
@@ -109,6 +110,7 @@ const DEMO_WHY = [
 const DEMO_VIEW: FitView = {
   header: "Senior Platform Engineer — Nordpeak Systems",
   overall: 84,
+  verdict: "Strong fit",
   verdictPill: "84 — strong fit",
   summary:
     "Why 84 — strong fit: your platform work lines up with 4 of 5 dimensions. The weakest one — culture fit — isn’t missing experience, it’s missing evidence in your bullets. That’s exactly what tailoring surfaces. Tap any dimension to see what we found.",
@@ -140,6 +142,7 @@ function toView(result: ApplyResult): FitView {
   return {
     header: hasCompany ? `${result.role} — ${company}` : result.role,
     overall: fit.overall,
+    verdict: fit.verdict,
     verdictPill: `${fit.overall} — ${fit.verdict}`,
     summary: fit.summary,
     locationPass: fit.locationPass,
@@ -156,7 +159,7 @@ function toView(result: ApplyResult): FitView {
   };
 }
 
-const STEP_LABELS = ["Your resume", "The job", "Agent audit"];
+const STEP_LABELS = ["Your resume", "Job Score", "Agent audit"];
 
 function Stepper({ step }: { step: number }) {
   return (
@@ -198,6 +201,78 @@ function useCountUp(target: number, run: boolean, ms = 700) {
     return () => cancelAnimationFrame(raf);
   }, [target, run, ms]);
   return run ? n : 0;
+}
+
+// Per-dimension band → tag + colors. Frontend-owned (per the design's data
+// contract): ≥85 "Strong" (mint) | ≥78 "Solid" (blue) | else "Focus area"
+// (faded blue). Drives the bar color, the status pill, and the legend dots.
+type Band = { tag: string; bar: string; pillBg: string; pillInk: string };
+function band(score: number): Band {
+  if (score >= 85)
+    return { tag: "Strong", bar: "var(--tm-mint-600)", pillBg: "var(--tm-mint-50)", pillInk: "var(--tm-mint-600)" };
+  if (score >= 78)
+    return { tag: "Solid", bar: "var(--tm-blue-600)", pillBg: "var(--tm-blue-50)", pillInk: "var(--tm-blue-800)" };
+  return { tag: "Focus area", bar: "#9db8ec", pillBg: "#eef2fb", pillInk: "var(--tm-zinc)" };
+}
+
+// Overall-score → hero headline + ring color. Uses the engine's overall tier so
+// the headline matches the number beside it.
+function heroHeadline(overall: number): string {
+  if (overall >= 85) return "You’re a strong match for this role";
+  if (overall >= 70) return "You’re a good match for this role";
+  if (overall >= 55) return "You’re a moderate match for this role";
+  return "This role is a stretch — here’s where to focus";
+}
+function ringColor(overall: number): string {
+  return overall >= 85
+    ? "var(--tm-mint-600)"
+    : overall >= 70
+      ? "var(--tm-blue-600)"
+      : "#9db8ec";
+}
+
+// The score ring — the hero of the Job Score step. Animates the stroke + the
+// number up from zero once `run` flips true.
+function ScoreRing({ score, run }: { score: number; run: boolean }) {
+  const n = useCountUp(score, run, 900);
+  const R = 34;
+  const C = 2 * Math.PI * R; // 213.6
+  const offset = C * (1 - (run ? score : 0) / 100);
+  return (
+    <div style={{ position: "relative", width: "108px", height: "108px", flex: "none" }}>
+      <svg width="108" height="108" viewBox="0 0 80 80" aria-hidden="true">
+        <circle cx="40" cy="40" r={R} fill="none" stroke="rgba(24,24,27,0.10)" strokeWidth="6" />
+        <circle
+          cx="40"
+          cy="40"
+          r={R}
+          fill="none"
+          stroke={ringColor(score)}
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={C}
+          strokeDashoffset={offset}
+          transform="rotate(-90 40 40)"
+          style={{ transition: "stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)" }}
+        />
+      </svg>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <span style={{ fontSize: "30px", fontWeight: 700, color: "var(--tm-ink)", lineHeight: 1 }}>
+          {n}
+        </span>
+        <span style={{ fontSize: "11px", color: "var(--tm-zinc)", marginTop: "1px" }}>/ 100</span>
+      </div>
+    </div>
+  );
 }
 
 // Fade + slide a block in when `show` becomes true.
@@ -497,16 +572,19 @@ function StepUpload({
 }) {
   // Initialize from props so a resume already chosen in the parent (e.g. after
   // navigating back from the job step) re-shows its profile instead of being lost.
-  const [phase, setPhase] = useState<"idle" | "parsing" | "done">(() =>
-    !fromSample &&
-    !!stats &&
-    (stats.roles > 0 || stats.bullets > 0 || (stats.skills?.length ?? 0) > 0)
-      ? "done"
-      : "idle",
-  );
+  // Both the sample path AND a real upload restore to "done" — the sample carries
+  // no stats, so it must key off fromSample, not just stats.
+  const [phase, setPhase] = useState<"idle" | "parsing" | "done">(() => {
+    const hasStats =
+      !!stats && (stats.roles > 0 || stats.bullets > 0 || (stats.skills?.length ?? 0) > 0);
+    return fromSample || hasStats ? "done" : "idle";
+  });
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedResume | null>(null);
-  const [reveal, setReveal] = useState(0);
+  // If we mount already-done (returned from a later step), show the profile fully
+  // at once; only a fresh parse plays the staged reveal.
+  const initialPhase = useRef(phase);
+  const [reveal, setReveal] = useState(phase === "done" ? 5 : 0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // "Upload once": offer a previously-saved resume (account in live mode,
@@ -534,6 +612,11 @@ function StepUpload({
   const metricsN = useCountUp(profile?.metricBullets ?? 0, reveal >= 3);
   useEffect(() => {
     if (phase !== "done") return;
+    // Returned from a later step → already revealed; don't replay the 3s stagger.
+    if (initialPhase.current === "done") {
+      setReveal(5);
+      return;
+    }
     const t = [120, 650, 1500, 2200, 2900].map((ms, i) =>
       setTimeout(() => setReveal(i + 1), ms),
     );
@@ -766,15 +849,16 @@ function StepUpload({
                     }}
                   >
                     <span
-                      style={{
-                        marginTop: "2px",
-                        flex: "none",
-                        color: b.hasMetric ? "var(--tm-mint-600)" : "var(--tm-zinc)",
-                      }}
                       aria-hidden="true"
-                    >
-                      {b.hasMetric ? <TrendingUp size={14} /> : <List size={14} />}
-                    </span>
+                      style={{
+                        marginTop: "7px",
+                        flex: "none",
+                        height: "5px",
+                        width: "5px",
+                        borderRadius: "50%",
+                        background: b.hasMetric ? "var(--tm-mint-600)" : "var(--tm-zinc)",
+                      }}
+                    />
                     <span style={{ color: "var(--tm-ink)" }}>
                       {b.text}
                       {b.hasMetric && (
@@ -913,24 +997,28 @@ function StepUpload({
 // ---------- Step 2: posting + fit score ----------
 
 // A readable label for the target the user actually entered (never a default).
+// Returns a specific role title we can confidently show, or "" when the role is
+// not yet known (a bare URL, or a posting whose first line isn't a clean title).
+// Empty means "still gathering" — the loader shows that state rather than a
+// misleading placeholder like "this role".
 function deriveTargetLabel(input: string): string {
   const t = (input || "").trim();
-  if (!t) return "Example Target Role";
-  if (/^https?:\/\//i.test(t)) return "this role";
+  if (!t) return "";
+  if (/^https?:\/\//i.test(t)) return ""; // a URL — role unknown until research returns
   const firstLine = t.split(/\r?\n/)[0].trim();
   // Short, single-line input → treat the whole thing as a role title.
   if (t.length <= 90 && !/[.]\s/.test(t)) {
     return firstLine.split(/\s+[—–-]\s+/)[0].trim() || firstLine;
   }
-  // Full posting → use the first line if it reads like a title, else generic.
-  return firstLine.length >= 3 && firstLine.length <= 70 ? firstLine : "this role";
+  // Full posting → use the first line only if it reads like a title, else unknown.
+  return firstLine.length >= 3 && firstLine.length <= 70 ? firstLine : "";
 }
 
 const STATUS_MESSAGES = (target: string) => [
   "Reading your resume…",
   "Identifying your experience and skills…",
-  `Researching the ${target} role…`,
-  `Comparing your resume to ${target}…`,
+  target ? `Researching the ${target} role…` : "Researching the role from the posting…",
+  target ? `Comparing your resume to ${target}…` : "Comparing your resume to the role…",
   "Checking for missing keywords and experience gaps…",
   "Preparing your fit analysis…",
 ];
@@ -996,7 +1084,7 @@ function ScoringLoader({
 }) {
   const steps = STATUS_MESSAGES(displayTarget);
   return (
-    <div className="tm-card" style={{ marginTop: "24px", padding: "24px" }}>
+    <div className="tm-card tmF-anim" style={{ marginTop: "24px", padding: "24px" }}>
       <style>{`@keyframes tmspin{to{transform:rotate(360deg)}}@keyframes tmpulse{0%,100%{opacity:.45}50%{opacity:1}}`}</style>
       <div style={{ display: "flex", alignItems: "center", gap: "13px" }}>
         <span
@@ -1013,10 +1101,12 @@ function ScoringLoader({
         />
         <div>
           <b style={{ fontSize: "15px", color: "var(--tm-ink)" }}>
-            Analyzing your fit for {displayTarget}
+            {displayTarget ? `Analyzing your fit for ${displayTarget}` : "Analyzing your fit"}
           </b>
           <p className="tm-small" style={{ fontSize: "12.5px", marginTop: "1px" }}>
-            Hang tight — this takes a few seconds.
+            {displayTarget
+              ? "Hang tight — this takes a few seconds."
+              : "Reading the posting to identify the role…"}
           </p>
         </div>
       </div>
@@ -1132,15 +1222,16 @@ function StepJob({
 }) {
   const [phase, setPhase] = useState<"idle" | "scoring" | "done">("idle");
   const [view, setView] = useState<FitView>(DEMO_VIEW);
-  const [w, setW] = useState<number[]>([]);
-  const [why, setWhy] = useState(0);
+  const [shown, setShown] = useState(false); // triggers the ring + bar fill animation
+  const [why, setWhy] = useState(-1); // index of the expanded dimension (-1 = none)
   const [note, setNote] = useState<string | null>(null);
   const [fetching, setFetching] = useState(false);
   const [fetchErr, setFetchErr] = useState<string | null>(null);
   const [fetchNote, setFetchNote] = useState<string | null>(null);
+  const [wasUrl, setWasUrl] = useState(false); // posting came from a pasted link
   const [demoScore, setDemoScore] = useState(false);
   const [roleCtx, setRoleCtx] = useState<RoleContext | null>(null);
-  const [targetLabel, setTargetLabel] = useState("Example Target Role");
+  const [targetLabel, setTargetLabel] = useState("");
   const [statusIdx, setStatusIdx] = useState(0);
 
   // Advance the loading status messages while scoring (stops at the last step).
@@ -1173,6 +1264,16 @@ function StepJob({
     [],
   );
 
+  // When the score lands, ease up to the result so the score hero is in view
+  // (rather than leaving the user parked where the loader was). Smooth via the
+  // global html{scroll-behavior:smooth}.
+  const resultRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (phase === "done") {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [phase]);
+
   // Once the role-research returns, prefer its normalized title for the label.
   const displayTarget = roleCtx?.role || targetLabel;
 
@@ -1182,10 +1283,12 @@ function StepJob({
     setFetchErr(null);
     setDemoScore(false);
     let postingForScore = posting.trim();
+    const fromUrl = /^https?:\/\//i.test(postingForScore);
+    setWasUrl(fromUrl);
 
     // If they pasted a link, pull the posting text server-side first (SSRF-safe).
     // Gated only on the input being a URL — independent of which resume they use.
-    if (/^https?:\/\//i.test(postingForScore)) {
+    if (fromUrl) {
       setFetching(true);
       setFetchNote(null);
       try {
@@ -1267,267 +1370,441 @@ function StepJob({
     if (scoreRun.current !== myRun) return;
     setNote(msg);
     setView(v);
-    setWhy(0);
-    setW(v.dims.map(() => 0));
-    scoreTimers.current.push(setTimeout(() => setW(v.dims.map((d) => d.score)), 250));
-    scoreTimers.current.push(setTimeout(() => setPhase("done"), 1100));
+    setWhy(-1);
+    setShown(false);
+    setPhase("done");
+    // Let the done view mount at zero, then flip `shown` to animate the ring
+    // stroke + the dimension bars filling to their scores.
+    scoreTimers.current.push(setTimeout(() => setShown(true), 80));
   };
 
+  // Hero summary: drop a "Why 84 — strong fit:" lead the model sometimes prefixes
+  // (the verdict pill already states the tier), keeping the clean prose.
   const ci = view.summary.indexOf(":");
-  const summaryLead = ci >= 0 ? view.summary.slice(0, ci + 1) : "";
-  const summaryRest = ci >= 0 ? view.summary.slice(ci + 1) : view.summary;
+  const summaryRest = (ci >= 0 ? view.summary.slice(ci + 1) : view.summary).trim();
+  // Strengths lead, the one focus area lands last (design: rank by score desc).
+  const ranked = [...view.dims].sort((a, b) => b.score - a.score);
+
+  // Editing the posting (or "Change") invalidates a score — return to idle so the
+  // user re-scores the text that will actually be tailored, cancelling any pending
+  // timers / in-flight call so a stale result can't snap back.
+  const resetToIdle = () => {
+    cancelScore();
+    setPhase("idle");
+    setShown(false);
+    setWhy(-1);
+    setNote(null);
+    setFetchNote(null);
+    setDemoScore(false);
+  };
 
   const sample =
     "Senior Platform Engineer — Nordpeak Systems (Remote, EU). Own the evolution of our backend platform: lead distributed Node.js services handling millions of daily transactions, set Kubernetes deployment standards across teams, and build observability into everything we ship. Requirements: 5+ years backend at scale; distributed systems and Node.js in production; strong Kubernetes and cloud (AWS/GCP); a track record of reliability and performance wins; mentoring and technical direction. Nice to have: Datadog/Prometheus; owning a platform other teams build on.";
-  return (
-    <div className="tm-card">
-      <label
-        className="mb-[8px] block text-[13px] font-medium"
-        htmlFor="tmF-job-input"
-      >
-        Paste a job URL or the posting text
-      </label>
-      <textarea
-        id="tmF-job-input"
-        className="tmF-ta"
-        value={posting}
-        placeholder="https://…  or paste the full posting"
-        onChange={(e) => {
-          setPosting(e.target.value);
-          setFetchErr(null); // a prior link error no longer applies once they edit
-          // Editing after a score invalidates it — return to idle so the user
-          // re-scores the text that will actually be tailored. Cancel any pending
-          // score timers / in-flight call so a stale result can't snap back.
-          if (phase !== "idle") {
-            cancelScore();
-            setPhase("idle");
-            setNote(null);
-            setFetchNote(null);
-            setDemoScore(false);
-          }
-        }}
-      ></textarea>
-      {fetchNote && (
-        <p
-          className="tm-small mt-[8px]"
-          style={{ color: "var(--tm-mint-600)", fontSize: "12px" }}
+
+  // ----- idle / scoring: the posting input + loading screen -----
+  if (phase !== "done") {
+    return (
+      <div className="tm-card">
+        <label
+          className="mb-[8px] block text-[13px] font-medium"
+          htmlFor="tmF-job-input"
         >
-          <Check size={12} style={{ verticalAlign: "-2px" }} /> {fetchNote}
-        </p>
-      )}
-      {phase === "idle" && (
-        <Fragment>
-          <p className="tm-small mt-[8px]" style={{ fontSize: "12px" }}>
-            Paste a link and we’ll pull the posting for you — or paste the text.
+          Paste a job URL or the posting text
+        </label>
+        <textarea
+          id="tmF-job-input"
+          className="tmF-ta"
+          value={posting}
+          placeholder="https://…  or paste the full posting"
+          onChange={(e) => {
+            setPosting(e.target.value);
+            setFetchErr(null); // a prior link error no longer applies once they edit
+          }}
+        ></textarea>
+        {fetchNote && (
+          <p
+            className="tm-small mt-[8px]"
+            style={{ color: "var(--tm-mint-600)", fontSize: "12px" }}
+          >
+            <Check size={12} style={{ verticalAlign: "-2px" }} /> {fetchNote}
           </p>
-          {fetchErr && (
-            <p className="tm-small mt-[8px]" style={{ color: "#b3261e" }}>
-              {fetchErr}
+        )}
+        {phase === "idle" && (
+          <Fragment>
+            <p className="tm-small mt-[8px]" style={{ fontSize: "12px" }}>
+              Paste a link and we’ll pull the posting for you — or paste the text.
+            </p>
+            {fetchErr && (
+              <p className="tm-small mt-[8px]" style={{ color: "#b3261e" }}>
+                {fetchErr}
+              </p>
+            )}
+            <div className="tmF-actions" style={{ justifyContent: "space-between" }}>
+              <button
+                type="button"
+                className="tm-btn tm-btn--ghost"
+                onClick={() => setPosting(sample)}
+              >
+                Use the sample posting
+              </button>
+              <button
+                type="button"
+                className="tm-btn tm-btn--primary"
+                style={{
+                  opacity: posting && !fetching ? 1 : 0.45,
+                  pointerEvents: posting && !fetching ? "auto" : "none",
+                }}
+                onClick={() => void score()}
+              >
+                {fetching ? (
+                  "Reading the posting…"
+                ) : (
+                  <Fragment>
+                    Score my fit <ArrowRight size={15} />
+                  </Fragment>
+                )}
+              </button>
+            </div>
+          </Fragment>
+        )}
+        {phase === "scoring" && (
+          <ScoringLoader
+            displayTarget={displayTarget}
+            roleCtx={roleCtx}
+            statusIdx={statusIdx}
+          />
+        )}
+      </div>
+    );
+  }
+  // ----- done: the Job Score (the score is the hero) -----
+  return (
+    <div ref={resultRef} className="tmF-anim" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {/* posting context bar */}
+      <div
+        className="tm-card"
+        style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px 18px" }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            display: "flex",
+            height: "38px",
+            width: "38px",
+            flex: "none",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "10px",
+            background: "var(--tm-blue-50)",
+            color: "var(--tm-blue-800)",
+          }}
+        >
+          <Briefcase size={18} />
+        </span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <b
+            style={{
+              fontSize: "14px",
+              color: "var(--tm-ink)",
+              display: "block",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {view.header}
+          </b>
+          <span className="tm-small" style={{ fontSize: "12px" }}>
+            {wasUrl ? "Parsed from a job link" : "From the posting you pasted"}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={resetToIdle}
+          className="tm-small"
+          style={{
+            flex: "none",
+            color: "var(--tm-blue-600)",
+            fontWeight: 500,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            fontSize: "13px",
+          }}
+        >
+          Change
+        </button>
+      </div>
+
+      {/* score hero — the score is the hero */}
+      <div
+        className="tm-card"
+        style={{
+          background: "var(--tm-mint-50)",
+          border: "0.5px solid rgba(33,146,107,.22)",
+          display: "flex",
+          alignItems: "center",
+          gap: "24px",
+          flexWrap: "wrap",
+          padding: "24px 26px",
+        }}
+      >
+        <ScoreRing score={view.overall} run={shown} />
+        <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+          <span className="tm-pill tm-pill--mint">
+            <Check size={12} /> {view.verdict}
+          </span>
+          <h3
+            style={{
+              fontSize: "21px",
+              fontWeight: 600,
+              color: "var(--tm-ink)",
+              margin: "10px 0 0",
+              lineHeight: 1.25,
+            }}
+          >
+            {heroHeadline(view.overall)}
+          </h3>
+          {summaryRest && (
+            <p
+              className="tm-small"
+              style={{ marginTop: "8px", fontSize: "13px", lineHeight: 1.55 }}
+            >
+              {summaryRest}
             </p>
           )}
-          <div className="tmF-actions" style={{ justifyContent: "space-between" }}>
-            <button
-              type="button"
-              className="tm-btn tm-btn--ghost"
-              onClick={() => setPosting(sample)}
-            >
-              Use the sample posting
-            </button>
-            <button
-              type="button"
-              className="tm-btn tm-btn--primary"
-              style={{
-                opacity: posting && !fetching ? 1 : 0.45,
-                pointerEvents: posting && !fetching ? "auto" : "none",
-              }}
-              onClick={() => void score()}
-            >
-              {fetching ? (
-                "Reading the posting…"
-              ) : (
-                <Fragment>
-                  Score my fit <ArrowRight size={15} />
-                </Fragment>
-              )}
-            </button>
-          </div>
-        </Fragment>
-      )}
-      {phase === "scoring" && (
-        <ScoringLoader
-          displayTarget={displayTarget}
-          roleCtx={roleCtx}
-          statusIdx={statusIdx}
-        />
-      )}
-      {phase === "done" && (
-        <div className="mt-[24px]">
-          <div className="tm-fit tmF-fit">
-            <div className="tm-fit-head">
-              <h3>{view.header}</h3>
-              {phase === "done" && (
-                <span className="tm-pill tm-pill--mint">{view.verdictPill}</span>
-              )}
-            </div>
-            {view.dims.map((d, i) => (
-              <div key={`${i}-${d.label}`}>
-                <div
-                  className={
-                    "tm-fit-row tmF-why-row" +
-                    (phase === "done" ? " is-clickable" : "")
-                  }
-                  onClick={() => phase === "done" && setWhy(why === i ? -1 : i)}
-                >
-                  <label>{d.label}</label>
-                  <div className="tm-fit-track">
-                    <div
-                      className="tm-fit-bar"
-                      style={{ width: (w[i] ?? 0) + "%" }}
-                    ></div>
-                  </div>
-                  <output>{phase === "done" ? d.score : ""}</output>
-                  {phase === "done" && (
-                    <span
-                      className={"tmF-why-toggle" + (why === i ? " is-open" : "")}
-                    >
-                      <Plus size={13} />
-                    </span>
-                  )}
-                </div>
-                {phase === "done" && why === i && (
-                  <div className="tmF-why">
-                    {d.why && (
-                      <p
-                        className="tm-small"
-                        style={{
-                          marginBottom: "8px",
-                          fontSize: "12.5px",
-                          lineHeight: 1.5,
-                          color: "var(--tm-ink)",
-                        }}
-                      >
-                        {d.why}
-                      </p>
-                    )}
-                    {d.plus.map((p, pi) => (
-                      <p key={`p-${pi}`} className="tmF-why-line is-plus">
-                        <Check size={12} /> {p}
-                      </p>
-                    ))}
-                    {d.gaps.map((m, mi) => (
-                      <p key={`g-${mi}`} className="tmF-why-line is-minus">
-                        <Plus size={12} style={{ transform: "rotate(45deg)" }} />{" "}
-                        {m}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
+        </div>
+      </div>
+
+      {/* dimensions — ranked strongest → focus, expand for evidence */}
+      <div className="tm-card" style={{ padding: "20px 22px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "8px",
+          }}
+        >
+          <span className="tmF-p2-label">Across the {ranked.length} dimensions</span>
+          <span
+            className="tm-small"
+            style={{ display: "inline-flex", alignItems: "center", gap: "12px", fontSize: "11.5px" }}
+          >
+            {[
+              { c: "var(--tm-mint-600)", l: "strong" },
+              { c: "var(--tm-blue-600)", l: "solid" },
+              { c: "#9db8ec", l: "focus" },
+            ].map((x) => (
+              <span key={x.l} style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                <span style={{ height: "8px", width: "8px", borderRadius: "50%", background: x.c }} />
+                {x.l}
+              </span>
             ))}
-            <div className="tm-fit-pass">
-              <label>Location & logistics</label>
-              {phase === "done" ? (
-                <span
-                  className="tm-small"
+          </span>
+        </div>
+
+        <div style={{ marginTop: "8px" }}>
+          {ranked.map((d, i) => {
+            const b = band(d.score);
+            const open = why === i;
+            return (
+              <div
+                key={`${i}-${d.label}`}
+                style={{ borderTop: i ? "0.5px solid var(--tm-border)" : "none" }}
+              >
+                <div
+                  onClick={() => setWhy(open ? -1 : i)}
                   style={{
-                    display: "inline-flex",
+                    display: "flex",
                     alignItems: "center",
-                    gap: "8px",
-                    fontSize: "12.5px",
+                    gap: "12px",
+                    padding: "13px 0",
+                    cursor: "pointer",
                   }}
                 >
-                  <span
-                    className={
-                      "tm-pill " +
-                      (view.locationPass ? "tm-pill--mint" : "tm-pill--gray")
-                    }
+                  <label
+                    style={{
+                      flex: "0 0 128px",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      color: "var(--tm-ink)",
+                      cursor: "pointer",
+                    }}
                   >
-                    <Check size={12} /> {view.locationPass ? "pass" : "check"}
-                  </span>{" "}
-                  {view.locationNote}
-                </span>
-              ) : (
-                <span className="tm-small">checking…</span>
-              )}
-            </div>
-          </div>
-          {phase === "done" && view.keywords.length > 0 && (
-            <div style={{ marginTop: "18px" }}>
-              <p
-                className="tmF-p2-label"
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
-              >
-                <Sparkles size={13} /> Keywords this posting screens for
-              </p>
-              <div className="tmF-chips" style={{ marginTop: "8px" }}>
-                {view.keywords.map((k, i) => (
-                  <span
-                    key={`${i}-${k.term}`}
-                    className={"tm-pill " + (k.inResume ? "tm-pill--mint" : "tm-pill--gray")}
+                    {d.label}
+                  </label>
+                  <div
+                    style={{
+                      flex: "1 1 60px",
+                      height: "8px",
+                      borderRadius: "999px",
+                      background: "rgba(24,24,27,0.08)",
+                      overflow: "hidden",
+                      minWidth: "48px",
+                    }}
                   >
-                    {k.inResume ? (
-                      <Check size={12} />
-                    ) : (
-                      <Plus size={12} style={{ transform: "rotate(45deg)" }} />
-                    )}{" "}
-                    {k.term}
+                    <div
+                      style={{
+                        height: "100%",
+                        borderRadius: "999px",
+                        background: b.bar,
+                        width: shown ? `${d.score}%` : "0%",
+                        transition: "width .9s cubic-bezier(.22,1,.36,1)",
+                        transitionDelay: `${i * 70}ms`,
+                      }}
+                    />
+                  </div>
+                  <output
+                    style={{
+                      width: "26px",
+                      textAlign: "right",
+                      fontSize: "15px",
+                      fontWeight: 600,
+                      color: "var(--tm-ink)",
+                      fontVariantNumeric: "tabular-nums",
+                      flex: "none",
+                    }}
+                  >
+                    {d.score}
+                  </output>
+                  <span
+                    className="tm-pill"
+                    style={{
+                      flex: "none",
+                      fontSize: "10.5px",
+                      background: b.pillBg,
+                      color: b.pillInk,
+                      minWidth: "76px",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {b.tag}
                   </span>
-                ))}
-              </div>
-              <p className="tm-small" style={{ marginTop: "8px", fontSize: "12px" }}>
-                {(() => {
-                  const miss = view.keywords.filter((k) => !k.inResume).length;
-                  return miss > 0
-                    ? `${view.keywords.length - miss} already in your resume · ${miss} missing — tailoring surfaces the ones you can genuinely back up.`
-                    : "Your resume already covers the posting’s keywords — tailoring sharpens how they read.";
-                })()}
-              </p>
-            </div>
-          )}
-          {phase === "done" && (
-            <Fragment>
-              {note && (
-                <p
-                  className="tmS-free mt-[16px]"
-                  style={{ display: "flex", gap: "10px", alignItems: "center" }}
-                >
-                  {note} This is a sample result —{" "}
-                  <Link
-                    href={ROUTES.signIn}
-                    style={{ color: "var(--tm-mint-600)", textDecoration: "underline" }}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      flex: "none",
+                      display: "flex",
+                      color: "var(--tm-zinc)",
+                      transform: open ? "rotate(45deg)" : "none",
+                      transition: "transform .2s",
+                    }}
                   >
-                    create a free account
-                  </Link>{" "}
-                  to run your own.
-                </p>
-              )}
-              {demoScore && (
-                <p
-                  className="tmS-free mt-[16px]"
-                  style={{ display: "flex", gap: "10px", alignItems: "center" }}
+                    <Plus size={15} />
+                  </span>
+                </div>
+                {/* Smooth expand: animate the grid row 0fr→1fr + fade, so the
+                    evidence eases open instead of snapping in. */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateRows: open ? "1fr" : "0fr",
+                    transition: "grid-template-rows .32s cubic-bezier(.22,1,.36,1)",
+                  }}
                 >
-                  Demo mode — this is a sample result, not scored from your
-                  resume. Add a provider key to score real resumes.
-                </p>
-              )}
-              <div className="tmF-verdict">
-                <b>{summaryLead}</b>
-                {summaryRest}
+                  <div style={{ overflow: "hidden", minHeight: 0 }}>
+                    <div
+                      className="tmF-why"
+                      style={{
+                        paddingBottom: "12px",
+                        opacity: open ? 1 : 0,
+                        transition: "opacity .28s ease",
+                      }}
+                    >
+                      {d.why && (
+                        <p
+                          className="tm-small"
+                          style={{ marginBottom: "8px", fontSize: "12.5px", lineHeight: 1.5, color: "var(--tm-ink)" }}
+                        >
+                          {d.why}
+                        </p>
+                      )}
+                      {d.plus.map((p, pi) => (
+                        <p key={`p-${pi}`} className="tmF-why-line is-plus">
+                          <Check size={12} /> {p}
+                        </p>
+                      ))}
+                      {d.gaps.map((m, mi) => (
+                        <p key={`g-${mi}`} className="tmF-why-line is-minus">
+                          <Plus size={12} style={{ transform: "rotate(45deg)" }} /> {m}
+                        </p>
+                      ))}
+                      {d.plus.length === 0 && d.gaps.length === 0 && !d.why && (
+                        <p className="tm-small" style={{ fontSize: "12.5px" }}>
+                          No detailed evidence for this dimension.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-              {view.recommendReview && <ManualReviewCTA overall={view.overall} />}
-              <div className="tmF-actions">
-                <button
-                  type="button"
-                  className="tm-btn tm-btn--primary"
-                  onClick={onNext}
-                >
-                  Run my free audit <ArrowRight size={15} />
-                </button>
-              </div>
-            </Fragment>
-          )}
+            );
+          })}
+
+          {/* location gate — a PASS/FAIL pill, never a bar */}
+          <div
+            style={{
+              borderTop: "0.5px solid var(--tm-border)",
+              paddingTop: "14px",
+              marginTop: "2px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <label style={{ flex: "0 0 128px", fontSize: "13px", fontWeight: 500, color: "var(--tm-ink)" }}>
+              Location &amp; logistics
+            </label>
+            <span
+              className={"tm-pill " + (view.locationPass ? "tm-pill--mint" : "tm-pill--gray")}
+              style={{ flex: "none" }}
+            >
+              <Check size={12} /> {view.locationPass ? "Pass" : "Check"}
+            </span>
+            <span className="tm-small" style={{ fontSize: "12.5px", flex: "1 1 160px", minWidth: 0 }}>
+              {view.locationNote}
+            </span>
+          </div>
         </div>
+      </div>
+
+      {note && (
+        <p className="tmS-free" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          {note} This is a sample result —{" "}
+          <Link href={ROUTES.signIn} style={{ color: "var(--tm-mint-600)", textDecoration: "underline" }}>
+            create a free account
+          </Link>{" "}
+          to run your own.
+        </p>
       )}
+      {demoScore && (
+        <p className="tmS-free" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          Demo mode — this is a sample result, not scored from your resume. Add a provider key to score
+          real resumes.
+        </p>
+      )}
+      {view.recommendReview && <ManualReviewCTA overall={view.overall} />}
+
+      {/* footer */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "14px",
+          flexWrap: "wrap",
+        }}
+      >
+        <p className="tm-small" style={{ fontSize: "12.5px", margin: 0 }}>
+          Open any dimension to see the evidence behind its score.
+        </p>
+        <button type="button" className="tm-btn tm-btn--primary" onClick={onNext}>
+          Run my free audit <ArrowRight size={15} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -1957,6 +2234,47 @@ function StepResults({
   } | null>(null);
   const [demoFull, setDemoFull] = useState(false);
 
+  // The agent audit shown before any paid run is the user's REAL audit, computed
+  // from their own resume + posting (mode "audit" — free, no credit, no documents).
+  // Only the downloadable tailored resume + cover letter below are gated. Falls
+  // back to a clearly-labeled sample if the audit can't run (demo mode without a
+  // provider, rate-limited, or error).
+  const [auditAgents, setAuditAgents] = useState<AuditAgent[] | null>(null);
+  const [auditSample, setAuditSample] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(true);
+  useEffect(() => {
+    // `auditLoading` starts true; this fetch runs once for the step-3 mount (deps
+    // are stable through the terminal step), so no synchronous reset is needed.
+    let active = true;
+    fetch("/api/apply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "audit", useSample, resumeText, postingText: posting }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!active) return;
+        if (d.result?.agents?.length) {
+          setAuditAgents(d.result.agents as AuditAgent[]);
+          setAuditSample(false);
+        } else {
+          setAuditAgents(DEMO_AGENTS); // demo / rate-limited / error → labeled sample
+          setAuditSample(true);
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setAuditAgents(DEMO_AGENTS);
+        setAuditSample(true);
+      })
+      .finally(() => {
+        if (active) setAuditLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [useSample, resumeText, posting]);
+
   const runFull = async () => {
     if (running) return;
     setRunning(true);
@@ -2113,7 +2431,34 @@ function StepResults({
 
   return (
     <div className="flex flex-col gap-[20px]">
-      <AgentAudit agents={DEMO_AGENTS} sample />
+      {auditLoading ? (
+        <div
+          className="tm-card"
+          style={{ padding: "22px 24px", display: "flex", alignItems: "center", gap: "13px" }}
+        >
+          <style>{`@keyframes tmspin{to{transform:rotate(360deg)}}`}</style>
+          <span
+            aria-hidden="true"
+            style={{
+              height: "26px",
+              width: "26px",
+              flex: "none",
+              borderRadius: "50%",
+              border: "2.5px solid var(--tm-blue-50)",
+              borderTopColor: "var(--tm-blue-600)",
+              animation: "tmspin .8s linear infinite",
+            }}
+          />
+          <div>
+            <b style={{ fontSize: "15px", color: "var(--tm-ink)" }}>Running your agent audit…</b>
+            <p className="tm-small" style={{ fontSize: "12.5px", marginTop: "1px" }}>
+              Three specialist agents are reading your resume against this posting.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <AgentAudit agents={auditAgents ?? DEMO_AGENTS} sample={auditSample} />
+      )}
       <MichaelPitch />
 
       {error && (
@@ -2191,9 +2536,22 @@ export default function AuditWizard() {
   const [stats, setStats] = useState<ResumeStats | null>(null);
   const [posting, setPosting] = useState("");
 
+  // On a step change, re-orient to the top of the flow so the new step isn't
+  // mounted off-screen below where the just-clicked button was. (Smooth via the
+  // global html{scroll-behavior:smooth}.) Skip the initial mount.
+  const headRef = useRef<HTMLElement>(null);
+  const firstStep = useRef(true);
+  useEffect(() => {
+    if (firstStep.current) {
+      firstStep.current = false;
+      return;
+    }
+    headRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [step]);
+
   return (
     <Fragment>
-      <section className="tm-sec tmF-head" style={{ paddingBottom: 0 }}>
+      <section ref={headRef} className="tm-sec tmF-head" style={{ paddingBottom: 0 }}>
         <span className="tm-pill">Free agentic AI audit</span>
         <h1 className="tm-h1">See what tailoring does to your resume</h1>
         <p className="tm-body">
@@ -2206,6 +2564,8 @@ export default function AuditWizard() {
       </section>
       <section className="tm-sec" style={{ paddingTop: 0 }}>
         <div className="tmF-panel">
+          {/* key={step} remounts on each step so the entrance animation replays */}
+          <div key={step} className="tmF-anim">
           {step === 0 && (
             <StepUpload
               stats={stats}
@@ -2244,6 +2604,7 @@ export default function AuditWizard() {
               posting={posting}
             />
           )}
+          </div>
           {step > 0 && step < 2 && (
             <p
               className="tm-small mt-[16px] cursor-pointer text-center"
