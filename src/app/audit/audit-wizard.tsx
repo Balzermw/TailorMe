@@ -24,7 +24,6 @@ import {
   PenLine,
   Plus,
   Quote,
-  Sparkles,
   TrendingUp,
   Upload,
   User,
@@ -1187,37 +1186,49 @@ function RolePreview({ ctx }: { ctx: RoleContext }) {
   return (
     <div
       style={{
-        border: "0.5px solid var(--tm-border)",
+        border: "0.5px solid var(--tm-blue-200)",
         borderRadius: "12px",
         padding: "16px 18px",
         background: "var(--tm-blue-50)",
       }}
     >
-      <p className="tmF-p2-label" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <Sparkles size={13} /> What a {ctx.role} typically needs
+      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <p
+          style={{
+            margin: 0,
+            fontSize: "11px",
+            fontWeight: 600,
+            letterSpacing: "0.05em",
+            textTransform: "uppercase",
+            color: "var(--tm-blue-800)",
+          }}
+        >
+          What a {ctx.role} typically needs
+        </p>
         {ctx.seniority && (
           <span className="tm-pill tm-pill--gray" style={{ marginLeft: "auto", fontSize: "10.5px" }}>
             {ctx.seniority}
           </span>
         )}
-      </p>
-      <p className="tm-small" style={{ marginTop: "4px", fontSize: "12px" }}>
-        General context for this kind of role. We’re comparing your resume against it now.
+      </div>
+      <p className="tm-small" style={{ marginTop: "6px", fontSize: "12.5px", lineHeight: 1.5 }}>
+        While we score your fit, here’s what strong candidates for this role usually bring.
       </p>
       {ctx.responsibilities.length > 0 && (
-        <ul style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "5px" }}>
+        <ul style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "7px" }}>
           {ctx.responsibilities.slice(0, 4).map((r, i) => (
             <li
               key={i}
-              style={{ fontSize: "12.5px", lineHeight: 1.45, color: "var(--tm-ink)", display: "flex", gap: "8px" }}
+              style={{ fontSize: "13px", lineHeight: 1.5, color: "var(--tm-ink)", display: "flex", gap: "9px" }}
             >
-              <span style={{ color: "var(--tm-blue-600)", flex: "none" }}>•</span> {r}
+              <span style={{ color: "var(--tm-blue-600)", flex: "none" }}>•</span>
+              <span>{r}</span>
             </li>
           ))}
         </ul>
       )}
       {ctx.typicalSkills.length > 0 && (
-        <div className="tmF-chips" style={{ marginTop: "10px" }}>
+        <div className="tmF-chips" style={{ marginTop: "12px" }}>
           {ctx.typicalSkills.slice(0, 10).map((s, i) => (
             <span key={`${s}-${i}`} className="tm-pill tm-pill--gray">
               {s}
@@ -1559,10 +1570,10 @@ function StepJob({
     // instead of cutting away mid-progress (which felt jarring).
     setStatusIdx(STATUS_MESSAGES("").length - 1);
     // Keep the loading screen up long enough for the role-context card (a ~3.2s
-    // call) to return AND ease in (0.8s) so it's actually seen — ~4.6s total
-    // minimum. Slow scores already exceed this, so they get only the 650ms
-    // "analysis finished" beat and no extra delay.
-    const holdMs = Math.max(650, 4600 - (performance.now() - scoreStart));
+    // call) to return, ease in (0.8s), AND stay readable for a few seconds:
+    // ~7s total minimum. Slow scores already exceed this, so they get only the
+    // 650ms "analysis finished" beat and no extra delay.
+    const holdMs = Math.max(650, 7000 - (performance.now() - scoreStart));
     scoreTimers.current.push(
       setTimeout(() => {
         if (scoreRun.current !== myRun) return;
