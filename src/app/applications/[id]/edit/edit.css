@@ -126,6 +126,83 @@
   color: var(--tm-ink);
   background: var(--tm-gray);
 }
+.tmE-trust-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tm-mint-700);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* "See the trace": original → tailored proof, demonstrating verification */
+.tmE-trace {
+  border: 0.5px solid var(--tm-mint-200);
+  background: var(--tm-mint-50);
+  border-radius: 11px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.tmE-trace-intro {
+  font-size: 12px;
+  color: var(--tm-mint-700);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.tmE-trace-entry {
+  padding-top: 12px;
+  margin-top: 12px;
+  border-top: 0.5px solid var(--tm-mint-200);
+}
+.tmE-trace-entry:first-of-type {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+.tmE-trace-role {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tm-ink);
+}
+.tmE-trace-tag {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--tm-zinc);
+  margin: 9px 0 3px;
+}
+.tmE-trace-tag.is-after {
+  color: var(--tm-mint-700);
+}
+.tmE-trace-before,
+.tmE-trace-after {
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding-left: 12px;
+  position: relative;
+  margin-top: 3px;
+}
+.tmE-trace-before {
+  color: var(--tm-zinc);
+}
+.tmE-trace-after {
+  color: var(--tm-ink);
+}
+.tmE-trace-before::before,
+.tmE-trace-after::before {
+  content: "–";
+  position: absolute;
+  left: 0;
+}
+.tmE-trace-after::before {
+  color: var(--tm-mint-600);
+}
 
 /* tree rail */
 .tmE-tree {

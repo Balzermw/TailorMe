@@ -12,7 +12,10 @@ export default function FinalCta() {
   return (
     <section className="tm-sec">
       <div className="tm-wrap tm-cta">
-        <h2 className="tm-h2">Your bullets can do this too.</h2>
+        {/* override the global 18ch CTA cap so this headline sits on one line */}
+        <h2 className="tm-h2" style={{ maxWidth: "32ch" }}>
+          Your bullets can do this too.
+        </h2>
         <p className="tm-body">
           Run the same pipeline on your own resume. The first application is
           free.

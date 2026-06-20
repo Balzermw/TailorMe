@@ -45,6 +45,12 @@ body {
   --tm-ink: #18181b;
   --tm-zinc: #71717a;
   --tm-border: rgba(24, 24, 27, 0.14);
+  /* mid/dark shades referenced across the app but previously undefined
+     (mint 200/500/700, slate) — defining them so var() calls resolve. */
+  --tm-mint-200: #a3ddca;
+  --tm-mint-500: #27a87a;
+  --tm-mint-700: #1a7a5a;
+  --tm-slate: #52525b;
   --tm-font: var(--font-sans), "Geist", "Inter", system-ui, sans-serif;
 
   /* spacing (regular density) · Direction B scale */
@@ -982,14 +988,15 @@ body {
   max-width: 380px;
 }
 .tmB-rq-item {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
   font-size: var(--small);
   line-height: 1.55;
 }
+/* Label chip on its own line so the note text below always starts at the same
+   left edge — inline pills of different widths pushed the text in/out per row. */
 .tmB-rq-item .tm-pill {
-  flex: none;
+  display: flex;
+  width: fit-content;
+  margin-bottom: 6px;
 }
 .tmB-ev-head {
   font-size: 13px;
@@ -1377,6 +1384,43 @@ body {
 .tm-agent-note .tm-tag {
   margin-right: 6px;
   transform: translateY(-1px);
+}
+/* "show don't tell": a real before -> after example proving each agent's work */
+.tm-agent-eg {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--tm-border);
+}
+.tm-agent-eg-tag {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--tm-zinc);
+}
+.tm-agent-eg-before {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--tm-zinc);
+  text-decoration: line-through;
+  text-decoration-color: rgba(217, 84, 77, 0.5);
+  margin-top: 6px;
+}
+.tm-agent-eg-after {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--tm-ink);
+  margin-top: 5px;
+  padding-left: 14px;
+  position: relative;
+}
+.tm-agent-eg-after::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--tm-mint-600);
+  font-weight: 600;
 }
 
 /* fit score */
@@ -3709,9 +3753,45 @@ body {
   letter-spacing: 0.01em;
 }
 .tmD-status-label {
-  font-size: 12.5px;
-  color: var(--tm-zinc);
-  margin: -6px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tm-slate);
+  margin: -2px 0 0;
+  padding: 4px 11px 4px 9px;
+  border-radius: 999px;
+  background: var(--tm-gray);
+  width: fit-content;
+}
+.tmD-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--tm-zinc);
+}
+.tmD-status-label[data-status="ready"] {
+  background: var(--tm-mint-50);
+  color: var(--tm-mint-700);
+}
+.tmD-status-label[data-status="ready"] .tmD-status-dot {
+  background: var(--tm-mint-500);
+}
+.tmD-status-label[data-status="human_review"] {
+  background: var(--tm-blue-50);
+  color: var(--tm-blue-800);
+}
+.tmD-status-label[data-status="human_review"] .tmD-status-dot {
+  background: var(--tm-blue-600);
+}
+.tmD-status-label[data-status="scored"] {
+  background: #fdf6ec;
+  color: #946218;
+}
+.tmD-status-label[data-status="scored"] .tmD-status-dot {
+  background: #c98a2b;
 }
 /* Quiet placeholder that holds the drawer column open when nothing is selected,
    so selecting/deselecting an application never reflows the list. */

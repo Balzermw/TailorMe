@@ -157,7 +157,10 @@ function Drawer({ app, onClose, onRequestReview }: { app: App; onClose: () => vo
         </button>
       </div>
 
-      <p className="tmD-status-label">{STATUS_LABEL[app.status]}</p>
+      <p className="tmD-status-label" data-status={app.status}>
+        <span className="tmD-status-dot" aria-hidden="true" />
+        {STATUS_LABEL[app.status]}
+      </p>
 
       {app.fit != null && (
         <>

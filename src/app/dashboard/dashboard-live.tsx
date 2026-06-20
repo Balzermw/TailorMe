@@ -294,7 +294,10 @@ export default function DashboardLive({
                   </button>
                 </div>
 
-                <p className="tmD-status-label">{STATUS_LABEL[open.status] ?? open.status}</p>
+                <p className="tmD-status-label" data-status={open.status}>
+                  <span className="tmD-status-dot" aria-hidden="true" />
+                  {STATUS_LABEL[open.status] ?? open.status}
+                </p>
 
                 {open.result?.fit && (
                   <>

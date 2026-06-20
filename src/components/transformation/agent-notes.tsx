@@ -21,6 +21,8 @@ const TRANSFORMATION_AGENT_NOTES = [
         txt: "Tied Kubernetes and Datadog work to real bullets, not a skills-only line.",
       },
     ],
+    before: "Comfortable with containers, cloud, and monitoring tools.",
+    after: "Set Kubernetes deployment standards and built Datadog observability dashboards.",
   },
   {
     icon: "trending-up",
@@ -35,6 +37,8 @@ const TRANSFORMATION_AGENT_NOTES = [
         txt: "Surfaced 40k messages/min and a 52% incident-triage drop.",
       },
     ],
+    before: "Improved checkout performance and mentored the team.",
+    after: "Cut p95 latency 38% across 2.4M daily transactions; mentored 6 engineers.",
   },
   {
     icon: "target",
@@ -49,6 +53,8 @@ const TRANSFORMATION_AGENT_NOTES = [
         txt: "Moved platform and reliability work above generic support; trimmed old web bullets.",
       },
     ],
+    before: "Responsible for web app features across React and Node.js.",
+    after: "Led migration of checkout to a distributed Node.js service for the platform.",
   },
 ];
 
@@ -75,6 +81,13 @@ export default function AgentNotes() {
                     {n.txt}
                   </p>
                 ))}
+                {a.before && a.after && (
+                  <div className="tm-agent-eg">
+                    <span className="tm-agent-eg-tag">Example from this run</span>
+                    <p className="tm-agent-eg-before">{a.before}</p>
+                    <p className="tm-agent-eg-after">{a.after}</p>
+                  </div>
+                )}
               </div>
             );
           })}
