@@ -510,110 +510,122 @@
   margin-top: 4px;
 }
 
-/* "Improve with AI": per-line suggestion affordance + the suggestion panel */
-.tmE-improve {
+/* "Review my edits": AI report on the user's own changes vs the AI original */
+.tmE-review {
+  border: 0.5px solid var(--tm-border);
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.04);
+}
+.tmE-review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tmE-review-head b {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--tm-ink);
+}
+.tmE-review-x {
+  flex: none;
+  background: none;
+  border: none;
+  padding: 3px;
+  border-radius: 6px;
+  color: var(--tm-zinc);
+  cursor: pointer;
+}
+.tmE-review-x:hover {
+  color: var(--tm-ink);
+  background: var(--tm-gray);
+}
+.tmE-review-status {
+  font-size: 12.5px;
+  color: var(--tm-zinc);
+  line-height: 1.5;
+  margin-top: 8px;
+}
+.tmE-review-status.is-err {
+  color: #b3261e;
+}
+.tmE-review-item {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 0.5px solid var(--tm-border);
+}
+.tmE-review-item.is-good {
+  background: var(--tm-mint-50);
+  border-color: var(--tm-mint-200);
+}
+.tmE-review-item.is-weaker {
+  background: #fdf3e7;
+  border-color: #f0d9a9;
+}
+.tmE-review-item.is-issue {
+  background: #fdecea;
+  border-color: #f3c7c3;
+}
+.tmE-review-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tmE-review-where {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tm-ink);
+}
+.tmE-review-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff;
+}
+.tmE-review-verdict.is-good {
+  color: var(--tm-mint-700);
+}
+.tmE-review-verdict.is-weaker {
+  color: #854f0b;
+}
+.tmE-review-verdict.is-issue {
+  color: #b3261e;
+}
+.tmE-review-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--tm-slate);
   margin-top: 6px;
+}
+.tmE-review-revert {
+  margin-top: 9px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
   font: inherit;
   font-size: 12px;
-  color: var(--tm-blue-600);
-  background: none;
-  border: none;
-  padding: 2px 5px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: color 0.15s, background 0.15s;
-}
-.tmE-improve:hover {
-  background: var(--tm-blue-50);
-}
-.tmE-improve.is-open {
-  color: var(--tm-zinc);
-}
-.tmE-suggest {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.tmE-suggest-status {
-  font-size: 12.5px;
-  color: var(--tm-zinc);
-  padding: 2px 2px 4px;
-}
-.tmE-suggest-status.is-err {
-  color: #b3261e;
-}
-.tmE-suggest-card {
-  border: 0.5px solid var(--tm-blue-200);
-  background: var(--tm-blue-50);
-  border-radius: 10px;
-  padding: 11px 12px;
-}
-.tmE-suggest-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-.tmE-suggest-type {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: #fff;
-  border: 0.5px solid var(--tm-blue-200);
-  color: var(--tm-blue-800);
-}
-.tmE-suggest-type.is-metric {
-  color: var(--tm-mint-700);
-  border-color: var(--tm-mint-200);
-}
-.tmE-suggest-type.is-keyword {
-  color: #854f0b;
-  border-color: #f0d9a9;
-}
-.tmE-suggest-flag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
   font-weight: 500;
-  color: #854f0b;
-  background: #fdf3e7;
-  border-radius: 999px;
-  padding: 2px 8px;
-}
-.tmE-suggest-text {
-  font-size: 13.5px;
-  line-height: 1.5;
   color: var(--tm-ink);
-}
-.tmE-suggest-why {
-  font-size: 12px;
-  color: var(--tm-zinc);
-  margin-top: 4px;
-}
-.tmE-suggest-use {
-  margin-top: 9px;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: #fff;
-  background: var(--tm-blue-600);
-  border: none;
+  background: #fff;
+  border: 0.5px solid var(--tm-border);
   border-radius: 7px;
-  padding: 6px 12px;
+  padding: 5px 11px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: border-color 0.15s, background 0.15s;
 }
-.tmE-suggest-use:hover {
-  background: var(--tm-blue-800);
+.tmE-review-revert:hover {
+  border-color: var(--tm-ink);
 }
 
 .tmE-tree-item.is-active {

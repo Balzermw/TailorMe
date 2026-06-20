@@ -7,7 +7,7 @@ import {
   ArrowLeft,
   Check,
   Download,
-  Lightbulb,
+  ListChecks,
   PenLine,
   Plus,
   RotateCcw,
@@ -35,17 +35,23 @@ const SEV: Record<ProofPoint["severity"], { label: string; color: string; bg: st
   low: { label: "Minor polish", color: "var(--tm-zinc)", bg: "rgba(24,24,27,0.06)" },
 };
 
-// Inline "Improve this line" suggestions (cheap model, /api/suggest).
-type Suggestion = {
-  type: "stronger" | "metric" | "keyword";
-  text: string;
-  why: string;
-  drafted: boolean;
+// "Review my edits": AI checks the user's own changes against the AI original.
+type Verdict = "good" | "weaker" | "issue";
+type ReviewItem = {
+  id: string;
+  where: string;
+  kind: "summary" | "bullet";
+  original: string;
+  edited: string;
+  ei?: number;
+  bi?: number;
+  verdict: Verdict;
+  note: string;
 };
-const SUGGEST_LABEL: Record<Suggestion["type"], string> = {
-  stronger: "Stronger wording",
-  metric: "Add a number",
-  keyword: "Keyword fit",
+const VERDICT_LABEL: Record<Verdict, string> = {
+  good: "Looks good",
+  weaker: "Weaker than the AI version",
+  issue: "Worth a look",
 };
 
 // Section-at-a-time résumé editor (Res.Me builder pattern): sidebar nav →
@@ -154,10 +160,9 @@ export default function EditEditor({
   const [msg, setMsg] = useState<{ text: string; err: boolean } | null>(null);
   const [dirty, setDirty] = useState(false);
   const [trustDismissed, setTrustDismissed] = useState(false);
-  const [suggestKey, setSuggestKey] = useState<string | null>(null);
-  const [suggestList, setSuggestList] = useState<Suggestion[]>([]);
-  const [suggestLoading, setSuggestLoading] = useState(false);
-  const [suggestError, setSuggestError] = useState<string | null>(null);
+  const [review, setReview] = useState<{ items: ReviewItem[] } | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   const diffs = diffMap(bulletDiffs);
   const totalPending = bulletDiffs.filter((d) => !decisions[bulletKey(d.entry, d.bullet)]).length;
@@ -207,42 +212,90 @@ export default function EditEditor({
     }));
     touch();
   }
-  async function improveBullet(ei: number, bi: number, text: string) {
-    const key = bulletKey(ei, bi);
-    if (suggestKey === key) {
-      setSuggestKey(null); // clicking again closes the panel
-      return;
+  // Collect the lines the user changed from the AI's original tailored doc.
+  function collectChanges(): ReviewItem[] {
+    if (!originalDoc) return [];
+    const out: ReviewItem[] = [];
+    if (doc.summary.trim() && doc.summary.trim() !== originalDoc.summary.trim()) {
+      out.push({
+        id: "summary",
+        where: "Summary",
+        kind: "summary",
+        original: originalDoc.summary,
+        edited: doc.summary,
+        verdict: "good",
+        note: "",
+      });
     }
-    setSuggestKey(key);
-    setSuggestList([]);
-    setSuggestError(null);
-    if (text.trim().length < 8) {
-      setSuggestError("Write a little more before asking for ideas.");
-      return;
-    }
-    setSuggestLoading(true);
+    doc.experience.forEach((e, ei) => {
+      const oe = originalDoc.experience[ei];
+      if (!oe) return;
+      e.bullets.forEach((b, bi) => {
+        const ob = oe.bullets[bi];
+        if (ob != null && b.trim() && b.trim() !== ob.trim()) {
+          out.push({
+            id: `b:${ei}:${bi}`,
+            where: `${e.role || oe.role || "Experience"} · bullet ${bi + 1}`,
+            kind: "bullet",
+            original: ob,
+            edited: b,
+            ei,
+            bi,
+            verdict: "good",
+            note: "",
+          });
+        }
+      });
+    });
+    return out;
+  }
+  async function reviewMyChanges() {
+    if (!originalDoc) return;
+    const changes = collectChanges();
+    setReviewError(null);
+    setReview({ items: changes }); // open the panel (loading state shows next)
+    if (!changes.length) return;
+    setReviewLoading(true);
     try {
-      const res = await fetch("/api/suggest", {
+      const res = await fetch("/api/review-edits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "bullet", text, role, keywords }),
+        body: JSON.stringify({
+          role,
+          keywords,
+          changes: changes.map((c) => ({
+            id: c.id,
+            kind: c.kind,
+            original: c.original,
+            edited: c.edited,
+          })),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "failed");
-      const list: Suggestion[] = Array.isArray(data.suggestions) ? data.suggestions : [];
-      setSuggestList(list);
-      if (!list.length) setSuggestError("No ideas this time — your line may already be tight.");
+      const reviews: { id: string; verdict: Verdict; note: string }[] = Array.isArray(
+        data.reviews,
+      )
+        ? data.reviews
+        : [];
+      const byId = new Map(reviews.map((r) => [r.id, r] as const));
+      setReview({
+        items: changes.map((c) => {
+          const r = byId.get(c.id);
+          return { ...c, verdict: r?.verdict ?? "good", note: r?.note ?? "" };
+        }),
+      });
     } catch (e) {
       const m = e instanceof Error ? e.message : "";
-      setSuggestError(m && m !== "failed" ? m : "Could not get suggestions. Try again.");
+      setReviewError(m && m !== "failed" ? m : "Could not review your edits. Try again.");
     } finally {
-      setSuggestLoading(false);
+      setReviewLoading(false);
     }
   }
-  function applySuggestion(ei: number, bi: number, text: string) {
-    setBulletText(ei, bi, text);
-    setSuggestKey(null);
-    setSuggestList([]);
+  function revertChange(it: ReviewItem) {
+    if (it.kind === "summary") patch({ summary: it.original });
+    else if (it.ei != null && it.bi != null) setBulletText(it.ei, it.bi, it.original);
+    setReview((r) => (r ? { items: r.items.filter((x) => x.id !== it.id) } : r));
   }
   function decide(ei: number, bi: number, decision: EditDecision) {
     const key = bulletKey(ei, bi);
@@ -311,6 +364,17 @@ export default function EditEditor({
               {!msg.err && <Check size={14} />} {msg.text}
             </span>
           )}
+          {modified && originalDoc && (
+            <button
+              type="button"
+              className="tm-btn tm-btn--outline tm-btn--sm"
+              onClick={() => void reviewMyChanges()}
+              disabled={reviewLoading}
+              title="Have the AI check the changes you made against its tailored version."
+            >
+              <ListChecks size={13} /> {reviewLoading ? "Reviewing…" : "Review my edits"}
+            </button>
+          )}
           {originalDoc && (
             <button
               type="button"
@@ -353,6 +417,55 @@ export default function EditEditor({
 
         {/* ---- one section at a time ---- */}
         <div className="tmE-main">
+          {review && (
+            <div className="tmE-review tmF-anim">
+              <div className="tmE-review-head">
+                <b>
+                  {reviewLoading
+                    ? "Reviewing your edits…"
+                    : review.items.length
+                      ? `AI reviewed your ${review.items.length} edit${review.items.length > 1 ? "s" : ""}`
+                      : "Nothing changed yet"}
+                </b>
+                <button
+                  type="button"
+                  className="tmE-review-x"
+                  aria-label="Close"
+                  onClick={() => setReview(null)}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              {reviewError && <p className="tmE-review-status is-err">{reviewError}</p>}
+              {!reviewLoading && !reviewError && review.items.length === 0 && (
+                <p className="tmE-review-status">
+                  Edit a line, then run this and the AI will check your changes against its version.
+                </p>
+              )}
+              {!reviewLoading &&
+                review.items.map((it) => (
+                  <div key={it.id} className={"tmE-review-item is-" + it.verdict}>
+                    <div className="tmE-review-top">
+                      <span className="tmE-review-where">{it.where}</span>
+                      <span className={"tmE-review-verdict is-" + it.verdict}>
+                        {it.verdict === "good" ? <Check size={12} /> : <AlertTriangle size={12} />}
+                        {VERDICT_LABEL[it.verdict]}
+                      </span>
+                    </div>
+                    {it.note && <p className="tmE-review-note">{it.note}</p>}
+                    {it.verdict !== "good" && it.original && (
+                      <button
+                        type="button"
+                        className="tmE-review-revert"
+                        onClick={() => revertChange(it)}
+                      >
+                        <RotateCcw size={12} /> Revert to the AI version
+                      </button>
+                    )}
+                  </div>
+                ))}
+            </div>
+          )}
           {showVerified && (
             <div className="tmE-trust is-ok">
               <span className="tmE-trust-ic">
@@ -448,52 +561,12 @@ export default function EditEditor({
                       const diff = diffs.get(key);
                       const decision = decisions[key];
                       if (!diff) {
-                        const open = suggestKey === key;
                         return (
-                          <div key={bi} className="tmE-bullet">
-                            <div className="tmE-bullet-row">
-                              <textarea className="tmE-textarea" value={b} onChange={(ev) => setBulletText(ei, bi, ev.target.value)} />
-                              <button type="button" className="tmE-icon-btn" aria-label="Remove bullet" onClick={() => removeBullet(ei, bi)}>
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                            <button
-                              type="button"
-                              className={"tmE-improve" + (open ? " is-open" : "")}
-                              aria-expanded={open}
-                              onClick={() => improveBullet(ei, bi, b)}
-                            >
-                              <Lightbulb size={13} /> {open ? "Close suggestions" : "Improve with AI"}
+                          <div key={bi} className="tmE-bullet-row">
+                            <textarea className="tmE-textarea" value={b} onChange={(ev) => setBulletText(ei, bi, ev.target.value)} />
+                            <button type="button" className="tmE-icon-btn" aria-label="Remove bullet" onClick={() => removeBullet(ei, bi)}>
+                              <Trash2 size={14} />
                             </button>
-                            {open && (
-                              <div className="tmE-suggest tmF-anim">
-                                {suggestLoading && (
-                                  <p className="tmE-suggest-status">Looking for stronger ways to say this…</p>
-                                )}
-                                {suggestError && <p className="tmE-suggest-status is-err">{suggestError}</p>}
-                                {suggestList.map((s, si) => (
-                                  <div key={si} className="tmE-suggest-card">
-                                    <div className="tmE-suggest-top">
-                                      <span className={"tmE-suggest-type is-" + s.type}>{SUGGEST_LABEL[s.type]}</span>
-                                      {s.drafted && (
-                                        <span className="tmE-suggest-flag">
-                                          <AlertTriangle size={11} /> AI-drafted — confirm it&apos;s true
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="tmE-suggest-text">{s.text}</p>
-                                    {s.why && <p className="tmE-suggest-why">{s.why}</p>}
-                                    <button
-                                      type="button"
-                                      className="tmE-suggest-use"
-                                      onClick={() => applySuggestion(ei, bi, s.text)}
-                                    >
-                                      Use this line
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
                           </div>
                         );
                       }

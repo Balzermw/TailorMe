@@ -28,11 +28,11 @@ export const FREE_AUDIT_RULES: Rule[] = [
   { limit: num("FREE_AUDIT_PER_DAY", 8), windowMs: DAY },
 ];
 
-// Inline "Improve this line" editor suggestions. Cheap model, so generous, but
-// capped so a held-down click or a script can't run up the bill.
-export const SUGGEST_RULES: Rule[] = [
-  { limit: num("SUGGEST_PER_HOUR", 80), windowMs: HOUR },
-  { limit: num("SUGGEST_PER_DAY", 400), windowMs: DAY },
+// "Review my edits" — AI review of the user's own changes. Cheap model, so
+// generous, but capped so a script can't run up the bill.
+export const EDIT_REVIEW_RULES: Rule[] = [
+  { limit: num("EDIT_REVIEW_PER_HOUR", 60), windowMs: HOUR },
+  { limit: num("EDIT_REVIEW_PER_DAY", 300), windowMs: DAY },
 ];
 
 // Global circuit breaker on free audits across all IPs (caps total free spend).
