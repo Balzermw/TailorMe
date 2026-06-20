@@ -3,9 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowLeft,
   Check,
   Download,
+  Lightbulb,
   PenLine,
   Plus,
   RotateCcw,
@@ -31,6 +33,19 @@ const SEV: Record<ProofPoint["severity"], { label: string; color: string; bg: st
   high: { label: "High priority", color: "#b3261e", bg: "#fdecea" },
   medium: { label: "Worth fixing", color: "#854f0b", bg: "#fdf3e7" },
   low: { label: "Minor polish", color: "var(--tm-zinc)", bg: "rgba(24,24,27,0.06)" },
+};
+
+// Inline "Improve this line" suggestions (cheap model, /api/suggest).
+type Suggestion = {
+  type: "stronger" | "metric" | "keyword";
+  text: string;
+  why: string;
+  drafted: boolean;
+};
+const SUGGEST_LABEL: Record<Suggestion["type"], string> = {
+  stronger: "Stronger wording",
+  metric: "Add a number",
+  keyword: "Keyword fit",
 };
 
 // Section-at-a-time résumé editor (Res.Me builder pattern): sidebar nav →
@@ -139,6 +154,10 @@ export default function EditEditor({
   const [msg, setMsg] = useState<{ text: string; err: boolean } | null>(null);
   const [dirty, setDirty] = useState(false);
   const [trustDismissed, setTrustDismissed] = useState(false);
+  const [suggestKey, setSuggestKey] = useState<string | null>(null);
+  const [suggestList, setSuggestList] = useState<Suggestion[]>([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestError, setSuggestError] = useState<string | null>(null);
 
   const diffs = diffMap(bulletDiffs);
   const totalPending = bulletDiffs.filter((d) => !decisions[bulletKey(d.entry, d.bullet)]).length;
@@ -187,6 +206,43 @@ export default function EditEditor({
       ),
     }));
     touch();
+  }
+  async function improveBullet(ei: number, bi: number, text: string) {
+    const key = bulletKey(ei, bi);
+    if (suggestKey === key) {
+      setSuggestKey(null); // clicking again closes the panel
+      return;
+    }
+    setSuggestKey(key);
+    setSuggestList([]);
+    setSuggestError(null);
+    if (text.trim().length < 8) {
+      setSuggestError("Write a little more before asking for ideas.");
+      return;
+    }
+    setSuggestLoading(true);
+    try {
+      const res = await fetch("/api/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "bullet", text, role, keywords }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "failed");
+      const list: Suggestion[] = Array.isArray(data.suggestions) ? data.suggestions : [];
+      setSuggestList(list);
+      if (!list.length) setSuggestError("No ideas this time — your line may already be tight.");
+    } catch (e) {
+      const m = e instanceof Error ? e.message : "";
+      setSuggestError(m && m !== "failed" ? m : "Could not get suggestions. Try again.");
+    } finally {
+      setSuggestLoading(false);
+    }
+  }
+  function applySuggestion(ei: number, bi: number, text: string) {
+    setBulletText(ei, bi, text);
+    setSuggestKey(null);
+    setSuggestList([]);
   }
   function decide(ei: number, bi: number, decision: EditDecision) {
     const key = bulletKey(ei, bi);
@@ -392,12 +448,52 @@ export default function EditEditor({
                       const diff = diffs.get(key);
                       const decision = decisions[key];
                       if (!diff) {
+                        const open = suggestKey === key;
                         return (
-                          <div key={bi} className="tmE-bullet-row">
-                            <textarea className="tmE-textarea" value={b} onChange={(ev) => setBulletText(ei, bi, ev.target.value)} />
-                            <button type="button" className="tmE-icon-btn" aria-label="Remove bullet" onClick={() => removeBullet(ei, bi)}>
-                              <Trash2 size={14} />
+                          <div key={bi} className="tmE-bullet">
+                            <div className="tmE-bullet-row">
+                              <textarea className="tmE-textarea" value={b} onChange={(ev) => setBulletText(ei, bi, ev.target.value)} />
+                              <button type="button" className="tmE-icon-btn" aria-label="Remove bullet" onClick={() => removeBullet(ei, bi)}>
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              className={"tmE-improve" + (open ? " is-open" : "")}
+                              aria-expanded={open}
+                              onClick={() => improveBullet(ei, bi, b)}
+                            >
+                              <Lightbulb size={13} /> {open ? "Close suggestions" : "Improve with AI"}
                             </button>
+                            {open && (
+                              <div className="tmE-suggest tmF-anim">
+                                {suggestLoading && (
+                                  <p className="tmE-suggest-status">Looking for stronger ways to say this…</p>
+                                )}
+                                {suggestError && <p className="tmE-suggest-status is-err">{suggestError}</p>}
+                                {suggestList.map((s, si) => (
+                                  <div key={si} className="tmE-suggest-card">
+                                    <div className="tmE-suggest-top">
+                                      <span className={"tmE-suggest-type is-" + s.type}>{SUGGEST_LABEL[s.type]}</span>
+                                      {s.drafted && (
+                                        <span className="tmE-suggest-flag">
+                                          <AlertTriangle size={11} /> AI-drafted — confirm it&apos;s true
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="tmE-suggest-text">{s.text}</p>
+                                    {s.why && <p className="tmE-suggest-why">{s.why}</p>}
+                                    <button
+                                      type="button"
+                                      className="tmE-suggest-use"
+                                      onClick={() => applySuggestion(ei, bi, s.text)}
+                                    >
+                                      Use this line
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       }

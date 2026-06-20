@@ -510,6 +510,112 @@
   margin-top: 4px;
 }
 
+/* "Improve with AI": per-line suggestion affordance + the suggestion panel */
+.tmE-improve {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--tm-blue-600);
+  background: none;
+  border: none;
+  padding: 2px 5px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.tmE-improve:hover {
+  background: var(--tm-blue-50);
+}
+.tmE-improve.is-open {
+  color: var(--tm-zinc);
+}
+.tmE-suggest {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tmE-suggest-status {
+  font-size: 12.5px;
+  color: var(--tm-zinc);
+  padding: 2px 2px 4px;
+}
+.tmE-suggest-status.is-err {
+  color: #b3261e;
+}
+.tmE-suggest-card {
+  border: 0.5px solid var(--tm-blue-200);
+  background: var(--tm-blue-50);
+  border-radius: 10px;
+  padding: 11px 12px;
+}
+.tmE-suggest-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.tmE-suggest-type {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #fff;
+  border: 0.5px solid var(--tm-blue-200);
+  color: var(--tm-blue-800);
+}
+.tmE-suggest-type.is-metric {
+  color: var(--tm-mint-700);
+  border-color: var(--tm-mint-200);
+}
+.tmE-suggest-type.is-keyword {
+  color: #854f0b;
+  border-color: #f0d9a9;
+}
+.tmE-suggest-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #854f0b;
+  background: #fdf3e7;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.tmE-suggest-text {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--tm-ink);
+}
+.tmE-suggest-why {
+  font-size: 12px;
+  color: var(--tm-zinc);
+  margin-top: 4px;
+}
+.tmE-suggest-use {
+  margin-top: 9px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--tm-blue-600);
+  border: none;
+  border-radius: 7px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.tmE-suggest-use:hover {
+  background: var(--tm-blue-800);
+}
+
 .tmE-tree-item.is-active {
   background: var(--tm-blue-50);
   color: var(--tm-blue-800);
