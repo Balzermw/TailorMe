@@ -9,16 +9,16 @@ export const HEADLINE = {
 
 export const PAINS = [
   {
-    q: "My strong work reads like a task list.",
+    q: "My best work reads like a task list.",
     d: "Seven years of real impact, written like a job description.",
   },
   {
     q: "I apply everywhere and hear nothing.",
-    d: "The same resume goes to forty postings — and silence comes back from most of them.",
+    d: "One resume sent to forty postings, and silence from almost all of them.",
   },
   {
     q: "Recruiters don’t see my value.",
-    d: "They skim for the role they’re filling. A generic resume makes them do the translation — they won’t.",
+    d: "They skim for the exact role. A generic resume makes them do the translation, so they don’t.",
   },
 ];
 

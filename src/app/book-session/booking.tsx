@@ -60,8 +60,10 @@ const CALENDLY_URL = process.env.NEXT_PUBLIC_CALENDLY_URL || "";
 // Calendly records URL UTM params on the scheduled event, so the chosen package
 // shows up in Michael's notification + invitee details.
 function calendlyLink(pkgId: string): string {
+  // hide_event_type_details drops Calendly's left info panel (and the Privacy
+  // Policy link in its footer) — our page already shows the event context.
   return (
-    `${CALENDLY_URL}?hide_gdpr_banner=1` +
+    `${CALENDLY_URL}?hide_gdpr_banner=1&hide_event_type_details=1` +
     `&utm_campaign=book-session&utm_content=${encodeURIComponent(pkgId)}`
   );
 }

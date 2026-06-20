@@ -2,24 +2,28 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  Briefcase,
   Check,
+  Compass,
   FileText,
   Lock,
-  Plus,
+  Rocket,
   ShieldCheck,
-  Sparkles,
   Target,
   Trash2,
+  type LucideIcon,
 } from "lucide-react";
 import Nav from "@/components/landing/nav";
 import Footer from "@/components/landing/footer";
 import { ROUTES, TRUST } from "@/components/landing/data";
+import PricingFaq from "./pricing-faq";
 
 export const metadata: Metadata = {
   title: "Pricing — TailorMe by Res.Me",
 };
 
 type Pack = {
+  icon: LucideIcon;
   use: string;
   name: string;
   price: string;
@@ -33,6 +37,7 @@ type Pack = {
 
 const PACKS: Pack[] = [
   {
+    icon: Compass,
     use: "Testing the waters",
     name: "Starter",
     price: "$19",
@@ -45,6 +50,7 @@ const PACKS: Pack[] = [
     ],
   },
   {
+    icon: Briefcase,
     use: "Actively searching",
     name: "Job hunt",
     price: "$49",
@@ -58,6 +64,7 @@ const PACKS: Pack[] = [
     popular: true,
   },
   {
+    icon: Rocket,
     use: "Career switch or full campaign",
     name: "All in",
     price: "$99",
@@ -75,7 +82,7 @@ const PACKS: Pack[] = [
 const INCLUDES = [
   { icon: Target, label: "Fit score before you commit" },
   { icon: FileText, label: "Tailored resume + cover letter" },
-  { icon: Sparkles, label: "Three-agent line-level review" },
+  { icon: Check, label: "Three-agent line-level review" },
   { icon: ShieldCheck, label: "Compiled, inspected 2-page PDF" },
 ] as const;
 
@@ -108,29 +115,6 @@ const GUIDE: { q: string; a: RichPart[] }[] = [
   },
 ];
 
-const PRICING_FAQS = [
-  {
-    q: "Do credits expire?",
-    a: "Never. Buy a pack, use it across your whole search — this month or next year. No subscription to cancel, no API keys to manage.",
-  },
-  {
-    q: "What counts as one application?",
-    a: "One job posting: fit score, tailored resume + cover letter, the full three-agent review, and the compiled PDFs. Re-runs against the same posting don’t cost extra credits.",
-  },
-  {
-    q: "Can I see the result before spending a credit?",
-    a: "Yes — every run shows a watermarked preview free. The credit unlocks the clean download.",
-  },
-  {
-    q: "What’s the refund policy?",
-    a: "If you’re not happy, email balzermw@gmail.com within 30 days of purchase and we’ll refund any unused credits in full. Credits already spent on a tailored application, and completed human reviews, aren’t refundable.",
-  },
-  {
-    q: "What does Michael’s review add?",
-    a: "A line-by-line pass from the head of Res.Me — Certified Professional Resume Writer, 650+ resumes written — with positioning notes for your target role, within 48 hours. +$49 on any application.",
-  },
-];
-
 const TRUST_ICONS = {
   lock: Lock,
   "trash-2": Trash2,
@@ -153,6 +137,9 @@ function PackCards() {
             }
           >
             <span className="tm-pill tmP-pack-chip">{chip || "\u00A0"}</span>
+            <span className="tmP-pack-ic" aria-hidden="true">
+              <p.icon size={18} />
+            </span>
             <span className="tmP-pack-use">{p.use}</span>
             <span className="tmP-pack-name">{p.name}</span>
             <span className="tmP-pack-price">
@@ -210,21 +197,6 @@ function HumanReviewRow() {
   );
 }
 
-function PricingFaq() {
-  return (
-    <div className="tm-faq">
-      {PRICING_FAQS.map((f, i) => (
-        <details key={f.q} className="tm-faq-item" open={i === 0}>
-          <summary>
-            {f.q} <Plus size={16} />
-          </summary>
-          <p>{f.a}</p>
-        </details>
-      ))}
-    </div>
-  );
-}
-
 function TrustStrip() {
   return (
     <div className="tm-trust">
@@ -249,9 +221,8 @@ export default function PricingPage() {
           <span className="tm-pill">Pricing</span>
           <h1 className="tm-h1">Pay per application. That’s it.</h1>
           <p className="tm-body">
-            No subscription, no monthly fee, credits never expire. Every
-            application gets the full pipeline — the packs only differ in how
-            many you need.
+            No subscription. Credits never expire, and every application gets
+            the full pipeline.
           </p>
         </section>
 
@@ -267,8 +238,8 @@ export default function PricingPage() {
             </p>
             <p className="tm-small mt-[28px] text-center">
               Every new account starts with{" "}
-              <span className="tm-m">1 free application</span> — that’s your
-              free resume audit. No card required.
+              <span className="tm-m">1 free application</span>, a full resume
+              audit. No card required.
             </p>
           </div>
         </section>
@@ -331,7 +302,7 @@ export default function PricingPage() {
               className="tm-btn tm-btn--primary tm-btn--lg"
               href={ROUTES.audit}
             >
-              <Sparkles size={16} /> Get a free resume audit
+              Get a free resume audit
             </Link>
             <div className="mt-[34px]">
               <TrustStrip />

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Lock, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
+import { Lock, ShieldCheck, Trash2 } from "lucide-react";
 import { ROUTES, TRUST } from "./data";
 
 const TRUST_ICONS = {
@@ -14,11 +14,10 @@ export default function FinalCta() {
       <div className="tm-wrap tm-cta">
         <h2 className="tm-h2">Run your first application free.</h2>
         <p className="tm-body">
-          Five dimensions scored, every line tailored, three reviewers — before
-          you pay anything.
+          See your fit score and the full three-agent review before you pay anything.
         </p>
         <Link className="tm-btn tm-btn--primary tm-btn--lg" href={ROUTES.audit}>
-          <Sparkles size={16} /> Get a free resume audit
+          Get a free resume audit
         </Link>
         <div className="tm-trust mt-[34px]">
           {TRUST.map((t) => {

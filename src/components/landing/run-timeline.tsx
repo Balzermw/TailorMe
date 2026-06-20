@@ -43,7 +43,7 @@ export default function RunTimeline() {
                   “Responsible for developing and maintaining features for the
                   web app using React and Node.js.”
                 </p>
-                <span className="tmB-tl-arrow">
+                <span className="tmB-tl-arrow" style={{ justifyContent: "center" }}>
                   <ArrowDown size={15} />
                 </span>
                 <p className="tmB-tl-after">

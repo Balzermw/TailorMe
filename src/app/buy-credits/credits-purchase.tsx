@@ -18,12 +18,11 @@ export default function CreditsPurchase() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [sel, setSel] = useState("Job hunt");
-  const [addon, setAddon] = useState(false);
   const [paid, setPaid] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pack = PACKS.find((p) => p.name === sel) ?? PACKS[0];
-  const total = pack.priceNum + (addon ? 49 : 0);
+  const total = pack.priceNum;
 
   // Returning from Stripe Checkout (?success=1) or the demo "Pay" both show success.
   const showSuccess = paid || searchParams.get("success") === "1";
@@ -36,7 +35,7 @@ export default function CreditsPurchase() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packId: packIdByName(pack.name), addon }),
+        body: JSON.stringify({ packId: packIdByName(pack.name) }),
       });
       if (res.status === 401) {
         router.push(ROUTES.signIn);
@@ -86,13 +85,7 @@ export default function CreditsPurchase() {
             ))}
           </div>
 
-          <div
-            className={
-              "tm-card tmCR-addon mt-[22px]" + (addon ? " is-sel" : "")
-            }
-            onClick={() => setAddon(!addon)}
-          >
-            <span className="tmCR-check">{addon && <Check size={13} />}</span>
+          <div className="tm-card tmCR-addon mt-[22px]">
             <Image
               className="tm-human-photo"
               src="/michael.png"
@@ -106,15 +99,17 @@ export default function CreditsPurchase() {
                 className="block"
                 style={{ fontSize: "14.5px", fontWeight: 500 }}
               >
-                Add Michael’s expert review to my next application
+                Want Michael’s expert review?
               </b>
               <span className="tm-small" style={{ fontSize: "12.5px" }}>
-                Line-by-line pass from the head of Res.Me · 48-hour turnaround
+                Add his line-by-line pass (+$49) to any finished application from
+                your{" "}
+                <Link href={ROUTES.dashboard} className="underline">
+                  dashboard
+                </Link>
+                .
               </span>
             </div>
-            <span className="tmCR-pack-price" style={{ fontSize: "17px" }}>
-              +$49
-            </span>
           </div>
         </div>
 
@@ -124,10 +119,7 @@ export default function CreditsPurchase() {
               <Check size={12} /> payment complete
             </span>
             <h3>{pack.appsNum} credits added</h3>
-            <p>
-              Your balance is now {pack.appsNum + 1} applications
-              {addon ? ", with Michael’s review queued for the next one" : ""}.
-            </p>
+            <p>Your balance is now {pack.appsNum + 1} applications.</p>
             <Link className="tm-btn tm-btn--primary" href={ROUTES.dashboard}>
               Go to dashboard
             </Link>
@@ -151,12 +143,6 @@ export default function CreditsPurchase() {
               </span>
               <b>{pack.price}</b>
             </div>
-            {addon && (
-              <div className="tmCR-row">
-                <span>Michael’s expert review × 1</span>
-                <b>$49</b>
-              </div>
-            )}
             <div className="tmCR-row">
               <span>Credits expire</span>
               <b>Never</b>

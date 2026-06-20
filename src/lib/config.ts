@@ -79,3 +79,6 @@ export const tailorProviderConfigured =
 
 /** Enables the side-by-side /api/compare eval route (off by default). */
 export const compareEnabled = process.env.COMPARE_ENABLED === "1";
+
+/** Dev/testing only: skip the credit gate + consumption on full runs. */
+export const creditsDisabled = process.env.CREDITS_DISABLED === "1";

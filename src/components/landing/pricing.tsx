@@ -34,25 +34,45 @@ function PricingTable() {
 
 function HumanReviewRow() {
   return (
-    <div className="tm-card tm-human">
+    <div
+      className="tm-card tm-human"
+      style={{
+        background: "#fff",
+        borderColor: "var(--tm-mint-200)",
+        marginTop: "var(--g)",
+        position: "relative",
+        overflow: "hidden",
+        boxShadow: "0 14px 34px rgba(16, 24, 40, 0.08)",
+      }}
+    >
       <Image
         className="tm-human-photo"
         src="/michael.png"
         alt="Michael, head of Res.Me"
         width={56}
         height={56}
+        style={{ width: "60px", height: "60px" }}
       />
       <div className="tm-human-body">
-        <h3>Add Michael’s expert review</h3>
-        <p>
-          Michael — head of Res.Me, Certified Professional Resume Writer, 650+
-          resumes written — goes through your final draft line by line and adds
-          positioning notes for your target role. Back in your inbox within 48
-          hours.
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+          <h3 style={{ margin: 0 }}>Add Michael&apos;s expert review</h3>
+          <span className="tm-pill tm-pill--mint" style={{ fontSize: "11px" }}>
+            Most loved add-on
+          </span>
+        </div>
+        <p style={{ marginBottom: "8px" }}>
+          Goes through your final draft line by line — repositioning bullets for
+          the target role, flagging anything that undersells your level, and
+          returning it within 48 hours.
         </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+          <span className="tm-pill">CPRW certified</span>
+          <span className="tm-pill">650+ resumes written</span>
+          <span className="tm-pill">Fiverr Top Pro · 4.8★</span>
+        </div>
       </div>
       <div className="tm-human-price">
-        <strong>+$49</strong>
+        <strong style={{ color: "var(--tm-mint-700)" }}>+$49</strong>
         <span>per application</span>
       </div>
     </div>

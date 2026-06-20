@@ -68,3 +68,45 @@ export async function listApplications(): Promise<ApplicationRow[]> {
     .order("created_at", { ascending: false });
   return (data ?? []).map((r) => rowToApp(r as DbApplication));
 }
+
+/** One application owned by the signed-in user, or null. RLS-scoped. */
+export async function getApplication(id: string): Promise<ApplicationRow | null> {
+  const sb = await getServerSupabase();
+  if (!sb) return null;
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+  if (!user) return null;
+  const { data } = await sb
+    .from("applications")
+    .select("id,company,role,fit_score,status,michael_status,result,created_at")
+    .eq("id", id)
+    .single();
+  return data ? rowToApp(data as DbApplication) : null;
+}
+
+/**
+ * Persist an edited result blob for the signed-in owner. Manual editing only —
+ * NEVER calls consume_credit. Ownership is enforced by RLS and the explicit
+ * user_id match. Returns true on success.
+ */
+export async function updateApplicationResult(
+  id: string,
+  result: ApplyResult,
+): Promise<boolean> {
+  const sb = await getServerSupabase();
+  if (!sb) return false;
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+  if (!user) return false;
+  const { error } = await sb
+    .from("applications")
+    .update({
+      result,
+      fit_score: result.fit?.overall ?? null,
+    })
+    .eq("id", id)
+    .eq("user_id", user.id);
+  return !error;
+}

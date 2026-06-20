@@ -1,67 +1,116 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import NextLink from "next/link";
 import {
+  ArrowRight,
   CreditCard,
+  Database,
+  EyeOff,
+  FileText,
   Globe,
   KeyRound,
+  Link as LinkIcon,
   Lock,
   Server,
   Shield,
   ShieldCheck,
-  Sparkles,
   Trash2,
+  UserCheck,
 } from "lucide-react";
 import Nav from "@/components/landing/nav";
 import Footer from "@/components/landing/footer";
 import { ROUTES } from "@/components/landing/data";
 
 export const metadata: Metadata = {
-  title: "Security & your data — TailorMe by Res.Me",
+  title: "Security & your data - TailorMe by Res.Me",
   description:
-    "How TailorMe protects your resume: row-level security, encryption at rest, one-click delete, SSRF-safe link fetching, Stripe payments, and OAuth sign-in.",
+    "How TailorMe protects resume data with row-level security, AES-256 encryption at rest, TLS in transit, controlled AI processing, user-managed erasure, Stripe payments, and OAuth sign-in.",
 };
 
-const ITEMS: { icon: React.ReactNode; title: string; body: string }[] = [
+type SecurityItem = {
+  icon: React.ReactNode;
+  kicker: string;
+  title: string;
+  body: string;
+};
+
+const CONTROLS: SecurityItem[] = [
   {
-    icon: <Lock size={20} strokeWidth={1.7} />,
-    title: "Row-level security",
-    body: "Every resume, application, and credit is locked to your account at the database level (Postgres row-level security). One person's data is never visible to another — the rule is enforced by the database itself, not just our app code, so even a bug on our side can't expose your data across accounts.",
+    icon: <Lock size={19} />,
+    kicker: "Identity",
+    title: "Signed-in access only",
+    body: "Real applications and saved resumes require an authenticated session. Demo data stays separate from account-backed data.",
   },
   {
-    icon: <Shield size={20} strokeWidth={1.7} />,
-    title: "Encrypted at rest and in transit",
-    body: "Your data is stored on Supabase (managed Postgres), encrypted at rest, and every connection is TLS-encrypted in transit. No plaintext storage of your documents.",
+    icon: <Database size={19} />,
+    kicker: "Storage",
+    title: "Owner-scoped resume records",
+    body: "The resume table is designed around one owner per row, and API routes write the authenticated user id before saving.",
   },
   {
-    icon: <Trash2 size={20} strokeWidth={1.7} />,
-    title: "Delete everything in one click",
-    body: "Your saved resume and applications are yours to remove whenever you want — one click, gone for good. We don't keep shadow copies after you delete.",
+    icon: <Server size={19} />,
+    kicker: "Server secrets",
+    title: "Service-role keys stay server-side",
+    body: "The Supabase service role is only used from server code for trusted operations like Stripe webhooks. It is never shipped to the browser.",
   },
   {
-    icon: <ShieldCheck size={20} strokeWidth={1.7} />,
-    title: "We never train on your data",
-    body: "Your resume and the job postings you paste are sent to the AI provider only to tailor your application. We don't use your data to train models, and we never sell it.",
+    icon: <LinkIcon size={19} />,
+    kicker: "Job links",
+    title: "SSRF-safe URL fetching",
+    body: "When you paste a job URL, TailorMe reads public job pages and rejects internal, loopback, and cloud-metadata addresses.",
   },
   {
-    icon: <Globe size={20} strokeWidth={1.7} />,
-    title: "Safe job-link fetching",
-    body: "When you paste a job URL, we fetch it from our server with strict SSRF protection: we only read public job pages and refuse internal, loopback, or cloud-metadata addresses — so the feature can't be turned against private systems.",
+    icon: <FileText size={19} />,
+    kicker: "Documents",
+    title: "No file-conversion handoff",
+    body: "PDF generation runs through our document pipeline instead of handing resume content to a third-party conversion API.",
   },
   {
-    icon: <Server size={20} strokeWidth={1.7} />,
-    title: "Your resume stays on our infrastructure",
-    body: "PDF generation runs on our own document service. Your resume content isn't handed off to a third-party file-conversion API to leave our control.",
+    icon: <CreditCard size={19} />,
+    kicker: "Payments",
+    title: "Stripe handles card data",
+    body: "Checkout happens through Stripe. TailorMe stores credit balances and payment status, not your raw card details.",
   },
   {
-    icon: <CreditCard size={20} strokeWidth={1.7} />,
-    title: "Payments handled by Stripe",
-    body: "We never see or store your card details. Checkout runs entirely on Stripe; our system only learns that a payment succeeded so it can add your credits.",
+    icon: <KeyRound size={19} />,
+    kicker: "Passwords",
+    title: "OAuth sign-in, no password storage",
+    body: "Google or LinkedIn sign-in keeps your password outside TailorMe. You can revoke access from the identity provider.",
   },
   {
-    icon: <KeyRound size={20} strokeWidth={1.7} />,
-    title: "Sign in without a password",
-    body: "Use Continue with Google or LinkedIn — we never see your password, and you can revoke TailorMe's access at any time from your Google or LinkedIn account.",
+    icon: <Trash2 size={19} />,
+    kicker: "Erasure",
+    title: "User-controlled deletion",
+    body: "Account settings include controls to remove saved profiles, resumes, generated documents, and feedback history.",
   },
+];
+
+const FLOW = [
+  {
+    step: "01",
+    title: "Upload",
+    body: "Your resume is parsed into a structured profile and stored under your account boundary.",
+  },
+  {
+    step: "02",
+    title: "Tailor",
+    body: "Only the resume and job context needed for the requested run is sent through the tailoring pipeline.",
+  },
+  {
+    step: "03",
+    title: "Review",
+    body: "Specialist agent notes are stored with the application so you can inspect why a change was made.",
+  },
+  {
+    step: "04",
+    title: "Control",
+    body: "You can export, correct, or erase account data through settings or a GDPR data request.",
+  },
+];
+
+const BOUNDARIES = [
+  "TailorMe is not claiming zero-knowledge or end-to-end encryption. The server must read your resume to parse, tailor, and compile it.",
+  "We do not display SOC 2 or ISO badges until those audits exist. The page describes current product controls.",
+  "AI providers are used to process the run you request. TailorMe does not sell resume data or use it to train its own models.",
 ];
 
 export default function SecurityPage() {
@@ -69,91 +118,137 @@ export default function SecurityPage() {
     <div className="tm">
       <Nav active="" />
       <main>
-        <section className="tm-sec tmF-head" style={{ paddingBottom: 0 }}>
+        <section className="tm-sec tmF-head tmSec-hero">
           <span className="tm-pill">
             <Lock size={13} /> Security &amp; privacy
           </span>
-          <h1 className="tm-h1">Your data is yours.</h1>
-          <p className="tm-body" style={{ maxWidth: "56ch" }}>
-            A resume is personal. Here is exactly how TailorMe keeps yours
-            private, isolated to your account, and under your control —
-            in plain language, no jargon.
+          <h1 className="tm-h1">A practical trust page for a very personal file.</h1>
+          <p className="tm-body">
+            Your resume contains employment history, contact details, and career
+            plans. TailorMe protects it with account isolation, specific
+            encryption controls, limited AI processing, and user-managed data
+            rights.
           </p>
         </section>
 
-        <section className="tm-sec" style={{ paddingTop: "32px" }}>
+        <section className="tm-sec tmSec-band">
           <div className="tm-wrap">
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))",
-                gap: "18px",
-              }}
-            >
-              {ITEMS.map((it) => (
-                <div
-                  key={it.title}
-                  className="tm-card"
-                  style={{ padding: "22px 24px" }}
-                >
-                  <span
-                    style={{
-                      display: "flex",
-                      height: "42px",
-                      width: "42px",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRadius: "10px",
-                      background: "var(--tm-blue-50)",
-                      color: "var(--tm-blue-800)",
-                      marginBottom: "14px",
-                    }}
-                    aria-hidden="true"
-                  >
-                    {it.icon}
+            <div className="tmSec-top">
+              <div>
+                <span className="tm-eyebrow">
+                  <ShieldCheck size={14} /> Security at a glance
+                </span>
+                <h2 className="tm-h2 mt-[10px]">Concrete controls, not just reassurance.</h2>
+              </div>
+              <p className="tm-body">
+                Inspired by security pages that name the exact control, then say
+                what it means for the user.
+              </p>
+            </div>
+            <div className="tmSec-control-grid tmSec-control-grid--compact">
+              {CONTROLS.slice(0, 4).map((item) => (
+                <article className="tm-card tmSec-control" key={item.title}>
+                  <span className="tmSec-icon" aria-hidden="true">
+                    {item.icon}
                   </span>
-                  <h3
-                    style={{
-                      fontSize: "16px",
-                      fontWeight: 500,
-                      marginBottom: "8px",
-                    }}
-                  >
-                    {it.title}
-                  </h3>
-                  <p
-                    style={{
-                      fontSize: "13.5px",
-                      lineHeight: 1.6,
-                      color: "var(--tm-zinc)",
-                    }}
-                  >
-                    {it.body}
-                  </p>
-                </div>
+                  <div>
+                    <span className="tmSec-kicker">{item.kicker}</span>
+                    <h3>{item.title}</h3>
+                    <p>{item.body}</p>
+                  </div>
+                </article>
               ))}
             </div>
+          </div>
+        </section>
 
-            <p
-              className="tm-small text-center"
-              style={{ marginTop: "30px", maxWidth: "60ch", marginInline: "auto" }}
-            >
-              Built on Supabase (managed Postgres) and Stripe. Questions about
-              how we handle your data?{" "}
-              <Link href={ROUTES.contact} style={{ color: "var(--tm-blue-600)" }}>
-                Get in touch
-              </Link>{" "}
-              or read our{" "}
-              <Link href={ROUTES.privacy} style={{ color: "var(--tm-blue-600)" }}>
-                privacy policy
-              </Link>
-              .
-            </p>
+        <section className="tm-sec">
+          <div className="tm-wrap">
+            <div className="tmSec-top">
+              <div>
+                <span className="tm-eyebrow">
+                  <EyeOff size={14} /> How your resume is protected
+                </span>
+                <h2 className="tm-h2 mt-[10px]">The controls behind the claim.</h2>
+              </div>
+              <p className="tm-body">
+                Each card maps to a real boundary in the app: account access,
+                storage, AI processing, payments, or data rights.
+              </p>
+            </div>
+            <div className="tmSec-control-grid">
+              {CONTROLS.map((item) => (
+                <article className="tm-card tmSec-control" key={item.title}>
+                  <span className="tmSec-icon" aria-hidden="true">
+                    {item.icon}
+                  </span>
+                  <div>
+                    <span className="tmSec-kicker">{item.kicker}</span>
+                    <h3>{item.title}</h3>
+                    <p>{item.body}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
 
-            <div style={{ textAlign: "center", marginTop: "24px" }}>
-              <Link href={ROUTES.audit} className="tm-btn tm-btn--primary tm-btn--lg">
-                <Sparkles size={16} /> Get your free resume audit
-              </Link>
+        <section className="tm-sec tm-tint--gray">
+          <div className="tm-wrap tmSec-flow-wrap">
+            <div className="tmSec-flow-copy">
+              <span className="tm-eyebrow">
+                <Globe size={14} /> Resume data flow
+              </span>
+              <h2 className="tm-h2 mt-[10px]">Know where the file goes.</h2>
+              <p className="tm-body">
+                A good security page should make the data path visible. TailorMe
+                keeps the flow narrow: upload, tailor, review, control.
+              </p>
+            </div>
+            <div className="tmSec-flow">
+              {FLOW.map((item) => (
+                <article className="tmSec-flow-step" key={item.step}>
+                  <span>{item.step}</span>
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="tm-sec">
+          <div className="tm-wrap tmSec-bottom">
+            <div className="tm-card tmSec-boundaries">
+              <span className="tm-eyebrow">
+                <Shield size={14} /> Plain-language boundaries
+              </span>
+              <h2 className="tm-h2 mt-[10px]">What we are and are not claiming.</h2>
+              <div className="tmSec-boundary-list">
+                {BOUNDARIES.map((item) => (
+                  <p key={item}>
+                    <ShieldCheck size={15} /> {item}
+                  </p>
+                ))}
+              </div>
+            </div>
+            <div className="tm-card tmSec-contact">
+              <span className="tmSec-icon" aria-hidden="true">
+                <UserCheck size={20} />
+              </span>
+              <h2>Need your data?</h2>
+              <p>
+                Request access, export, correction, restriction, objection, or
+                erasure. We respond to GDPR data requests within one month.
+              </p>
+              <div className="tmSec-actions">
+                <NextLink href={ROUTES.contact} className="tm-btn tm-btn--primary">
+                  Contact us <ArrowRight size={15} />
+                </NextLink>
+                <NextLink href={ROUTES.privacy} className="tm-btn tm-btn--outline">
+                  Privacy policy
+                </NextLink>
+              </div>
             </div>
           </div>
         </section>

@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
 import { HEADLINE, HERO_STAGES, ROUTES } from "./data";
 
 function HeroArt() {
@@ -42,7 +41,7 @@ function HeroArt() {
         />
         <span>
           <b>Human review by Michael</b>
-          <span>Head of Res.Me · CPRW · optional on any run</span>
+          <span>Head of Res.Me · CPRW</span>
         </span>
       </div>
     </div>
@@ -67,7 +66,7 @@ export default function Hero() {
           </p>
           <div className="tmB-hero-ctas">
             <Link className="tm-btn tm-btn--primary" href={ROUTES.audit}>
-              <Sparkles size={15} /> Get a free resume audit
+              Get a free resume audit
             </Link>
             <Link className="tm-btn tm-btn--outline" href={ROUTES.transformation}>
               See a real transformation

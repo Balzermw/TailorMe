@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Check, PenLine, Search, Sparkles, Target, TrendingUp } from "lucide-react";
+import { Check, PenLine, Search, Target, TrendingUp } from "lucide-react";
 import { MICHAEL_CREDS } from "./data";
 
 export default function Guide() {
@@ -8,14 +8,13 @@ export default function Guide() {
       <div className="tm-wrap">
         <h2 className="tm-h2">Who’s actually reviewing your resume</h2>
         <p className="tm-body mt-[10px] max-w-[64ch]">
-          TailorMe is built by Res.Me, the technical resume writers. The
-          pipeline encodes how they work — and the same expert is behind the
-          optional human pass.
+          TailorMe is built by Res.Me, the technical resume writers. The pipeline
+          encodes how they work, and the same expert is behind the optional human pass.
         </p>
         <div className="tmB-guide mt-[30px]">
           <div className="tm-card tmB-guide-card">
             <span className="tm-eyebrow">
-              <Sparkles size={14} /> The three agents
+              The three agents
             </span>
             <div className="tmB-expert">
               <div className="tmB-agent-stack" aria-hidden="true">
@@ -34,20 +33,68 @@ export default function Guide() {
                   Each one reads like a different gatekeeper
                 </h3>
                 <p className="tm-small mt-[2px]">
-                  ATS · impact · role-fit — spawned fresh for every application
+                  ATS, impact, and role-fit. Fresh for every application.
                 </p>
               </div>
             </div>
+            <ul
+              style={{
+                listStyle: "none",
+                margin: "6px 0 0",
+                padding: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              {[
+                {
+                  Icon: Search,
+                  bg: "var(--tm-blue-50)",
+                  fg: "var(--tm-blue-600)",
+                  name: "Ada",
+                  text: "reads it like the ATS — are the posting’s keywords actually there?",
+                },
+                {
+                  Icon: TrendingUp,
+                  bg: "#e9f8f1",
+                  fg: "#0f7a52",
+                  name: "Max",
+                  text: "hunts for impact: lines that state activity with no number behind it.",
+                },
+                {
+                  Icon: Target,
+                  bg: "var(--tm-blue-50)",
+                  fg: "var(--tm-blue-800)",
+                  name: "Remy",
+                  text: "ranks every line for this role and trims the weakest to fit two pages.",
+                },
+              ].map(({ Icon, bg, fg, name, text }) => (
+                <li key={name} style={{ display: "flex", gap: "11px", alignItems: "flex-start" }}>
+                  <span
+                    style={{
+                      flex: "none",
+                      width: 30,
+                      height: 30,
+                      borderRadius: "50%",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: bg,
+                      color: fg,
+                    }}
+                  >
+                    <Icon size={15} />
+                  </span>
+                  <span className="tm-small" style={{ lineHeight: 1.5 }}>
+                    <b style={{ color: "var(--tm-ink)" }}>{name}</b> {text}
+                  </span>
+                </li>
+              ))}
+            </ul>
             <p className="tm-small">
-              A fresh reviewer is spawned for every application — it researches
-              the company first, then critiques your draft from three angles:
-              how the ATS parser will index it, how a recruiter skims it in
-              thirty seconds, and how the hiring manager judges role-fit.
-            </p>
-            <p className="tm-small">
-              The output isn’t a score. It’s a list of line-level edits — “this
-              bullet needs a baseline metric,” “move platform work above
-              frontend” — each one applied to the draft before it compiles.
+              You get specific line edits, not a score, and each one is applied before the
+              draft compiles.
             </p>
           </div>
           <div className="tm-card tmB-guide-card">
@@ -73,8 +120,8 @@ export default function Guide() {
               </div>
             </div>
             <p className="tm-small">
-              The optional +$49 pass isn’t a generic proofread — it’s Michael’s
-              line-by-line review of your final draft:
+              Want a person in the loop? For +$49, Michael reads your final draft
+              line by line and sends back notes:
             </p>
             <div className="tmB-creds">
               {MICHAEL_CREDS.map((c) => (

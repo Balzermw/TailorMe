@@ -34,6 +34,10 @@ yarn-error.log*
 .env*
 !.env.example
 
+# one-off local data-extraction scripts with hardcoded PII paths — never commit
+_extract_inputs.mjs
+reextract_one.mjs
+
 # vercel
 .vercel
 

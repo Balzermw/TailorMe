@@ -24,3 +24,8 @@ export function pdfHref(applicationId: string): string {
 export function texHref(applicationId: string, type?: "cover"): string {
   return `/api/applications/${applicationId}/latex${type ? `?type=${type}` : ""}`;
 }
+
+/** The resume editor for a tailored application (review/accept/edit changes). */
+export function editHref(applicationId: string): string {
+  return `/applications/${applicationId}/edit`;
+}

@@ -14,7 +14,7 @@
 }
 .print-toolbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -25,6 +25,11 @@
   padding: 0 0 40px;
   margin-bottom: 24px;
   overflow: hidden;
+  /* Mimic a real US Letter sheet (8.5 x 11) so the preview reads as a full
+     page, not a short card. If content runs longer than one page the box
+     grows; the actual PDF paginates via the @media print rules below. */
+  aspect-ratio: 8.5 / 11;
+  box-shadow: 0 1px 4px rgba(24, 24, 27, 0.07);
 }
 
 /* banking header band */
@@ -52,6 +57,13 @@
   color: var(--mcv-zinc);
   margin-top: 8px;
 }
+.mcv-contact a {
+  color: var(--mcv-blue);
+  text-decoration: none;
+}
+.mcv-contact a:hover {
+  text-decoration: underline;
+}
 
 .mcv-body {
   padding: 8px 44px 0;
@@ -74,7 +86,7 @@
 /* dated entry: year column + content, the moderncv banking signature */
 .mcv-entry {
   display: grid;
-  grid-template-columns: 110px 1fr;
+  grid-template-columns: 128px 1fr;
   gap: 16px;
   margin-bottom: 16px;
 }
@@ -83,6 +95,7 @@
   color: var(--mcv-zinc);
   font-weight: 500;
   padding-top: 1px;
+  white-space: nowrap;
 }
 .mcv-entry-role {
   font-size: 13px;
@@ -95,7 +108,11 @@
 }
 .mcv-entry ul {
   margin: 7px 0 0;
-  padding-left: 16px;
+  padding-left: 18px;
+  list-style: disc;
+}
+.mcv-entry li {
+  list-style: disc;
 }
 .mcv-entry li {
   font-size: 12px;
@@ -129,6 +146,8 @@
     border: none;
     border-radius: 0;
     margin: 0;
+    aspect-ratio: auto;
+    box-shadow: none;
     page-break-after: always;
   }
   .print-page:last-child {

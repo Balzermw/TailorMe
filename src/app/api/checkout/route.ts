@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 import { APP_URL, stripeConfigured } from "@/lib/config";
 import { stripe } from "@/lib/stripe";
 import { getServerSupabase } from "@/lib/supabase/server";
-import { getPack, MICHAEL_ADDON_CENTS } from "@/lib/packs";
+import { getPack } from "@/lib/packs";
 import { CHECKOUT_RULES, rateLimitDisabled } from "@/lib/limits";
 import { consume, tooManyRequests } from "@/lib/rate-limit";
 
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     }
   }
 
-  let body: { packId?: string; addon?: boolean };
+  let body: { packId?: string };
   try {
     body = await request.json();
   } catch {
@@ -54,16 +54,6 @@ export async function POST(request: Request) {
       quantity: 1,
     },
   ];
-  if (body.addon) {
-    line_items.push({
-      price_data: {
-        currency: "usd",
-        product_data: { name: "Michael's expert review (1 application)" },
-        unit_amount: MICHAEL_ADDON_CENTS,
-      },
-      quantity: 1,
-    });
-  }
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -74,7 +64,6 @@ export async function POST(request: Request) {
     metadata: {
       userId: user.id,
       credits: String(pack.credits),
-      addon: body.addon ? "1" : "0",
     },
   });
 

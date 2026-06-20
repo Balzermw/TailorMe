@@ -62,14 +62,22 @@ export async function POST(request: Request) {
     // AI parse → real, accurate profile when a provider is configured; the local
     // heuristic is the demo/offline fallback (and a safety net if the call fails).
     let stats = analyze(text);
+    let degraded = false;
     if (llmConfigured) {
       try {
         stats = await parseResume(text);
-      } catch {
-        /* keep the heuristic result */
+      } catch (err) {
+        // Don't fail silently: a bad/expired key (or provider outage) would
+        // otherwise just serve the weak keyword heuristic with no signal — which
+        // looks like "the parser got worse." Log it loudly + flag the response.
+        degraded = true;
+        console.error(
+          "[parse-resume] AI parse failed — serving heuristic fallback:",
+          err instanceof Error ? err.message : err,
+        );
       }
     }
-    return NextResponse.json({ text, stats, truncated });
+    return NextResponse.json({ text, stats, truncated, degraded });
   } catch {
     return NextResponse.json(
       { error: "Couldn’t parse that file. Try a PDF, Word, or text file." },

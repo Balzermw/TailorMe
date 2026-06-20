@@ -35,6 +35,9 @@ export interface FitBreakdown {
   overall: number; // 0–100
   verdict: string; // "Strong fit" etc.
   dimensions: FitDimension[];
+  // Tri-state: "pass" met, "fail" real conflict, "unclear" not specified by the
+  // posting/resume. locationPass is the legacy boolean (= status === "pass").
+  locationStatus?: "pass" | "fail" | "unclear";
   locationPass: boolean;
   locationNote: string;
   summary: string; // "Why 84 — strong fit: …"
@@ -128,6 +131,7 @@ export interface AuditAgent {
   before?: string;
   after?: string;
   stats?: { value: string; label: string; accent: "blue" | "mint" }[];
+  quantified?: { count: number; total: number }; // experience lines carrying a hard number, of total
   // kind: "ranking"
   lines?: {
     rank: number;
@@ -164,6 +168,30 @@ export interface VerificationReport {
   corrections: VerificationCorrection[];
 }
 
+/**
+ * One per-bullet before→after pair, captured IN-PIPELINE at tailor time (the
+ * only place both the original line and the rewritten doc bullet are in scope —
+ * the showcase `bullets[].after` strings are not verbatim substrings of the
+ * doc). Anchored to {entry,bullet} coordinates into doc.experience, taken after
+ * verifyDoc's same-shape guard so the coordinates are stable for the stored row.
+ */
+export interface BulletDiff {
+  entry: number;
+  bullet: number;
+  before: string;
+  after: string;
+}
+
+export type EditDecision = "accepted" | "rejected" | "edited";
+
+export interface EditState {
+  savedAt: string;
+  // key = `${entry}:${bullet}` for bullets, or "summary" | `skill:${i}` |
+  // `cover:${i}` | `header:${field}` for the other editable fields.
+  decisions: Record<string, EditDecision>;
+  userEdited: boolean; // any hand-edit → downgrades the "verified" trust badge
+}
+
 export interface ApplyResult {
   company: string;
   role: string;
@@ -172,8 +200,13 @@ export interface ApplyResult {
   keywords: string[];
   agentNotes: AgentNote[];
   agents?: AuditAgent[]; // the three personified review cards (full run only)
-  doc: TailoredDoc | null; // null for score-only (free preview)
+  doc: TailoredDoc | null; // null for score-only (free preview); current/edited doc
   verification?: VerificationReport; // faithfulness pass over the tailored doc (full run only)
+  // ----- editor (added when a user edits a tailored application) -----
+  originalDoc?: TailoredDoc; // AI draft snapshot; never overwritten ("reset to AI version")
+  bulletDiffs?: BulletDiff[]; // per-bullet before/after for the editor's diff rows
+  edits?: EditState; // per-line accept/reject/edit decisions + save metadata
+  proofPoints?: ProofPoint[]; // resume-audit findings ("what tailoring will fix"), carried into the editor
 }
 
 export interface Profile {

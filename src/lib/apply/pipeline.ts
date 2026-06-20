@@ -10,6 +10,7 @@ import type {
   AgentNote,
   ApplyResult,
   AuditAgent,
+  BulletDiff,
   FitBreakdown,
   ResumeStats,
   RoleContext,
@@ -94,7 +95,7 @@ const PARSE_SYSTEM =
   "figure like '40k', 'p95', '3x'); list the concrete hard skills and tools named " +
   "(8–20, deduplicated, as written); pick 4–6 representative experience bullets verbatim " +
   "and mark which contain a metric. " +
-  "Then give 3–5 PROOF POINTS: specific, real weaknesses, each backed by an EXACT verbatim " +
+  "Then give 5–8 PROOF POINTS: specific, real weaknesses, each backed by an EXACT verbatim " +
   "quote copied from the resume (copy the real text character-for-character — do NOT " +
   "paraphrase, do NOT fix its spacing or punctuation — so the candidate sees the finding " +
   "is about THEIR resume, not generic AI advice). Keep each quote to the smallest relevant " +
@@ -102,8 +103,10 @@ const PARSE_SYSTEM =
   "short title; a one-line summary; the verbatim quote; why it matters (how an ATS parser " +
   "or a recruiter skimming for ~6 seconds actually reads it); how tailoring fixes it; and a " +
   "severity (high / medium / low). Hunt for REAL issues such as: letter-spaced or " +
-  "spaced-out names/headers (e.g. 'V I N O D') that break ATS text parsing; overlapping, " +
-  "missing, or inconsistent employment dates; vague responsibility bullets that state " +
+  "spaced-out names/headers (e.g. 'V I N O D') that break ATS text parsing; overlapping " +
+  "or missing employment dates (an open-ended 'Month Year – Present' range is a normal " +
+  "ongoing role — NEVER flag it as future-dated, inconsistent, or an error); vague " +
+  "responsibility bullets that state " +
   "activity with no outcome; a dense wall-of-text summary; impact that is never quantified; " +
   "clichés and buzzwords; keywords buried in prose instead of scannable. " +
   "Apply professional resume standards: flag empty self-descriptors and buzzwords with no " +
@@ -141,7 +144,10 @@ export async function parseResume(
   }>(
     "parse",
     PARSE_SYSTEM,
-    `Resume:\n${resumeText}\n\nReturn the structured ATS profile + proof points for this resume.`,
+    `Today's date is ${new Date().toISOString().slice(0, 10)}. Any month/year on or before ` +
+      `today is in the PAST; a "Month Year – Present" (or "– Current") range is a normal ` +
+      `ongoing role, never a future date or an error.\n\nResume:\n${resumeText}\n\nReturn the ` +
+      `structured ATS profile + proof points for this resume.`,
     {
       name: "report_profile",
       description: "Return the structured resume profile + real, quotable proof points.",
@@ -201,7 +207,7 @@ export async function parseResume(
 
   const proofPoints = (Array.isArray(data.proofPoints) ? data.proofPoints : [])
     .filter((p) => p && p.title && p.why)
-    .slice(0, 6)
+    .slice(0, 10)
     .map((p) => ({
       title: p.title.trim(),
       summary: (p.summary || "").trim(),
@@ -349,7 +355,7 @@ export async function scoreFit(
     role: string;
     overall: number;
     verdict: string;
-    locationPass: boolean;
+    locationStatus: "pass" | "fail" | "unclear";
     locationNote: string;
     summary: string;
     dimensions: {
@@ -385,7 +391,10 @@ export async function scoreFit(
       "evidence — not merely adjacent, implied, or a related buzzword; when in doubt, mark " +
       "it false. Most real resumes are missing several of a posting's keywords; do not mark " +
       "them all present. " +
-      "Judge Location & logistics as pass/fail with a one-line reason. Give an overall " +
+      "Judge Location & logistics as one of 'pass' (the candidate meets the location / work-" +
+      "authorization requirement), 'fail' (a real conflict — e.g. the role requires a region or " +
+      "authorization the resume contradicts), or 'unclear' (the posting states no location " +
+      "requirement, or the resume doesn't state a location), with a one-line reason. Give an overall " +
       "0–100, a verdict tier (Strong fit / Good fit / Moderate fit / Weak fit / Poor fit), " +
       "and a one-sentence summary starting 'Why <overall> — <verdict>:'.",
     {
@@ -398,7 +407,7 @@ export async function scoreFit(
           "role",
           "overall",
           "verdict",
-          "locationPass",
+          "locationStatus",
           "locationNote",
           "summary",
           "dimensions",
@@ -409,7 +418,7 @@ export async function scoreFit(
           role: { type: "string" },
           overall: { type: "integer" },
           verdict: { type: "string" },
-          locationPass: { type: "boolean" },
+          locationStatus: { type: "string", enum: ["pass", "fail", "unclear"] },
           locationNote: { type: "string" },
           summary: { type: "string" },
           dimensions: {
@@ -453,7 +462,9 @@ export async function scoreFit(
       overall: data.overall,
       verdict: data.verdict,
       dimensions: Array.isArray(data.dimensions) ? data.dimensions : [],
-      locationPass: data.locationPass,
+      locationStatus: data.locationStatus,
+      // Keep the legacy boolean populated for any older consumer.
+      locationPass: data.locationStatus === "pass",
       locationNote: data.locationNote,
       summary: data.summary,
       keywords,
@@ -1102,7 +1113,9 @@ export async function buildAgents(
     return {
       name: k.term,
       matched: k.inResume,
-      count: c > 0 ? `×${c}` : k.inResume ? "✓" : "0×",
+      // Literal hits show a real count; synonym/paraphrase matches and misses
+      // carry no count (the chip's check icon / the "to add" box says enough).
+      count: c > 0 ? `×${c}` : "",
     };
   });
   const matched = keywords.filter((k) => k.matched).length;
@@ -1115,16 +1128,13 @@ export async function buildAgents(
     subtitle: "exact strings the posting wants",
     footer:
       missing > 0
-        ? `${missing} missing — Ada shows the exact bullet to add them to.`
+        ? "" // the graphical "to add" callout carries the advice now
         : "Every keyword the posting screens for already appears in your resume.",
     detail:
-      `Ada checks the ${total} keywords this posting screens for against your resume — an ` +
-      `exact hit shows a count, and ✓ marks a term recognized as a synonym or paraphrase. ` +
+      `Ada matches the ${total} keywords this posting screens for against your resume and counts the hits. ` +
       `${matched} are covered` +
-      (missing > 0
-        ? `; ${missing} are missing — the highest-risk gaps for an automated keyword filter. `
-        : " — strong coverage. ") +
-      "Tailoring adds any missing terms only where your experience genuinely backs them — never keyword-stuffing.",
+      (missing > 0 ? `, ${missing} are missing. ` : ". ") +
+      "Missing terms are the biggest ATS risk; tailoring adds them only where your experience genuinely backs them.",
     matched,
     total,
     keywords,
@@ -1158,6 +1168,17 @@ export async function buildAgents(
       accent: (i % 2 === 0 ? "blue" : "mint") as "blue" | "mint",
     }),
   );
+  // Roughly how many substantive lines carry a hard number (not just a year) —
+  // a quick read on how quantified the resume is overall, shown as a meter.
+  const quant = (() => {
+    const lines = resumeText
+      .split(/\r?\n/)
+      .map((l) => l.replace(/^[\s•\-*●▪·]+/, "").trim())
+      .filter((l) => l.length >= 40 && /[a-z]/i.test(l));
+    const hasMetric = (l: string) =>
+      /\d/.test(l.replace(/\b(19|20)\d{2}\b/g, "").replace(/\b\d{1,2}[/-]\d{1,2}\b/g, ""));
+    return { count: lines.filter(hasMetric).length, total: lines.length };
+  })();
   const impact: AuditAgent = {
     id: "impact",
     ...AGENT_META.impact,
@@ -1165,25 +1186,26 @@ export async function buildAgents(
     subtitle: "how many, how much, vs. what",
     footer: stats.length
       ? `${stats.length} quantified, defensible win${stats.length === 1 ? "" : "s"} surfaced from your own resume.`
-      : "Max flags lines that state activity with no result — and shows where to add the numbers.",
+      : "Max flags lines that state activity with no result, and shows where to add the numbers.",
     detail:
-      "Max scans every experience line for a quantifiable outcome — how many, how much, " +
-      "versus what. It rewrites activity statements into results using only figures already " +
-      "in your resume, and never invents a number.",
+      "Max scans every experience line for a measurable outcome (how many, how much, versus " +
+      "what) and rewrites activity into results using only figures already in your resume. It " +
+      "never invents a number.",
     before: pair?.before,
     after: pair?.after,
     stats,
+    quantified: quant.total > 0 ? quant : undefined,
   };
   const rolefit: AuditAgent = {
     id: "rolefit",
     ...AGENT_META.rolefit,
     title: "Ranked for this role",
-    subtitle: "every line scored against the posting · lowest cut to fit 2 pages",
+    subtitle: "every line scored 0–100 for this role",
     chip: "Hard limit · 2 pages",
-    footer: "Cut by relevance to this role — not by age.",
+    footer: "Trimmed by relevance to this role, never by age.",
     detail:
-      "Remy scores every line 0–100 for relevance to THIS posting, keeps the strongest, and " +
-      "trims the lowest to hold a tight two pages. Lines are cut by relevance, never by age — " +
+      "Remy scores every line 0–100 for relevance to this posting, keeps the strongest, and " +
+      "trims the lowest to hold a tight two pages. Lines are cut by relevance and never by age: " +
       "an older bullet that hits the posting's keywords outranks a recent one that doesn't.",
     lines,
   };
@@ -1223,6 +1245,62 @@ export async function runAudit(
 }
 
 /** Full run: fit + tailor + review. Caller is responsible for spending a credit. */
+// Token-set (Jaccard) similarity — robust to the tailor's light rephrasing
+// between the showcase "after" and the shipped doc bullet.
+function tokenSim(a: string, b: string): number {
+  const toks = (s: string) =>
+    new Set(
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9 ]+/g, " ")
+        .split(/\s+/)
+        .filter((t) => t.length > 1),
+    );
+  const A = toks(a);
+  const B = toks(b);
+  if (A.size === 0 || B.size === 0) return 0;
+  let inter = 0;
+  for (const t of A) if (B.has(t)) inter++;
+  return inter / (A.size + B.size - inter);
+}
+
+/**
+ * Anchor the tailor's before/after pairs to {entry,bullet} coordinates in the
+ * (post-verify) doc by best token-similarity, using the DOC's actual bullet as
+ * `after` so Accept keeps exactly what ships. Each doc bullet is matched at most
+ * once; pairs below the threshold are dropped (that bullet stays plain-editable).
+ * Called after verifyDoc froze the doc shape, so coordinates are stable.
+ */
+function matchBulletDiffs(
+  doc: TailoredDoc,
+  pairs: TailoredBullet[],
+): BulletDiff[] {
+  const used = new Set<string>();
+  const diffs: BulletDiff[] = [];
+  for (const pair of pairs) {
+    if (!pair?.after || !pair?.before) continue;
+    let best: { entry: number; bullet: number; text: string } | null = null;
+    let bestScore = 0;
+    doc.experience.forEach((e, ei) =>
+      (e.bullets || []).forEach((b, bi) => {
+        const key = `${ei}:${bi}`;
+        if (used.has(key)) return;
+        const s = tokenSim(pair.after, b);
+        if (s > bestScore) {
+          bestScore = s;
+          best = { entry: ei, bullet: bi, text: b };
+        }
+      }),
+    );
+    if (best && bestScore >= 0.4) {
+      const b = best as { entry: number; bullet: number; text: string };
+      used.add(`${b.entry}:${b.bullet}`);
+      diffs.push({ entry: b.entry, bullet: b.bullet, before: pair.before, after: b.text });
+    }
+  }
+  return diffs.sort((a, b) => a.entry - b.entry || a.bullet - b.bullet);
+}
+
 export async function runFull(
   resumeText: string,
   postingText: string,
@@ -1282,6 +1360,11 @@ export async function runFull(
     review(tailored.doc, postingText, provider),
     buildAgents(resumeText, postingText, fit, tailored.bullets, provider),
   ]);
+  // Anchor before/after pairs to doc coordinates for the editor's diff rows, and
+  // snapshot the AI draft so the editor can offer "reset to AI version".
+  const bulletDiffs = matchBulletDiffs(tailored.doc, tailored.bullets);
+  const originalDoc = JSON.parse(JSON.stringify(tailored.doc)) as TailoredDoc;
+
   return {
     company,
     role,
@@ -1291,6 +1374,8 @@ export async function runFull(
     agentNotes,
     agents,
     doc: tailored.doc,
+    originalDoc,
+    bulletDiffs,
     verification: verified.report,
   };
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { llmConfigured } from "@/lib/config";
+import { creditsDisabled, llmConfigured } from "@/lib/config";
 import { runAudit, runFull, runScore } from "@/lib/apply/pipeline";
 import { SAMPLE_RESUME } from "@/lib/apply/sample";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -11,6 +11,29 @@ import {
   validateApplyInput,
 } from "@/lib/limits";
 import { consume, getClientIp, tooManyRequests } from "@/lib/rate-limit";
+import type { ProofPoint } from "@/lib/types";
+
+// The "what tailoring will fix" findings are computed client-side at parse time
+// and POSTed here; sanitize + cap before persisting them with the application.
+function sanitizeProofPoints(input: unknown): ProofPoint[] | undefined {
+  if (!Array.isArray(input)) return undefined;
+  const s = (v: unknown, n: number) => (typeof v === "string" ? v.slice(0, n) : "");
+  const out = input.slice(0, 12).map((p) => {
+    const x = (p ?? {}) as Record<string, unknown>;
+    const sev = ["high", "medium", "low"].includes(x.severity as string)
+      ? (x.severity as "high" | "medium" | "low")
+      : "medium";
+    return {
+      title: s(x.title, 140).trim(),
+      summary: s(x.summary, 240).trim(),
+      quote: s(x.quote, 240).trim() || undefined,
+      why: s(x.why, 600).trim(),
+      fix: s(x.fix, 600).trim(),
+      severity: sev,
+    };
+  }).filter((p) => p.title);
+  return out.length ? out : undefined;
+}
 
 const FREE_LIMIT_MSG =
   "You've used your free audits for now. Create a free account to run a full tailored application — your first one is free.";
@@ -29,6 +52,7 @@ export async function POST(request: Request) {
     resumeText?: string;
     postingText?: string;
     useSample?: boolean;
+    proofPoints?: unknown;
   };
   try {
     body = await request.json();
@@ -103,7 +127,7 @@ export async function POST(request: Request) {
       .select("credits")
       .eq("id", user.id)
       .single();
-    if (!profile || profile.credits <= 0) {
+    if (!creditsDisabled && (!profile || profile.credits <= 0)) {
       return NextResponse.json(
         { error: "You're out of credits.", needCredits: true },
         { status: 402 },
@@ -123,9 +147,12 @@ export async function POST(request: Request) {
     }
 
     const result = await runFull(resumeText, postingText);
+    // Carry the step-1 audit findings into the stored result so the editor can
+    // show "what the tailoring addressed."
+    result.proofPoints = sanitizeProofPoints(body.proofPoints);
 
     // Spend the credit after a successful run, then persist the application.
-    await sb.rpc("consume_credit");
+    if (!creditsDisabled) await sb.rpc("consume_credit");
     const { data: app } = await sb
       .from("applications")
       .insert({

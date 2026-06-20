@@ -31,8 +31,22 @@ export async function POST(request: Request) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const userId = session.metadata?.userId;
+    const kind = session.metadata?.kind;
+    const applicationId = session.metadata?.applicationId;
     const credits = Number(session.metadata?.credits ?? 0);
-    if (userId && credits > 0) {
+
+    if (kind === "review" && userId && applicationId) {
+      // Per-application Michael review paid for → mark it in review. Scoped to
+      // the owner; setting fixed values makes a replayed event a no-op.
+      const admin = getServiceSupabase();
+      if (admin) {
+        await admin
+          .from("applications")
+          .update({ michael_status: "requested", status: "human_review" })
+          .eq("id", applicationId)
+          .eq("user_id", userId);
+      }
+    } else if (userId && credits > 0) {
       const admin = getServiceSupabase();
       if (admin) {
         // Idempotent on the session id — a replayed event grants nothing extra.

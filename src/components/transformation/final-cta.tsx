@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Lock, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
+import { Lock, ShieldCheck, Trash2 } from "lucide-react";
 import { ROUTES, TRUST } from "@/components/landing/data";
 
 const TRUST_ICONS = {
@@ -18,7 +18,7 @@ export default function FinalCta() {
           free.
         </p>
         <Link className="tm-btn tm-btn--primary tm-btn--lg" href={ROUTES.audit}>
-          <Sparkles size={16} /> Get a free resume audit
+          Get a free resume audit
         </Link>
         <div className="tm-trust mt-[34px]">
           {TRUST.map((t) => {

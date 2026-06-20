@@ -63,6 +63,11 @@ export const CHECKOUT_RULES: Rule[] = [
   { limit: num("CHECKOUT_PER_HOUR", 20), windowMs: HOUR },
 ];
 
+// Per-application Michael-review checkout requests per account (anti-spam).
+export const REVIEW_RULES: Rule[] = [
+  { limit: num("REVIEW_PER_HOUR", 15), windowMs: HOUR },
+];
+
 /** Returns an error message if the apply inputs exceed the size caps, else null. */
 export function validateApplyInput(
   resumeText: string,
