@@ -53,21 +53,21 @@ export default function Guide() {
                   bg: "var(--tm-blue-50)",
                   fg: "var(--tm-blue-600)",
                   name: "Ada",
-                  text: "reads it like the ATS: are the posting’s keywords actually there?",
+                  text: "checks the keywords an ATS screens for",
                 },
                 {
                   Icon: TrendingUp,
                   bg: "#e9f8f1",
                   fg: "#0f7a52",
                   name: "Max",
-                  text: "hunts for impact: lines that state activity with no number behind it.",
+                  text: "flags lines missing a hard number",
                 },
                 {
                   Icon: Target,
                   bg: "var(--tm-blue-50)",
                   fg: "var(--tm-blue-800)",
                   name: "Remy",
-                  text: "ranks every line for this role and trims the weakest to fit two pages.",
+                  text: "ranks each line, trims to two pages",
                 },
               ].map(({ Icon, bg, fg, name, text }) => (
                 <li key={name} style={{ display: "flex", gap: "11px", alignItems: "flex-start" }}>

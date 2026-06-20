@@ -72,9 +72,6 @@ function ResumePaper() {
           Mentorship
         </p>
       </div>
-      <span className="tmB-paper-foot">
-        <Check size={12} /> Resume_Nordpeak.pdf · exactly 2 pages, inspected
-      </span>
     </div>
   );
 }
@@ -105,9 +102,6 @@ function CoverPaper() {
         <p className="tmB-pdoc-body">Sincerely,</p>
         <p className="tmB-pdoc-sig">Alex Mercer</p>
       </div>
-      <span className="tmB-paper-foot">
-        <Check size={12} /> Cover_Nordpeak.pdf · 1 page, inspected
-      </span>
     </div>
   );
 }
