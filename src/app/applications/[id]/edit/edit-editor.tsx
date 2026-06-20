@@ -84,7 +84,7 @@ function DateRange({ value, onChange }: { value: string; onChange: (v: string) =
       />
       <span className="tmE-daterange-sep">to</span>
       {present ? (
-        <span className="tmE-daterange-present">Present</span>
+        <span className="tmE-input tmE-daterange-present">Present</span>
       ) : (
         <input
           type="month"
@@ -94,14 +94,15 @@ function DateRange({ value, onChange }: { value: string; onChange: (v: string) =
           onChange={(ev) => onChange(compose(start, ev.target.value, false))}
         />
       )}
-      <label className="tmE-daterange-now">
-        <input
-          type="checkbox"
-          checked={present}
-          onChange={(ev) => onChange(compose(start, end, ev.target.checked))}
-        />
-        Present
-      </label>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={present}
+        className={"tmE-daterange-toggle" + (present ? " is-on" : "")}
+        onClick={() => onChange(compose(start, end, !present))}
+      >
+        {present && <Check size={13} />} Present
+      </button>
     </div>
   );
 }
@@ -138,7 +139,6 @@ export default function EditEditor({
   const [msg, setMsg] = useState<{ text: string; err: boolean } | null>(null);
   const [dirty, setDirty] = useState(false);
   const [trustDismissed, setTrustDismissed] = useState(false);
-  const [showTrace, setShowTrace] = useState(false);
 
   const diffs = diffMap(bulletDiffs);
   const totalPending = bulletDiffs.filter((d) => !decisions[bulletKey(d.entry, d.bullet)]).length;
@@ -304,18 +304,7 @@ export default function EditEditor({
               </span>
               <div>
                 <b>Verified against your resume</b>
-                <span>
-                  Every line traces back to your original.{" "}
-                  {originalDoc && originalDoc.experience.length > 0 && (
-                    <button
-                      type="button"
-                      className="tmE-trust-link"
-                      onClick={() => setShowTrace((v) => !v)}
-                    >
-                      {showTrace ? "Hide the trace" : "See the trace"}
-                    </button>
-                  )}
-                </span>
+                <span>Every line traces back to your original. Nothing invented.</span>
               </div>
               <button
                 type="button"
@@ -325,35 +314,6 @@ export default function EditEditor({
               >
                 <X size={14} />
               </button>
-            </div>
-          )}
-          {showVerified && showTrace && originalDoc && (
-            <div className="tmE-trace tmF-anim">
-              <p className="tmE-trace-intro">
-                Each tailored line is a rewrite of something you already wrote. Here is
-                your original next to the tailored version, section by section.
-              </p>
-              {doc.experience.map((e, i) => {
-                const orig = originalDoc.experience[i];
-                if (!orig) return null;
-                return (
-                  <div key={i} className="tmE-trace-entry">
-                    <p className="tmE-trace-role">{e.role || orig.role}</p>
-                    <span className="tmE-trace-tag">Your original</span>
-                    {orig.bullets.map((b, bi) => (
-                      <p key={bi} className="tmE-trace-before">
-                        {b}
-                      </p>
-                    ))}
-                    <span className="tmE-trace-tag is-after">Tailored</span>
-                    {e.bullets.map((b, bi) => (
-                      <p key={bi} className="tmE-trace-after">
-                        {highlight(b, keywords)}
-                      </p>
-                    ))}
-                  </div>
-                );
-              })}
             </div>
           )}
           {modified && (
