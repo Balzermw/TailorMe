@@ -2368,10 +2368,10 @@ body {
 /* Saved-resume reuse card (audit step 1) */
 .tmF-saved {
   display: grid;
-  grid-template-columns: 40px 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 4px 13px;
-  padding: 16px 18px;
+  gap: 4px 16px;
+  padding: 18px 20px;
   background: var(--tm-blue-50);
   border-color: var(--tm-blue-200);
 }
@@ -2451,7 +2451,7 @@ body {
 }
 @media (max-width: 520px) {
   .tmF-saved {
-    grid-template-columns: 40px 1fr;
+    grid-template-columns: auto 1fr;
   }
   .tmF-saved-badge {
     grid-column: 2;
