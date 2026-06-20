@@ -196,11 +196,39 @@ export async function extractText(
     return extractPdfTextOrdered(bytes);
   }
   if (lower.endsWith(".docx")) {
+    const buf = Buffer.from(bytes);
     const mammoth = (await import("mammoth")).default;
-    const { value } = await mammoth.extractRawText({
-      buffer: Buffer.from(bytes),
-    });
-    return value;
+    const { value: body } = await mammoth.extractRawText({ buffer: buf });
+    // extractRawText reads the document body only — name/contact blocks placed
+    // in a header, footer, or text box (common in modern templates) are lost.
+    // Pull those parts straight from the docx zip so the parser still sees them.
+    let extra = "";
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = await JSZip.loadAsync(buf);
+      const strip = (xml: string) =>
+        xml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      const chunks: string[] = [];
+      for (const name of Object.keys(zip.files)) {
+        if (/^word\/(header|footer)\d*\.xml$/i.test(name)) {
+          chunks.push(strip(await zip.files[name].async("string")));
+        }
+      }
+      const docFile = zip.files["word/document.xml"];
+      const docXml = docFile ? await docFile.async("string") : "";
+      for (const m of docXml.matchAll(/<w:txbxContent>([\s\S]*?)<\/w:txbxContent>/g)) {
+        chunks.push(strip(m[1]));
+      }
+      // Prepend only the parts the body doesn't already contain (dedup), so the
+      // parser sees the name/contact up top where it expects them.
+      const seen = body.toLowerCase();
+      extra = chunks
+        .filter((c) => c.length > 1 && !seen.includes(c.slice(0, 30).toLowerCase()))
+        .join("\n");
+    } catch {
+      /* zip read unavailable → fall back to body-only (no regression) */
+    }
+    return extra ? `${extra}\n\n${body}` : body;
   }
   if (lower.endsWith(".doc")) {
     // Legacy Word (OLE/.doc) — mammoth only reads .docx, so use word-extractor.

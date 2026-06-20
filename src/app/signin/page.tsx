@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Check, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import Nav from "@/components/landing/nav";
 import Footer from "@/components/landing/footer";
 import SignInCard from "./sign-in-card";
@@ -34,7 +34,7 @@ export default function SignInPage() {
             />
             <h2>Your experience is stronger than your resume makes it look.</h2>
             <span className="tm-pill tm-pill--mint self-start">
-              <Sparkles size={13} /> Your first application is free
+              <Check size={13} /> Your first application is free
             </span>
             <div className="tmB-creds">
               {CREDS.map((c) => (
