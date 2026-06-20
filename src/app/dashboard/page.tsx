@@ -10,7 +10,7 @@ import DashboardClient from "./dashboard-client";
 import DashboardLive from "./dashboard-live";
 
 export const metadata: Metadata = {
-  title: "Dashboard — TailorMe by Res.Me",
+  title: "Dashboard · TailorMe by Res.Me",
 };
 
 export default async function DashboardPage() {

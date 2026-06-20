@@ -139,7 +139,7 @@ export default function CreditsPurchase() {
             <h3>Order summary</h3>
             <div className="tmCR-row">
               <span>
-                {pack.name} — {pack.apps}
+                {pack.name} · {pack.apps}
               </span>
               <b>{pack.price}</b>
             </div>

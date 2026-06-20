@@ -47,7 +47,7 @@ export async function POST(
   const hasDoc = ((app.result ?? null) as ApplyResult | null)?.doc != null;
   if (app.status !== "ready" || !hasDoc) {
     return NextResponse.json(
-      { error: "Run the full tailoring first — Michael reviews the finished draft." },
+      { error: "Run the full tailoring first. Michael reviews the finished draft." },
       { status: 409 },
     );
   }
@@ -68,7 +68,7 @@ export async function POST(
       price_data: {
         currency: "usd",
         product_data: {
-          name: `Michael's expert review — ${app.role} @ ${app.company}`,
+          name: `Michael's expert review · ${app.role} @ ${app.company}`,
         },
         unit_amount: MICHAEL_ADDON_CENTS,
       },

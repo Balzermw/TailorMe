@@ -9,7 +9,7 @@ import PrintDoc from "./print-doc";
 import "./print.css";
 
 export const metadata: Metadata = {
-  title: "Tailored document — TailorMe by Res.Me",
+  title: "Tailored document · TailorMe by Res.Me",
 };
 
 export default async function PrintPage({

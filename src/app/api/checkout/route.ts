@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       price_data: {
         currency: "usd",
         product_data: {
-          name: `TailorMe — ${pack.name} (${pack.credits} applications)`,
+          name: `TailorMe · ${pack.name} (${pack.credits} applications)`,
         },
         unit_amount: pack.amountCents,
       },

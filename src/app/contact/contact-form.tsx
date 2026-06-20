@@ -22,7 +22,7 @@ export default function ContactForm() {
         <span className="tm-pill tm-pill--mint">
           <Check size={12} /> sent
         </span>
-        <h3>Thanks — we’ve got it</h3>
+        <h3>Thanks, we’ve got it</h3>
         <p>
           You’ll hear back within one business day. For urgent data requests,
           mention “GDPR” in your subject line.

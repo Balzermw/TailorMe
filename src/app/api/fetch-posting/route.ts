@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const rl = consume(`fetch-posting:${getClientIp(request)}`, FETCH_POSTING_RULES);
     if (!rl.allowed) {
       return tooManyRequests(
-        "Too many link fetches — paste the posting text or try again shortly.",
+        "Too many link fetches. Paste the posting text or try again shortly.",
         rl.resetAt,
       );
     }

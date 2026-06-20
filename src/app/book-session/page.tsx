@@ -4,7 +4,7 @@ import Footer from "@/components/landing/footer";
 import Booking from "./booking";
 
 export const metadata: Metadata = {
-  title: "Book a session with Michael — TailorMe by Res.Me",
+  title: "Book a session with Michael · TailorMe by Res.Me",
 };
 
 export default function BookSessionPage() {
@@ -17,7 +17,7 @@ export default function BookSessionPage() {
           <h1 className="tm-h1">Book a session with Michael</h1>
           <p className="tm-body">
             Pick a package, then grab a free 30-minute intro slot on Michael’s
-            calendar — you’ll get a confirmation and the meeting link by email.
+            calendar. You’ll get a confirmation and the meeting link by email.
           </p>
         </section>
         <Booking />

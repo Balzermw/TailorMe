@@ -35,7 +35,7 @@ export default function SettingsContent() {
           </div>
           <p className="tm-small">
             The structured profile every application starts from. Re-upload
-            anytime — tailoring always uses the latest version.
+            anytime; tailoring always uses the latest version.
           </p>
           <div className="tmF-profile2-id mt-[6px]">
             <span className="tmC-tst-avatar w-[44px]! h-[44px]!">AM</span>
@@ -96,7 +96,7 @@ export default function SettingsContent() {
           </div>
           <div className="tmSet-row">
             <span>
-              Download everything we hold about you — profile, documents,
+              Download everything we hold about you: profile, documents,
               feedback.
             </span>
             {!exported ? (
@@ -157,7 +157,7 @@ export default function SettingsContent() {
             )}
             {del === "done" && (
               <span className="tm-pill tm-pill--gray">
-                <Check size={12} /> deleted — your data is gone (demo state,{" "}
+                <Check size={12} /> deleted · your data is gone (demo state,{" "}
                 <button
                   type="button"
                   className="underline cursor-pointer"

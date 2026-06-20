@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   if (!rateLimitDisabled) {
     const rl = consume(`compare:${getClientIp(request)}`, FREE_AUDIT_RULES);
     if (!rl.allowed) {
-      return tooManyRequests("Too many comparison runs — try again later.", rl.resetAt);
+      return tooManyRequests("Too many comparison runs. Try again later.", rl.resetAt);
     }
   }
 

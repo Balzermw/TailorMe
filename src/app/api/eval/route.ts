@@ -82,7 +82,7 @@ export async function POST(request: Request) {
   if (!rateLimitDisabled) {
     const rl = consume(`eval:${getClientIp(request)}`, FREE_AUDIT_RULES);
     if (!rl.allowed) {
-      return tooManyRequests("Too many eval runs — try again later.", rl.resetAt);
+      return tooManyRequests("Too many eval runs. Try again later.", rl.resetAt);
     }
   }
 

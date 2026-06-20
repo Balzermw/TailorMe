@@ -26,7 +26,7 @@ export const PLAN = [
   {
     icon: "upload",
     t: "Upload your resume once",
-    d: "We build a structured profile from it — skills, experience, the achievements buried in your bullets.",
+    d: "We build a structured profile from it: skills, experience, the achievements buried in your bullets.",
   },
   {
     icon: "clipboard-list",
@@ -43,11 +43,11 @@ export const PLAN = [
 export const AGENT_NOTES = [
   {
     name: "ATS & keywords",
-    note: "Posting names observability 3× — your resume names it 0×. Add your Datadog dashboard work.",
+    note: "Posting names observability 3×; your resume names it 0×. Add your Datadog dashboard work.",
   },
   {
     name: "Impact & metrics",
-    note: "“Mentored junior engineers” — how many, over how long? Add team scope.",
+    note: "“Mentored junior engineers”: how many, over how long? Add team scope.",
   },
   {
     name: "Role-fit",
@@ -70,15 +70,15 @@ export const PRICING = [
 export const FAQS = [
   {
     q: "Is this just keyword stuffing?",
-    a: "No. Keywords only get added where your experience actually supports them — the real work is re-positioning: re-ranking your bullets for the role, translating tasks into impact, and cutting what isn’t pulling weight.",
+    a: "No. Keywords only get added where your experience actually supports them. The real work is re-positioning: re-ranking your bullets for the role, translating tasks into impact, and cutting what isn’t pulling weight.",
   },
   {
     q: "Will this get me interviews?",
-    a: "We don’t promise interviews or jobs — nobody honestly can. What we promise is a resume that’s interview-ready: tailored to the posting, aligned with how ATS systems parse it, and reviewed line by line.",
+    a: "We don’t promise interviews or jobs; nobody honestly can. What we promise is a resume that’s interview-ready: tailored to the posting, aligned with how ATS systems parse it, and reviewed line by line.",
   },
   {
     q: "How is this different from a template or a chatbot?",
-    a: "Templates change how your resume looks; chatbots rewrite in one generic pass. TailorMe rewrites for one specific posting, runs three specialist reviewers over the draft, and compiles an inspected two-page PDF — with the reasoning shown.",
+    a: "Templates change how your resume looks; chatbots rewrite in one generic pass. TailorMe rewrites for one specific posting, runs three specialist reviewers over the draft, and compiles an inspected two-page PDF, with the reasoning shown.",
   },
   {
     q: "What happens to my resume data?",
@@ -86,11 +86,11 @@ export const FAQS = [
   },
   {
     q: "What does the human review add?",
-    a: "A professional Res.Me writer goes through your final draft line by line and adds positioning notes for your target role, within 48 hours. It’s optional — every application already includes the full agent review. +$49 per application.",
+    a: "A professional Res.Me writer goes through your final draft line by line and adds positioning notes for your target role, within 48 hours. It’s optional: every application already includes the full agent review. +$49 per application.",
   },
   {
     q: "Do credits expire?",
-    a: "Never. Buy a pack, use it across your whole search — this month or next year. No subscription, no API keys.",
+    a: "Never. Buy a pack, use it across your whole search, this month or next year. No subscription, no API keys.",
   },
 ];
 
@@ -149,7 +149,7 @@ export const AGENTS_FULL = [
     notes: [
       {
         t: "fix",
-        txt: "Posting names observability 3× — your resume names it 0×. Add your Datadog dashboard work.",
+        txt: "Posting names observability 3×; your resume names it 0×. Add your Datadog dashboard work.",
       },
       {
         t: "polish",
@@ -163,7 +163,7 @@ export const AGENTS_FULL = [
     notes: [
       {
         t: "fix",
-        txt: "“Mentored junior engineers” — how many, over how long? Add team scope.",
+        txt: "“Mentored junior engineers”: how many, over how long? Add team scope.",
       },
       {
         t: "polish",
@@ -181,7 +181,7 @@ export const AGENTS_FULL = [
       },
       {
         t: "polish",
-        txt: "Cut the 2014 PHP role to one line — it isn’t pulling weight for this target.",
+        txt: "Cut the 2014 PHP role to one line; it isn’t pulling weight for this target.",
       },
     ],
   },

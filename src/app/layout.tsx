@@ -9,9 +9,9 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title:
-    "TailorMe by Res.Me — Your experience is stronger than your resume makes it look",
+    "TailorMe by Res.Me · Your experience is stronger than your resume makes it look",
   description:
-    "Paste a job posting. TailorMe rewrites your resume for it, then three specialist agents review the draft the way the ATS, the recruiter, and the hiring manager will — and return fixes, not a score. First application free.",
+    "Paste a job posting. TailorMe rewrites your resume for it, then three specialist agents review the draft the way the ATS, the recruiter, and the hiring manager will, and return fixes, not a score. First application free.",
 };
 
 export default function RootLayout({

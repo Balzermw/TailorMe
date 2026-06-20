@@ -49,12 +49,12 @@ import {
 const FIT_WHY: { plus: string[]; minus: string[] }[] = [
   {
     plus: [
-      "Node.js at scale — your checkout-migration bullet matches the posting’s core requirement",
-      "Kubernetes — you own deployment standards; named as required",
-      "Distributed systems — strong overlap with the platform team’s stack",
+      "Node.js at scale: your checkout-migration bullet matches the posting’s core requirement",
+      "Kubernetes: you own deployment standards; named as required",
+      "Distributed systems: strong overlap with the platform team’s stack",
     ],
     minus: [
-      "Observability appears 3× in the posting but 0× in your resume — tailoring will surface your Datadog work",
+      "Observability appears 3× in the posting but 0× in your resume; tailoring will surface your Datadog work",
     ],
   },
   {
@@ -63,7 +63,7 @@ const FIT_WHY: { plus: string[]; minus: string[] }[] = [
       "Migration ownership maps directly to the role’s “own our platform evolution” mandate",
     ],
     minus: [
-      "No formal platform-team title — your platform work is buried under a generic SWE heading",
+      "No formal platform-team title; your platform work is buried under a generic SWE heading",
     ],
   },
   {
@@ -72,7 +72,7 @@ const FIT_WHY: { plus: string[]; minus: string[] }[] = [
       "Code-review ownership signals the collaboration they ask for",
     ],
     minus: [
-      "Little evidence of cross-team work in your current bullets — likely present, just unwritten",
+      "Little evidence of cross-team work in your current bullets, likely present, just unwritten",
     ],
   },
   {
@@ -102,18 +102,18 @@ const DEMO_WHY = [
   "Your platform stack overlaps the posting’s core requirements on 4 of 5 hard skills; the one gap (observability) is evidence-missing, not experience-missing.",
   "Seven years senior with direct migration ownership maps cleanly onto the role’s “own our platform evolution” mandate.",
   "Mentoring and code-review ownership match the team-growth emphasis; cross-team collaboration is present but under-written.",
-  "Your last three years trend toward platform and infrastructure work — the natural next step this role describes.",
+  "Your last three years trend toward platform and infrastructure work, the natural next step this role describes.",
 ];
 
 const DEMO_VIEW: FitView = {
-  header: "Senior Platform Engineer — Nordpeak Systems",
+  header: "Senior Platform Engineer · Nordpeak Systems",
   overall: 84,
   verdict: "Strong fit",
-  verdictPill: "84 — strong fit",
+  verdictPill: "84 · strong fit",
   summary:
-    "Why 84 — strong fit: your platform work lines up with 4 of 5 dimensions. The weakest one — culture fit — isn’t missing experience, it’s missing evidence in your bullets. That’s exactly what tailoring surfaces. Tap any dimension to see what we found.",
+    "Why 84, strong fit: your platform work lines up with 4 of 5 dimensions. The weakest one, culture fit, isn’t missing experience, it’s missing evidence in your bullets. That’s exactly what tailoring surfaces. Tap any dimension to see what we found.",
   locationStatus: "pass",
-  locationNote: "posting allows Remote EU — your profile lists Copenhagen",
+  locationNote: "posting allows Remote EU; your profile lists Copenhagen",
   dims: SCORES.map((s, i) => ({
     label: s.l,
     score: s.v,
@@ -138,10 +138,10 @@ function toView(result: ApplyResult): FitView {
   const company = (result.company || "").trim();
   const hasCompany = company.length > 0 && !/^(unknown|n\/?a|none)$/i.test(company);
   return {
-    header: hasCompany ? `${result.role} — ${company}` : result.role,
+    header: hasCompany ? `${result.role} · ${company}` : result.role,
     overall: fit.overall,
     verdict: fit.verdict,
-    verdictPill: `${fit.overall} — ${fit.verdict}`,
+    verdictPill: `${fit.overall} · ${fit.verdict}`,
     summary: fit.summary,
     locationStatus: fit.locationStatus ?? (fit.locationPass ? "pass" : "unclear"),
     locationNote: fit.locationNote,
@@ -240,7 +240,7 @@ function heroHeadline(overall: number): string {
   if (overall >= 78) return "You’re a strong match for this role";
   if (overall >= 62) return "You’re a good match for this role";
   if (overall >= 45) return "You’re a moderate match for this role";
-  return "This role is a stretch — here’s where to focus";
+  return "This role is a stretch: here’s where to focus";
 }
 
 // Fit tier → hero colour theme. Green ONLY for a genuinely strong fit; blue for
@@ -562,7 +562,7 @@ const SAMPLE_PROFILE: ResumeStats = {
     { text: "Participated in code reviews and sprint planning.", hasMetric: false },
   ],
   weaknesses: [
-    "Only 3 of 14 bullets quantify impact — recruiters skim for numbers.",
+    "Only 3 of 14 bullets quantify impact; recruiters skim for numbers.",
     "Strong platform work is buried under a generic “Software Engineer” heading.",
     "No summary tuned to the role you’re targeting.",
   ],
@@ -570,16 +570,16 @@ const SAMPLE_PROFILE: ResumeStats = {
     {
       title: "Impact is described, not quantified",
       summary:
-        "Your strongest bullet states activity but no result — recruiters skim for numbers first.",
+        "Your strongest bullet states activity but no result; recruiters skim for numbers first.",
       quote:
         "Responsible for developing and maintaining features for the web app using React and Node.js.",
       why: "An ATS and a recruiter scanning for ~6 seconds both look for outcomes. “Responsible for…” reads as a job description, not an achievement, so a strong engineer looks average on paper.",
-      fix: "We rewrite it around the result using numbers already in your history — e.g. the checkout migration that cut p95 latency 38% across 2.4M daily transactions.",
+      fix: "We rewrite it around the result using numbers already in your history, e.g. the checkout migration that cut p95 latency 38% across 2.4M daily transactions.",
       severity: "high",
     },
     {
       title: "A generic title buries your platform work",
-      summary: "Your headline is the first thing matched against the role — and it’s too broad.",
+      summary: "Your headline is the first thing matched against the role, and it’s too broad.",
       quote: "Software Engineer",
       why: "The headline is the highest-weight keyword line on the page. A generic “Software Engineer” under-ranks you for the platform role you’re targeting.",
       fix: "We align the headline to the target role where your experience genuinely supports it, surfacing the platform work that’s currently hidden in your bullets.",
@@ -589,7 +589,7 @@ const SAMPLE_PROFILE: ResumeStats = {
       title: "No summary tuned to this role",
       summary: "There’s no 1–2 line summary telling this employer why you fit.",
       quote: "Participated in code reviews and sprint planning.",
-      why: "Without a tailored summary the reader infers your fit from scattered bullets — and filler lines like this one spend space a positioning statement should own.",
+      why: "Without a tailored summary the reader infers your fit from scattered bullets, and filler lines like this one spend space a positioning statement should own.",
       fix: "We add a tight, role-specific summary and cut low-signal lines so the top third of the page sells your strongest match.",
       severity: "medium",
     },
@@ -1098,7 +1098,7 @@ function StepUpload({
               style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}
             >
               <button type="button" className="tm-btn tm-btn--primary" onClick={onNext}>
-                Next — pick the job <ArrowRight size={15} />
+                Next: pick the job <ArrowRight size={15} />
               </button>
               <button
                 type="button"
@@ -1174,7 +1174,7 @@ function RolePreview({ ctx }: { ctx: RoleContext }) {
         )}
       </p>
       <p className="tm-small" style={{ marginTop: "4px", fontSize: "12px" }}>
-        General context for this kind of role — we’re comparing your resume against it now.
+        General context for this kind of role. We’re comparing your resume against it now.
       </p>
       {ctx.responsibilities.length > 0 && (
         <ul style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "5px" }}>
@@ -1265,7 +1265,7 @@ function ScoringLoader({
           </b>
           <p className="tm-small" style={{ fontSize: "12.5px", marginTop: "1px" }}>
             {displayTarget
-              ? "Hang tight — this takes a few seconds."
+              ? "Hang tight, this takes a few seconds."
               : "Reading the posting to identify the role…"}
           </p>
         </div>
@@ -1331,7 +1331,7 @@ function ManualReviewCTA({ overall }: { overall: number }) {
     overall >= 60
       ? "Your resume shows relevant experience, but there are notable gaps for this role."
       : overall >= 45
-        ? "This role may be a stretch based on your current resume — the gaps below are real, but fixable."
+        ? "This role may be a stretch based on your current resume. The gaps below are real, but fixable."
         : "Based on this resume, this role looks like a significant stretch right now.";
   return (
     <div
@@ -1348,7 +1348,7 @@ function ManualReviewCTA({ overall }: { overall: number }) {
       </p>
       <p className="tm-small" style={{ marginTop: "6px", fontSize: "12.5px", lineHeight: 1.5 }}>
         A manual review by a Res.Me expert can reposition your background more effectively for
-        this kind of role — or tell you honestly which targets fit best. We won’t overpromise.
+        this kind of role, or tell you honestly which targets fit best. We won’t overpromise.
       </p>
       <Link
         href={ROUTES.coaching}
@@ -1457,7 +1457,7 @@ function StepJob({
           setPosting(postingForScore); // show what we pulled; carries into step 3
           setFetchNote(
             d.truncated
-              ? "Pulled from the link — we trimmed a long page to its most relevant part."
+              ? "Pulled from the link. We trimmed a long page to its most relevant part."
               : "Pulled the posting from that link.",
           );
         } else {
@@ -1569,7 +1569,7 @@ function StepJob({
   };
 
   const sample =
-    "Senior Platform Engineer — Nordpeak Systems (Remote, EU). Own the evolution of our backend platform: lead distributed Node.js services handling millions of daily transactions, set Kubernetes deployment standards across teams, and build observability into everything we ship. Requirements: 5+ years backend at scale; distributed systems and Node.js in production; strong Kubernetes and cloud (AWS/GCP); a track record of reliability and performance wins; mentoring and technical direction. Nice to have: Datadog/Prometheus; owning a platform other teams build on.";
+    "Senior Platform Engineer · Nordpeak Systems (Remote, EU). Own the evolution of our backend platform: lead distributed Node.js services handling millions of daily transactions, set Kubernetes deployment standards across teams, and build observability into everything we ship. Requirements: 5+ years backend at scale; distributed systems and Node.js in production; strong Kubernetes and cloud (AWS/GCP); a track record of reliability and performance wins; mentoring and technical direction. Nice to have: Datadog/Prometheus; owning a platform other teams build on.";
 
   // ----- idle / scoring: the posting input + loading screen -----
   if (phase !== "done") {
@@ -1602,7 +1602,7 @@ function StepJob({
         {phase === "idle" && (
           <Fragment>
             <p className="tm-small mt-[8px]" style={{ fontSize: "12px" }}>
-              Paste a link and we’ll pull the posting for you — or paste the text.
+              Paste a link and we’ll pull the posting for you, or paste the text.
             </p>
             {fetchErr && (
               <p className="tm-small mt-[8px]" style={{ color: "#b3261e" }}>
@@ -1965,7 +1965,7 @@ function StepJob({
 
       {note && (
         <p className="tmS-free" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          {note} This is a sample result —{" "}
+          {note} This is a sample result.{" "}
           <Link href={ROUTES.signIn} style={{ color: "var(--tm-mint-600)", textDecoration: "underline" }}>
             create a free account
           </Link>{" "}
@@ -1974,7 +1974,7 @@ function StepJob({
       )}
       {demoScore && (
         <p className="tmS-free" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          Demo mode — this is a sample result, not scored from your resume. Add a provider key to score
+          Demo mode: this is a sample result, not scored from your resume. Add a provider key to score
           real resumes.
         </p>
       )}
@@ -2014,8 +2014,8 @@ function MichaelPitch() {
         </span>
         <h3>Want real human eyes on it? That’s Michael.</h3>
         <p>
-          The agents catch what a parser and a skim-read see. Michael — head of
-          Res.Me, Certified Professional Resume Writer, 650+ resumes written —
+          The agents catch what a parser and a skim-read see. Michael (head of
+          Res.Me, Certified Professional Resume Writer, 650+ resumes written)
           reads it like the hiring manager: he goes line by line through your
           final draft and adds positioning notes for this specific role. Back in
           your inbox within 48 hours.
@@ -2023,7 +2023,7 @@ function MichaelPitch() {
         <div className="tmF-michael-foot">
           <span className="tm-pill tm-pill--mint">+$49 per application</span>
           <span className="tm-small" style={{ fontSize: "12.5px" }}>
-            Add it at checkout — or{" "}
+            Add it at checkout, or{" "}
             <Link
               href={ROUTES.coaching}
               style={{ color: "var(--tm-blue-600)", textDecoration: "none" }}
@@ -2257,7 +2257,7 @@ function ImpactEvidence({ a }: { a: AuditAgent }) {
       )}
       {!a.before && !a.after && !(a.stats && a.stats.length > 0) && (
         <p className="tm-small" style={{ fontSize: "12.5px", lineHeight: 1.5 }}>
-          No quantified outcomes found in your resume yet — Max flags the lines that state
+          No quantified outcomes found in your resume yet. Max flags the lines that state
           activity without a result, so you know exactly where to add the numbers.
         </p>
       )}
@@ -2738,7 +2738,7 @@ function StepResults({
                   className="tm-btn tm-btn--primary tm-btn--lg"
                   onClick={() => void runFull()}
                 >
-                  Tailor my application — 1 credit
+                  Tailor my application · 1 credit
                 </button>
                 <p className="tm-small" style={{ fontSize: "12px" }}>
                   Uses <span className="tm-m">1 credit</span> · your first is free · credits
@@ -2753,7 +2753,7 @@ function StepResults({
               <h3>Create a free account to download it</h3>
               <p>
                 The clean PDF, the cover letter, and the full line-by-line feedback
-                report. Your first application is free — no card required.
+                report. Your first application is free, no card required.
               </p>
               <Link
                 className="tm-btn tm-btn--primary tm-btn--lg"
@@ -2798,7 +2798,7 @@ export default function AuditWizard() {
         <h1 className="tm-h1">See what tailoring does to your resume</h1>
         <p className="tm-body">
           Three steps, about two minutes. Your draft is reviewed by three
-          specialist AI agents — trained on ATS parsing, impact, and role-fit —
+          specialist AI agents (trained on ATS parsing, impact, and role-fit)
           each returning line-level fixes. First application free, no card
           required.
         </p>

@@ -61,7 +61,7 @@ function HumanReviewRow() {
           </span>
         </div>
         <p style={{ marginBottom: "8px" }}>
-          Goes through your final draft line by line — repositioning bullets for
+          Goes through your final draft line by line, repositioning bullets for
           the target role, flagging anything that undersells your level, and
           returning it within 48 hours.
         </p>
@@ -94,7 +94,7 @@ export default function Pricing() {
         <HumanReviewRow />
         <p className="tm-small mt-[28px] text-center">
           Every new account starts with{" "}
-          <span className="tm-m">1 free application</span> — that’s your free
+          <span className="tm-m">1 free application</span>: that’s your free
           resume audit. No card required.
         </p>
       </div>

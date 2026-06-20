@@ -2,7 +2,7 @@ import Link from "next/link";
 import Nav from "@/components/landing/nav";
 import Footer from "@/components/landing/footer";
 
-export const metadata = { title: "Not found — TailorMe by Res.Me" };
+export const metadata = { title: "Not found · TailorMe by Res.Me" };
 
 export default function NotFound() {
   return (

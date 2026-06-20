@@ -266,7 +266,7 @@ function requestOnce(
           e instanceof PostingFetchError
             ? e
             : new PostingFetchError(
-                "Couldn't open that link — it was blocked, timed out, or refused the connection.",
+                "Couldn't open that link. It was blocked, timed out, or refused the connection.",
               ),
         ),
       ),
@@ -359,7 +359,7 @@ export async function fetchPostingText(
   let text = extractPostingText(html);
   if (text.length < MIN_USEFUL_CHARS) {
     throw new PostingFetchError(
-      "That page didn't return readable text — it may load the posting with JavaScript. Paste the posting text instead.",
+      "That page didn't return readable text. It may load the posting with JavaScript. Paste the posting text instead.",
     );
   }
   const truncated = text.length > MAX_POSTING_CHARS;

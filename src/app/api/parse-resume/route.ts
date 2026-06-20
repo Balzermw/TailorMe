@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const rl = consume(`parse:${getClientIp(request)}`, PARSE_RULES);
     if (!rl.allowed) {
       return tooManyRequests(
-        "Too many uploads — please wait a bit before trying again.",
+        "Too many uploads. Please wait a bit before trying again.",
         rl.resetAt,
       );
     }

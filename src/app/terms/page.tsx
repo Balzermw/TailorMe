@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import LegalDoc, { type LegalDocData } from "@/components/legal/legal-doc";
 
 export const metadata: Metadata = {
-  title: "Terms of service — TailorMe by Res.Me",
+  title: "Terms of service · TailorMe by Res.Me",
 };
 
 const TM_TERMS: LegalDocData = {
@@ -24,7 +24,7 @@ const TM_TERMS: LegalDocData = {
     ],
     [
       "No employment guarantees",
-      "TailorMe improves how your experience is presented. We do not and cannot guarantee interviews, job offers, response rates, or salary outcomes — and we make no claims of bypassing applicant tracking systems.",
+      "TailorMe improves how your experience is presented. We do not and cannot guarantee interviews, job offers, response rates, or salary outcomes, and we make no claims of bypassing applicant tracking systems.",
     ],
     [
       "Acceptable use",

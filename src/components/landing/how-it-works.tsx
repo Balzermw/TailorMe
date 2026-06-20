@@ -6,7 +6,7 @@ export default function HowItWorks() {
       <div className="tm-wrap">
         <h2 className="tm-h2">How it works</h2>
         <p className="tm-body mt-[10px] max-w-[64ch]">
-          Three steps from raw resume to a tailored application — the first one
+          Three steps from raw resume to a tailored application. The first one
           is free.
         </p>
         <div className="tmB-tl mt-[10px]">
@@ -16,7 +16,7 @@ export default function HowItWorks() {
               <h3 className="tmB-tl-title">Upload your resume once</h3>
               <p className="tmB-tl-sub">
                 We extract skills, experience, and the achievements buried in
-                your bullets — no reformatting needed.
+                your bullets, with no reformatting needed.
               </p>
               <div className="tm-card tmB-tl-card">
                 <div
@@ -81,10 +81,10 @@ export default function HowItWorks() {
               <div className="tm-card tmB-tl-card tmB-tl-job">
                 <ClipboardList size={17} />
                 <span>
-                  <b>Senior Platform Engineer</b> — Nordpeak Systems
+                  <b>Senior Platform Engineer</b> · Nordpeak Systems
                 </span>
                 <span className="tm-pill tm-pill--mint ml-auto">
-                  84 — strong fit
+                  84 · strong fit
                 </span>
               </div>
             </div>

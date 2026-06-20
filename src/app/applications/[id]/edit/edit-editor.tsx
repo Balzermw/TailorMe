@@ -454,7 +454,7 @@ export default function EditEditor({
           {section === "fixes" && (
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Suggestions from your audit</h2>
-              <p className="tmE-panel-sub">What the tailoring targeted — use these as a checklist while you edit.</p>
+              <p className="tmE-panel-sub">What the tailoring targeted. Use these as a checklist while you edit.</p>
               {(["high", "medium", "low"] as const).map((sev) => {
                 const group = proofPoints.filter((p) => p.severity === sev);
                 if (group.length === 0) return null;

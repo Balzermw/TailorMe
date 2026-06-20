@@ -4,7 +4,7 @@ import Footer from "@/components/landing/footer";
 import ForgotCard from "./forgot-card";
 
 export const metadata: Metadata = {
-  title: "Reset your password — TailorMe by Res.Me",
+  title: "Reset your password · TailorMe by Res.Me",
 };
 
 export default function ForgotPasswordPage() {

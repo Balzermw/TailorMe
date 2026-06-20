@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   if (!rateLimitDisabled) {
     const rl = consume(`rolectx:${getClientIp(request)}`, ROLE_CONTEXT_RULES);
     if (!rl.allowed) {
-      return tooManyRequests("Too many requests — please wait a moment.", rl.resetAt);
+      return tooManyRequests("Too many requests. Please wait a moment.", rl.resetAt);
     }
   }
 

@@ -6,7 +6,7 @@ import Footer from "@/components/landing/footer";
 import CreditsPurchase from "./credits-purchase";
 
 export const metadata: Metadata = {
-  title: "Buy credits — TailorMe by Res.Me",
+  title: "Buy credits · TailorMe by Res.Me",
 };
 
 export default function BuyCreditsPage() {

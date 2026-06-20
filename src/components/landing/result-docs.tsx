@@ -42,7 +42,7 @@ function ResumePaper() {
         <p className="tmB-pdoc-sec">Experience</p>
         <div className="tmB-pdoc-entry">
           <span className="tmB-pdoc-role">
-            Senior Software Engineer — Brightline Commerce
+            Senior Software Engineer · Brightline Commerce
           </span>
           <span className="tmB-pdoc-date">2019 – present</span>
         </div>
@@ -58,7 +58,7 @@ function ResumePaper() {
           deployment standards.
         </p>
         <div className="tmB-pdoc-entry">
-          <span className="tmB-pdoc-role">Software Engineer — Versa Labs</span>
+          <span className="tmB-pdoc-role">Software Engineer · Versa Labs</span>
           <span className="tmB-pdoc-date">2014 – 2019</span>
         </div>
         <p className="tmB-pdoc-bullet">
@@ -89,14 +89,14 @@ function CoverPaper() {
         </div>
         <div className="tmB-pdoc-rule"></div>
         <p className="tmB-pdoc-meta">
-          Nordpeak Systems — hiring team
+          Nordpeak Systems · hiring team
           <br />
           Re: Senior Platform Engineer
         </p>
         <p className="tmB-pdoc-body">Dear Nordpeak team,</p>
         <p className="tmB-pdoc-body">
           Your posting asks for someone who has run distributed Node.js services
-          in production — that has been my work for the past five years, most
+          in production. That has been my work for the past five years, most
           recently leading the checkout migration at Brightline.
         </p>
         <p className="tmB-pdoc-body">

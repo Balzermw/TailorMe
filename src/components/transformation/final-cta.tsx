@@ -14,7 +14,7 @@ export default function FinalCta() {
       <div className="tm-wrap tm-cta">
         <h2 className="tm-h2">Your bullets can do this too.</h2>
         <p className="tm-body">
-          Run the same pipeline on your own resume — the first application is
+          Run the same pipeline on your own resume. The first application is
           free.
         </p>
         <Link className="tm-btn tm-btn--primary tm-btn--lg" href={ROUTES.audit}>

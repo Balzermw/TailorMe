@@ -10,7 +10,7 @@ import "../print/print.css";
 import "./edit.css";
 
 export const metadata: Metadata = {
-  title: "Edit your tailored resume — TailorMe by Res.Me",
+  title: "Edit your tailored resume · TailorMe by Res.Me",
 };
 
 // The resume editor: review + edit the tailored document, then save. Editing is

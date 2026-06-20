@@ -5,7 +5,7 @@ import Footer from "@/components/landing/footer";
 import ContactForm from "./contact-form";
 
 export const metadata: Metadata = {
-  title: "Contact — TailorMe by Res.Me",
+  title: "Contact · TailorMe by Res.Me",
 };
 
 const CONTACT_POINTS = [
@@ -30,7 +30,7 @@ export default function ContactPage() {
               </h1>
               <p className="tm-body mt-[14px]">
                 Questions about an application, credits, your data, or coaching
-                with Michael — we answer everything within one business day.
+                with Michael. We answer everything within one business day.
               </p>
               <div className="tmB-creds mt-[26px]">
                 {CONTACT_POINTS.map((t) => (

@@ -7,7 +7,7 @@ import Footer from "@/components/landing/footer";
 import { ROUTES, TRUST } from "@/components/landing/data";
 
 export const metadata: Metadata = {
-  title: "Coaching with Michael — TailorMe by Res.Me",
+  title: "Coaching with Michael · TailorMe by Res.Me",
 };
 
 // Package tiers — one-time, no subscription.
@@ -55,7 +55,7 @@ const TSTS = [
     note: "Labeled composite",
   },
   {
-    q: "The line-by-line notes were worth it alone — every bullet got sharper and I understood why.",
+    q: "The line-by-line notes were worth it alone. Every bullet got sharper and I understood why.",
     who: "J.R.",
     role: "Cloud Infrastructure Lead",
     note: "Labeled composite",
@@ -73,7 +73,7 @@ const CREDS = [
   "15+ years of experience in technical hiring",
   "650+ resumes written for senior candidates",
   "Fiverr Top Rated Pro · 4.8/5 across 200+ reviews",
-  "Head of Res.Me — the team behind TailorMe",
+  "Head of Res.Me · the team behind TailorMe",
 ];
 
 const STEPS = [
@@ -85,7 +85,7 @@ const STEPS = [
   [
     "02",
     "Craft & perfect",
-    "Rewrite, restructure, re-position — together. Every change explained, so the thinking sticks.",
+    "Rewrite, restructure, re-position, together. Every change explained, so the thinking sticks.",
   ],
   [
     "03",
@@ -108,7 +108,7 @@ function CoachingHero() {
           <span className="tm-pill">1-on-1 coaching</span>
           <h1 className="tm-h1">Professional resume coaching with Michael</h1>
           <p className="tm-body">
-            The head of Res.Me, working on your resume directly — positioning
+            The head of Res.Me, working on your resume directly, positioning
             your story for the roles you actually want, line by line.
           </p>
           <div className="tmC-hero2-ctas">
@@ -157,7 +157,7 @@ function About() {
           <p className="tm-body mt-[14px]">
             I’ve spent fifteen years helping technical professionals explain
             their work to the people who hire them. Most resumes I see
-            undersell the candidate — strong work written as a task list. My
+            undersell the candidate: strong work written as a task list. My
             job is the translation: finding the impact in what you’ve done and
             positioning it for the role you want next.
           </p>
@@ -205,7 +205,7 @@ function Packages() {
       <div className="tm-wrap">
         <h2 className="tm-h2">Choose your package</h2>
         <p className="tm-body mt-[10px] max-w-[60ch]">
-          One-time packages, no subscription — most clients start with Rewrite
+          One-time packages, no subscription. Most clients start with Rewrite
           + cover letter.
         </p>
         <div className="tmC-pkgs mt-[28px]">
@@ -253,7 +253,7 @@ function Packages() {
           <div className="tmC-band-body">
             <h3>Already using TailorMe?</h3>
             <p>
-              Add Michael’s line-by-line review to any application for +$49 —
+              Add Michael’s line-by-line review to any application for +$49,
               no package needed. 48-hour turnaround.
             </p>
           </div>
@@ -281,7 +281,7 @@ function Testimonials() {
                 </span>
                 <span>
                   <b>
-                    {tst.who} — {tst.role}
+                    {tst.who} · {tst.role}
                   </b>
                   <span>{tst.note}</span>
                 </span>
@@ -300,7 +300,7 @@ function Cta() {
       <div className="tm-wrap tm-cta">
         <h2 className="tm-h2">Work with Michael directly.</h2>
         <p className="tm-body">
-          Or start smaller — run a free TailorMe audit and add his review when
+          Or start smaller: run a free TailorMe audit and add his review when
           you’re ready.
         </p>
         <div className="flex flex-wrap justify-center gap-[12px]">

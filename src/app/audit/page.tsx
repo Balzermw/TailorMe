@@ -4,7 +4,7 @@ import Footer from "@/components/landing/footer";
 import AuditWizard from "./audit-wizard";
 
 export const metadata: Metadata = {
-  title: "Get a free resume audit — TailorMe by Res.Me",
+  title: "Get a free resume audit · TailorMe by Res.Me",
 };
 
 export default function AuditPage() {

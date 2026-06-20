@@ -36,7 +36,7 @@ function sanitizeProofPoints(input: unknown): ProofPoint[] | undefined {
 }
 
 const FREE_LIMIT_MSG =
-  "You've used your free audits for now. Create a free account to run a full tailored application — your first one is free.";
+  "You've used your free audits for now. Create a free account to run a full tailored application. Your first one is free.";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
         const global = consume("audit:global", FREE_AUDIT_GLOBAL_RULES);
         if (!global.allowed) {
           return tooManyRequests(
-            "Free audits are at capacity right now — please try again shortly, or create an account.",
+            "Free audits are at capacity right now. Please try again shortly, or create an account.",
             global.resetAt,
           );
         }

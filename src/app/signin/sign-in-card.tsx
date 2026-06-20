@@ -203,7 +203,7 @@ export default function SignInCard() {
 
       {session && (
         <p className="tmS-note mt-[12px]">
-          Already signed in as <b className="font-medium">{session.name}</b> —{" "}
+          Already signed in as <b className="font-medium">{session.name}</b>.{" "}
           <Link
             href={ROUTES.dashboard}
             className="text-[var(--tm-blue-600)] no-underline"

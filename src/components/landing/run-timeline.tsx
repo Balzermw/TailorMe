@@ -7,7 +7,7 @@ export default function RunTimeline() {
       <div className="tm-wrap">
         <h2 className="tm-h2">Watch a real application run</h2>
         <p className="tm-body mt-[10px] max-w-[70ch]">
-          One composite candidate, one real posting — the same four moments,
+          One composite candidate, one real posting, the same four moments,
           every time.
         </p>
 
@@ -22,10 +22,10 @@ export default function RunTimeline() {
               <div className="tm-card tmB-tl-card tmB-tl-job">
                 <ClipboardList size={17} />
                 <span>
-                  <b>Senior Platform Engineer</b> — Nordpeak Systems
+                  <b>Senior Platform Engineer</b> · Nordpeak Systems
                 </span>
                 <span className="tm-pill tm-pill--mint ml-auto">
-                  84 — strong fit
+                  84 · strong fit
                 </span>
               </div>
             </div>
@@ -97,7 +97,7 @@ export default function RunTimeline() {
                   </span>
                 </span>
                 <span className="tm-btn tm-btn--primary tm-btn--sm justify-center mt-[6px]">
-                  <Download size={14} /> Download both — 1 credit
+                  <Download size={14} /> Download both · 1 credit
                 </span>
               </div>
             </div>

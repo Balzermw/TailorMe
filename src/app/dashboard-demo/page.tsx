@@ -8,7 +8,7 @@ import DemoBody from "./demo-body";
 // be tested with data. Safe to delete: remove this folder.
 
 export const metadata: Metadata = {
-  title: "Dashboard demo — TailorMe",
+  title: "Dashboard demo · TailorMe",
 };
 
 export default function DashboardDemoPage() {

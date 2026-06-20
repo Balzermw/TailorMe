@@ -8,7 +8,7 @@ import AgentNotes from "@/components/transformation/agent-notes";
 import FinalCta from "@/components/transformation/final-cta";
 
 export const metadata: Metadata = {
-  title: "A real transformation — TailorMe by Res.Me",
+  title: "A real transformation · TailorMe by Res.Me",
 };
 
 export default function TransformationPage() {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import LegalDoc, { type LegalDocData } from "@/components/legal/legal-doc";
 
 export const metadata: Metadata = {
-  title: "Privacy policy — TailorMe by Res.Me",
+  title: "Privacy policy · TailorMe by Res.Me",
 };
 
 const TM_PRIVACY: LegalDocData = {
@@ -12,7 +12,7 @@ const TM_PRIVACY: LegalDocData = {
   sections: [
     [
       "What we collect",
-      "Your account email, the resume you upload, job postings you paste, and the documents the pipeline produces for you. Payment details go directly to Stripe — we never see your card number.",
+      "Your account email, the resume you upload, job postings you paste, and the documents the pipeline produces for you. Payment details go directly to Stripe; we never see your card number.",
     ],
     [
       "How your resume data is used",
@@ -20,7 +20,7 @@ const TM_PRIVACY: LegalDocData = {
     ],
     [
       "Encryption & storage",
-      "Resume data is encrypted at rest. Documents are stored so you can re-download past applications; you can delete any application — or everything — at any time.",
+      "Resume data is encrypted at rest. Documents are stored so you can re-download past applications; you can delete any application, or everything, at any time.",
     ],
     [
       "One-click deletion",
@@ -28,7 +28,7 @@ const TM_PRIVACY: LegalDocData = {
     ],
     [
       "GDPR",
-      "We are GDPR-aligned by design: you can export your data, correct it, or erase it. For data requests, contact us — we respond within 30 days.",
+      "We are GDPR-aligned by design: you can export your data, correct it, or erase it. For data requests, contact us; we respond within 30 days.",
     ],
     [
       "Cookies & analytics",

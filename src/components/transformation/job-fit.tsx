@@ -7,7 +7,7 @@ function FitBars({ title }: { title: string }) {
     <div className="tm-fit">
       <div className="tm-fit-head">
         <h3>{title}</h3>
-        <span className="tm-pill tm-pill--mint">84 — strong fit</span>
+        <span className="tm-pill tm-pill--mint">84 · strong fit</span>
       </div>
       {SCORES.map((s) => (
         <div key={s.l} className="tm-fit-row">
@@ -47,7 +47,7 @@ export default function JobFit() {
         <div className="tm-card p-[24px]">
           <span className="tm-eyebrow mb-[10px]">The job</span>
           <strong className="block text-[length:var(--body)] font-medium">
-            Senior Platform Engineer — Nordpeak Systems
+            Senior Platform Engineer · Nordpeak Systems
           </strong>
           <p className="tm-small mt-[4px] mb-[14px]">
             Copenhagen / Remote EU · pasted as a URL
@@ -66,7 +66,7 @@ export default function JobFit() {
             <div>
               <span className="tm-pill tm-pill--mint">strong fit</span>
               <p className="tm-small mt-[6px]">
-                An honest fit score before we write a word — we won’t dress up a
+                An honest fit score before we write a word. We won’t dress up a
                 weak match.
               </p>
             </div>

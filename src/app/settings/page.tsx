@@ -4,7 +4,7 @@ import Footer from "@/components/landing/footer";
 import SettingsContent from "./settings-content";
 
 export const metadata: Metadata = {
-  title: "Account settings — TailorMe by Res.Me",
+  title: "Account settings · TailorMe by Res.Me",
 };
 
 export default function SettingsPage() {

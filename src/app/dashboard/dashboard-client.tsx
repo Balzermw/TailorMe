@@ -43,10 +43,10 @@ const APPS: App[] = [
 ];
 
 const STATUS_LABEL: Record<Status, string> = {
-  ready: "Reviewed — ready to download",
+  ready: "Reviewed · ready to download",
   running: "Running",
-  michael: "Michael reviewing — returns in ~36h",
-  scored: "Scored only — no credit spent",
+  michael: "Michael reviewing · returns in ~36h",
+  scored: "Scored only · no credit spent",
 };
 
 type Doc = {
@@ -207,14 +207,14 @@ function Drawer({ app, onClose, onRequestReview }: { app: App; onClose: () => vo
           <p className="tmD-drawer-sec">Next step</p>
           <p className="tm-small" style={{ color: "var(--tm-zinc)", lineHeight: 1.55 }}>
             {app.tier === "weak"
-              ? "Weak fit — the score suggests skipping this one and saving your credit for a stronger match."
+              ? "Weak fit. The score suggests skipping this one and saving your credit for a stronger match."
               : "Scored without spending a credit. Run the full tailoring when you're ready."}
           </p>
           <Link
             href={ROUTES.audit}
             className={"tm-btn justify-center w-full mt-[4px] " + (app.tier === "weak" ? "tm-btn--outline" : "tm-btn--primary")}
           >
-            Tailor my resume — 1 credit
+            Tailor my resume · 1 credit
           </Link>
         </>
       )}
@@ -290,7 +290,7 @@ export default function DashboardClient() {
           <div className="tm-card tmD-empty mt-[12px]">
             <Lock size={30} strokeWidth={1.5} className="text-[var(--tm-blue-600)]" />
             <h2>Sign in to see your applications</h2>
-            <p>Your tailored resumes, cover letters, and agent feedback live here — sign in to pick up where you left off.</p>
+            <p>Your tailored resumes, cover letters, and agent feedback live here. Sign in to pick up where you left off.</p>
             <Link className="tm-btn tm-btn--primary tm-btn--lg" href={ROUTES.signIn}>Sign in</Link>
           </div>
         </div>

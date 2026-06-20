@@ -27,10 +27,10 @@ const RING_COLOR: Record<string, string> = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  ready: "Reviewed — ready to download",
+  ready: "Reviewed · ready to download",
   running: "Running",
-  scored: "Scored only — no credit spent",
-  human_review: "Michael reviewing — returns in ~48h",
+  scored: "Scored only · no credit spent",
+  human_review: "Michael reviewing · returns in ~48h",
 };
 
 /** Michael's human pass is mid-flight (requested or actively in review). */
@@ -239,7 +239,7 @@ export default function DashboardLive({
             <FileText size={28} strokeWidth={1.6} />
             <h2>No applications yet</h2>
             <p>
-              Run your first application free — paste a job posting and we&apos;ll
+              Run your first application free. Paste a job posting and we&apos;ll
               tailor your resume, score the fit, and review every line.
             </p>
             <Link className="tm-btn tm-btn--primary" href={ROUTES.audit}>
@@ -361,7 +361,7 @@ export default function DashboardLive({
                         className="tm-btn tm-btn--primary justify-center w-full mt-[4px]"
                         href={ROUTES.audit}
                       >
-                        Tailor my resume — 1 credit
+                        Tailor my resume · 1 credit
                       </Link>
                     )}
                   </>

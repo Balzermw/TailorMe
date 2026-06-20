@@ -19,7 +19,7 @@ import { ROUTES, TRUST } from "@/components/landing/data";
 import PricingFaq from "./pricing-faq";
 
 export const metadata: Metadata = {
-  title: "Pricing — TailorMe by Res.Me",
+  title: "Pricing · TailorMe by Res.Me",
 };
 
 type Pack = {
@@ -43,7 +43,7 @@ const PACKS: Pack[] = [
     price: "$19",
     apps: "5 applications",
     per: "$3.80",
-    desc: "For a handful of roles you really want — not a spray-and-pray run.",
+    desc: "For a handful of roles you really want, not a spray-and-pray run.",
     who: [
       "You’re employed, but a few dream postings caught your eye",
       "You want to see what tailoring does before committing",
@@ -70,7 +70,7 @@ const PACKS: Pack[] = [
     price: "$99",
     apps: "40 applications",
     per: "$2.48",
-    desc: "For changing roles, industries, or cities — casting wide without going generic.",
+    desc: "For changing roles, industries, or cities: casting wide without going generic.",
     who: [
       "You’re repositioning and every posting needs a different story",
       "You’d rather buy once and never think about credits again",
@@ -94,7 +94,7 @@ const GUIDE: { q: string; a: RichPart[] }[] = [
     a: [
       "Start with the ",
       { b: "free audit" },
-      " — your first application costs nothing, no card required.",
+      ": your first application costs nothing, no card required.",
     ],
   },
   {
@@ -108,7 +108,7 @@ const GUIDE: { q: string; a: RichPart[] }[] = [
     q: "I’m in a full-on search.",
     a: [
       { b: "Job hunt" },
-      " is the sweet spot — and ",
+      " is the sweet spot, and ",
       { b: "All in" },
       " if you’re switching careers or casting wide.",
     ],
@@ -183,8 +183,8 @@ function HumanReviewRow() {
       <div className="tm-human-body">
         <h3>Add Michael’s expert review</h3>
         <p>
-          Michael — head of Res.Me, Certified Professional Resume Writer, 650+
-          resumes written — goes through your final draft line by line and adds
+          Michael (head of Res.Me, Certified Professional Resume Writer, 650+
+          resumes written) goes through your final draft line by line and adds
           positioning notes for your target role. Back in your inbox within 48
           hours.
         </p>
@@ -295,7 +295,7 @@ export default function PricingPage() {
           <div className="tm-wrap tm-cta">
             <h2 className="tm-h2">Start with the free one.</h2>
             <p className="tm-body">
-              Your first application is a free audit — see what tailoring does
+              Your first application is a free audit. See what tailoring does
               to your own bullets before buying anything.
             </p>
             <Link

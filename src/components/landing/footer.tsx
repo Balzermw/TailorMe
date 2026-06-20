@@ -13,7 +13,7 @@ export default function Footer() {
           height={1042}
           sizes="18px"
         />
-        TailorMe — a Res.Me product
+        TailorMe · a Res.Me product
       </span>
       <span className="tm-footer-links">
         <Link href={ROUTES.security}>Security</Link>

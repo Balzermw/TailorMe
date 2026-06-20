@@ -61,7 +61,7 @@ export default function Hero() {
           <p className="tm-body">
             Paste a job posting. TailorMe rewrites your resume for it, then
             three specialist agents review the draft the way the ATS, the
-            recruiter, and the hiring manager will — and return fixes, not a
+            recruiter, and the hiring manager will, and return fixes, not a
             score.
           </p>
           <div className="tmB-hero-ctas">

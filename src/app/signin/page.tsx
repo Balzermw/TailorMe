@@ -6,14 +6,14 @@ import Footer from "@/components/landing/footer";
 import SignInCard from "./sign-in-card";
 
 export const metadata: Metadata = {
-  title: "Sign in — TailorMe by Res.Me",
+  title: "Sign in · TailorMe by Res.Me",
 };
 
 const CREDS = [
   "No card required to start",
   "Fit scored before you spend anything",
   "Three specialist agents on every application",
-  "Your data is locked to your account — row-level security",
+  "Your data is locked to your account: row-level security",
   "Encrypted at rest · delete everything in one click",
 ];
 

@@ -53,7 +53,7 @@ export default function Guide() {
                   bg: "var(--tm-blue-50)",
                   fg: "var(--tm-blue-600)",
                   name: "Ada",
-                  text: "reads it like the ATS — are the posting’s keywords actually there?",
+                  text: "reads it like the ATS: are the posting’s keywords actually there?",
                 },
                 {
                   Icon: TrendingUp,
@@ -113,7 +113,7 @@ export default function Guide() {
                 height={56}
               />
               <div>
-                <h3 className="tm-h3">Michael — head of Res.Me</h3>
+                <h3 className="tm-h3">Michael · head of Res.Me</h3>
                 <p className="tm-small mt-[2px]">
                   The writer behind Res.Me’s coaching practice
                 </p>

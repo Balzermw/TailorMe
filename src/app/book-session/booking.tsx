@@ -167,7 +167,7 @@ export default function Booking() {
                     className="tm-small"
                     style={{ marginTop: "10px", fontSize: "12px", lineHeight: 1.6 }}
                   >
-                    Opens Michael’s calendar to pick a slot that works for you — a
+                    Opens Michael’s calendar to pick a slot that works for you, a
                     free 30-minute intro. You’ll get a confirmation and the meeting
                     link by email.
                   </p>
@@ -185,7 +185,7 @@ export default function Booking() {
                       NEXT_PUBLIC_CALENDLY_URL
                     </code>{" "}
                     to Michael’s Calendly event link and this button will open his
-                    calendar — with automatic confirmation + reminder emails.
+                    calendar, with automatic confirmation + reminder emails.
                   </p>
                 </div>
               )}
