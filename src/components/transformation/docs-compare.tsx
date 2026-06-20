@@ -177,6 +177,18 @@ function AfterDoc() {
         Moved legacy batch jobs to AWS workers, improving retry visibility and
         reducing manual reconciliation.
       </p>
+      <p className="tmB-pdoc-bullet">
+        Cut nightly batch runtime <mark className="tm-m">30%</mark> by
+        parallelizing jobs and adding retry-safe checkpoints.
+      </p>
+
+      <div className="tmB-pdoc-entry">
+        <span className="tmB-pdoc-role">Junior Developer, Webstack Inc.</span>
+        <span className="tmB-pdoc-date">2012 - 2014</span>
+      </div>
+      <p className="tmB-pdoc-bullet">
+        Built internal UI tools and support workflows for the engineering team.
+      </p>
 
       <p className="tmB-pdoc-sec">Selected Platform Work</p>
       <p className="tmB-pdoc-bullet">
@@ -192,6 +204,11 @@ function AfterDoc() {
       <p className="tmB-pdoc-skills">
         Distributed systems | Node.js at scale | Kubernetes | PostgreSQL | AWS |
         Docker | CI/CD pipelines | Observability | Mentorship
+      </p>
+
+      <p className="tmB-pdoc-sec">Education</p>
+      <p className="tmB-pdoc-bullet">
+        BSc Computer Science, University of Copenhagen, 2012.
       </p>
     </div>
   );

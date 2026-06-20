@@ -14,15 +14,11 @@ const TRANSFORMATION_AGENT_NOTES = [
     notes: [
       {
         label: "Keywords added",
-        txt: "Distributed systems, Node.js at scale, Kubernetes, observability, CI/CD pipelines, and mentorship.",
+        txt: "Distributed systems, Node.js, Kubernetes, observability, CI/CD, and mentorship.",
       },
       {
-        label: "Keywords grounded",
-        txt: "Moved Kubernetes out of the skills-only line and tied it to deployment standards in the Brightline experience.",
-      },
-      {
-        label: "Evidence surfaced",
-        txt: "Added Datadog observability dashboard work so the Nordpeak scan sees the exact monitoring language from the posting.",
+        label: "Grounded in experience",
+        txt: "Tied Kubernetes and Datadog work to real bullets, not a skills-only line.",
       },
     ],
   },
@@ -32,15 +28,11 @@ const TRANSFORMATION_AGENT_NOTES = [
     notes: [
       {
         label: "Numbers added",
-        txt: "38% lower p95 latency, 2.4M daily transactions, and 6 engineers mentored.",
+        txt: "38% lower p95 latency, 2.4M daily transactions, 6 engineers mentored.",
       },
       {
-        label: "Scale clarified",
-        txt: "Added 40k messages/min to the order-events pipeline so backend scope is visible.",
-      },
-      {
-        label: "Outcome improved",
-        txt: "Converted a vague dashboard bullet into a 52% incident-triage reduction.",
+        label: "Scope clarified",
+        txt: "Surfaced 40k messages/min and a 52% incident-triage drop.",
       },
     ],
   },
@@ -50,15 +42,11 @@ const TRANSFORMATION_AGENT_NOTES = [
     notes: [
       {
         label: "Headline aligned",
-        txt: "Reframed Software Engineer as Senior Platform Engineer for the client-chosen Nordpeak role.",
+        txt: "Reframed the title to Senior Platform Engineer for this role.",
       },
       {
-        label: "Work reordered",
-        txt: "Moved distributed Node.js service, checkout reliability, CI/CD guardrails, and rollback playbooks above generic support work.",
-      },
-      {
-        label: "Old work trimmed",
-        txt: "Compressed early web and process-heavy bullets so the page sells backend/platform fit first.",
+        label: "Reordered for fit",
+        txt: "Moved platform and reliability work above generic support; trimmed old web bullets.",
       },
     ],
   },

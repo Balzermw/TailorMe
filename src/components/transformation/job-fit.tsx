@@ -58,6 +58,20 @@ export default function JobFit() {
               </span>
             ))}
           </div>
+          <p
+            className="tm-small mt-[16px]"
+            style={{ lineHeight: 1.65, borderLeft: "2px solid var(--tm-border)", paddingLeft: "12px" }}
+          >
+            “Own the evolution of our backend platform: lead distributed Node.js
+            services at scale, set Kubernetes deployment standards across teams, and
+            build observability into everything we ship. 5+ years backend, a track
+            record of reliability and performance wins, plus mentoring and technical
+            direction.”
+          </p>
+          <p className="tm-small mt-[10px]" style={{ color: "var(--tm-zinc)" }}>
+            Nice to have: Datadog / Prometheus, and owning a platform other teams
+            build on.
+          </p>
         </div>
         <div className="tm-card p-[24px]">
           <div className="tmT-verdict">
