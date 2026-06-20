@@ -7,7 +7,6 @@ function FitBars({ title }: { title: string }) {
     <div className="tm-fit">
       <div className="tm-fit-head">
         <h3>{title}</h3>
-        <span className="tm-pill tm-pill--mint">84 · strong fit</span>
       </div>
       {SCORES.map((s) => (
         <div key={s.l} className="tm-fit-row">
