@@ -139,7 +139,7 @@ export default function EditEditor({
   keywords,
   verificationStatus,
   initialUserEdited,
-  proofPoints,
+  proofPoints: initialProofPoints,
   company,
   role,
   kind = "application",
@@ -147,6 +147,7 @@ export default function EditEditor({
   pdfUrl,
   backHref = ROUTES.dashboard,
   backLabel = "Dashboard",
+  onGetFeedback,
 }: {
   id: string;
   doc: TailoredDoc;
@@ -170,6 +171,8 @@ export default function EditEditor({
   pdfUrl?: string;
   backHref?: string;
   backLabel?: string;
+  // Base resume: fetch first-pass feedback on demand (returns proof points).
+  onGetFeedback?: (doc: TailoredDoc) => Promise<ProofPoint[]>;
 }) {
   const [doc, setDoc] = useState<TailoredDoc>(initialDoc);
   const [decisions, setDecisions] = useState<Record<string, EditDecision>>(initialDecisions);
@@ -181,6 +184,9 @@ export default function EditEditor({
   const [review, setReview] = useState<{ items: ReviewItem[] } | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [proofPoints, setProofPoints] = useState<ProofPoint[]>(initialProofPoints);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
   // Experience entries collapse to a one-line header; open entries that still
   // have AI rewrites to review so those aren't hidden.
   const [openEntries, setOpenEntries] = useState<Set<number>>(() => {
@@ -359,6 +365,27 @@ export default function EditEditor({
     else if (it.ei != null && it.bi != null) setBulletText(it.ei, it.bi, it.original);
     setReview((r) => (r ? { items: r.items.filter((x) => x.id !== it.id) } : r));
   }
+  async function getFeedback() {
+    if (!onGetFeedback || feedbackLoading) return;
+    const hasContent =
+      doc.summary.trim().length > 0 ||
+      doc.experience.some((e) => e.bullets.some((b) => b.trim()));
+    if (!hasContent) {
+      setFeedbackError("Add a summary or an experience bullet before running feedback.");
+      return;
+    }
+    setFeedbackError(null);
+    setFeedbackLoading(true);
+    try {
+      const pts = await onGetFeedback(doc);
+      setProofPoints(pts);
+      if (!pts.length) setFeedbackError("Looks solid — no major issues found.");
+    } catch {
+      setFeedbackError("Couldn't get feedback. Try again.");
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }
   function decide(ei: number, bi: number, decision: EditDecision) {
     const key = bulletKey(ei, bi);
     const d = diffs.get(key);
@@ -415,7 +442,15 @@ export default function EditEditor({
     { key: "experience", label: "Experience", badge: totalPending || undefined },
     { key: "education", label: "Education" },
     { key: "skills", label: "Skills" },
-    ...(proofPoints.length ? [{ key: "fixes" as Section, label: "Suggestions", badge: proofPoints.length }] : []),
+    ...(proofPoints.length || onGetFeedback
+      ? [
+          {
+            key: "fixes" as Section,
+            label: onGetFeedback ? "Feedback" : "Suggestions",
+            badge: proofPoints.length || undefined,
+          },
+        ]
+      : []),
   ];
 
   // Only advertise the highlight legend for colors actually on screen. Match the
@@ -771,8 +806,39 @@ export default function EditEditor({
 
           {section === "fixes" && (
             <section className="tmE-panel tmF-anim">
-              <h2 className="tmE-panel-title">Suggestions from your audit</h2>
-              <p className="tmE-panel-sub">What the tailoring targeted. Use these as a checklist while you edit.</p>
+              <div className="tmE-fix-top">
+                <div>
+                  <h2 className="tmE-panel-title">
+                    {onGetFeedback ? "Resume feedback" : "Suggestions from your audit"}
+                  </h2>
+                  <p className="tmE-panel-sub">
+                    {onGetFeedback
+                      ? "A first-pass review of your content. Run it whenever you’ve made changes."
+                      : "What the tailoring targeted. Use these as a checklist while you edit."}
+                  </p>
+                </div>
+                {onGetFeedback && (
+                  <button
+                    type="button"
+                    className="tm-btn tm-btn--outline tm-btn--sm"
+                    onClick={() => void getFeedback()}
+                    disabled={feedbackLoading}
+                  >
+                    <ListChecks size={13} />{" "}
+                    {feedbackLoading
+                      ? "Reviewing…"
+                      : proofPoints.length
+                        ? "Refresh feedback"
+                        : "Get feedback"}
+                  </button>
+                )}
+              </div>
+              {feedbackError && <p className="tmE-fix-status">{feedbackError}</p>}
+              {onGetFeedback && !proofPoints.length && !feedbackLoading && !feedbackError && (
+                <p className="tmE-fix-status">
+                  No feedback yet — add your experience and skills, then run a review.
+                </p>
+              )}
               {(["high", "medium", "low"] as const).map((sev) => {
                 const group = proofPoints.filter((p) => p.severity === sev);
                 if (group.length === 0) return null;

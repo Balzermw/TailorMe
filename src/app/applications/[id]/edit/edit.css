@@ -782,6 +782,25 @@
 }
 
 /* suggestions ("carry to editor") */
+.tmE-fix-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.tmE-fix-top .tmE-panel-sub {
+  margin-bottom: 0;
+}
+.tmE-fix-top .tm-btn {
+  flex: none;
+}
+.tmE-fix-status {
+  font-size: 13px;
+  color: var(--tm-zinc);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
 .tmE-fix-group {
   margin-bottom: 16px;
 }

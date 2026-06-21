@@ -67,6 +67,16 @@ export default function ResumeEditLoader({
       role={doc.headline || "Base resume"}
       kind="resume"
       onSave={async ({ doc: edited }) => saveResumeDoc(edited)}
+      onGetFeedback={async (current) => {
+        const res = await fetch("/api/resume/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ doc: current }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || "failed");
+        return Array.isArray(data.proofPoints) ? data.proofPoints : [];
+      }}
       pdfUrl={supabaseConfigured ? "/api/resume/pdf" : ROUTES.resumePrint}
       backHref={ROUTES.dashboard}
       backLabel="Dashboard"

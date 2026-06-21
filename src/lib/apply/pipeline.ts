@@ -6,6 +6,7 @@ import {
   tailorProviderConfigured,
 } from "@/lib/config";
 import { CLICHES, principlesClause } from "@/lib/apply/doctrine";
+import { withTemplateRules } from "@/lib/apply/template";
 import type {
   AgentNote,
   ApplyResult,
@@ -123,6 +124,10 @@ const PARSE_SYSTEM =
 export async function parseResume(
   resumeText: string,
   provider?: Provider,
+  // When the resume is rendered in OUR template (build-from-scratch / base
+  // resume), suppress style/formatting/ATS-layout findings — the template owns
+  // those. The uploaded-file path leaves this false (those findings are real).
+  templated = false,
 ): Promise<ResumeStats> {
   const data = await callTool<{
     name: string;
@@ -143,7 +148,7 @@ export async function parseResume(
     }[];
   }>(
     "parse",
-    PARSE_SYSTEM,
+    templated ? withTemplateRules(PARSE_SYSTEM) : PARSE_SYSTEM,
     `Today's date is ${new Date().toISOString().slice(0, 10)}. Any month/year on or before ` +
       `today is in the PAST; a "Month Year – Present" (or "– Current") range is a normal ` +
       `ongoing role, never a future date or an error.\n\nResume:\n${resumeText}\n\nReturn the ` +
