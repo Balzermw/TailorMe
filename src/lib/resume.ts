@@ -170,11 +170,14 @@ export function hasResumeDraft(): boolean {
 }
 
 const TARGET_KEY = "tm_target_resume"; // handoff: base resume -> audit job step
+const TARGET_ID_KEY = "tm_target_resume_id"; // links the tailored version to its base resume
 
-export function setTargetResume(text: string): void {
+export function setTargetResume(text: string, id?: string): void {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(TARGET_KEY, text);
+    if (id) window.sessionStorage.setItem(TARGET_ID_KEY, id);
+    else window.sessionStorage.removeItem(TARGET_ID_KEY);
   } catch {
     /* ignore */
   }
@@ -189,10 +192,20 @@ export function loadTargetResume(): string {
   }
 }
 
+export function loadTargetResumeId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage.getItem(TARGET_ID_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function clearTargetResume(): void {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.removeItem(TARGET_KEY);
+    window.sessionStorage.removeItem(TARGET_ID_KEY);
   } catch {
     /* ignore */
   }

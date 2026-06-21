@@ -30,6 +30,7 @@ export default async function DashboardPage() {
         credits={profile?.credits ?? 0}
         apps={apps}
         baseResume={base?.doc ?? null}
+        baseResumeId={base?.id ?? null}
       />
     );
   }

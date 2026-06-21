@@ -228,4 +228,5 @@ export interface ApplicationRow {
   michaelStatus: MichaelStatus;
   createdAt: string;
   result: ApplyResult | null;
+  resumeId: string | null; // base resume this version was tailored from
 }

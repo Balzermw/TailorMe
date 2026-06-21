@@ -22,6 +22,7 @@ export default async function ResumeEditPage() {
         <ResumeEditLoader
           serverDoc={base?.doc ?? null}
           serverProofPoints={base?.proofPoints ?? []}
+          serverResumeId={base?.id ?? null}
         />
       </main>
     </div>

@@ -19,6 +19,7 @@ interface DbApplication {
   michael_status: string;
   result: ApplyResult | null;
   created_at: string;
+  resume_id: string | null;
 }
 
 function rowToApp(r: DbApplication): ApplicationRow {
@@ -31,6 +32,7 @@ function rowToApp(r: DbApplication): ApplicationRow {
     michaelStatus: r.michael_status as MichaelStatus,
     createdAt: r.created_at,
     result: r.result,
+    resumeId: r.resume_id ?? null,
   };
 }
 
@@ -66,7 +68,7 @@ export async function listApplications(): Promise<ApplicationRow[]> {
   if (!user) return [];
   const { data } = await sb
     .from("applications")
-    .select("id,company,role,fit_score,status,michael_status,result,created_at")
+    .select("id,company,role,fit_score,status,michael_status,result,created_at,resume_id")
     .order("created_at", { ascending: false });
   return (data ?? []).map((r) => rowToApp(r as DbApplication));
 }
@@ -81,7 +83,7 @@ export async function getApplication(id: string): Promise<ApplicationRow | null>
   if (!user) return null;
   const { data } = await sb
     .from("applications")
-    .select("id,company,role,fit_score,status,michael_status,result,created_at")
+    .select("id,company,role,fit_score,status,michael_status,result,created_at,resume_id")
     .eq("id", id)
     .single();
   return data ? rowToApp(data as DbApplication) : null;

@@ -22,9 +22,11 @@ import EditEditor from "../../applications/[id]/edit/edit-editor";
 export default function ResumeEditLoader({
   serverDoc,
   serverProofPoints,
+  serverResumeId,
 }: {
   serverDoc: TailoredDoc | null;
   serverProofPoints: ProofPoint[];
+  serverResumeId: string | null;
 }) {
   const router = useRouter();
   // Start null and resolve in the effect so EditEditor mounts ONCE on the final
@@ -99,7 +101,7 @@ export default function ResumeEditLoader({
         return Array.isArray(data.proofPoints) ? data.proofPoints : [];
       }}
       onTargetJob={(current) => {
-        setTargetResume(docToResumeText(current));
+        setTargetResume(docToResumeText(current), serverResumeId ?? undefined);
         router.push(`${ROUTES.audit}?from=base`);
       }}
       pdfUrl={supabaseConfigured ? "/api/resume/pdf" : ROUTES.resumePrint}

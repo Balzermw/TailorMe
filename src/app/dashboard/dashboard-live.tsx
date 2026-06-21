@@ -161,13 +161,19 @@ export default function DashboardLive({
   credits,
   apps,
   baseResume,
+  baseResumeId,
 }: {
   user: AuthUser;
   credits: number;
   apps: ApplicationRow[];
   baseResume: TailoredDoc | null;
+  baseResumeId: string | null;
 }) {
   const router = useRouter();
+  // Applications tailored from this base resume (grouped under its card).
+  const baseVersions = baseResumeId
+    ? apps.filter((a) => a.resumeId === baseResumeId).length
+    : 0;
   const [view, setView] = useState<View>("apps");
   const [openId, setOpenId] = useState<string | null>(apps[0]?.id ?? null);
   const [requesting, setRequesting] = useState(false);
@@ -243,6 +249,9 @@ export default function DashboardLive({
               {baseResume
                 ? baseResume.headline || baseResume.name || "Edit it, then tailor it to any job."
                 : "Create one resume you can reuse and tailor to every job."}
+              {baseResume && baseVersions > 0
+                ? ` · ${baseVersions} tailored ${baseVersions === 1 ? "version" : "versions"}`
+                : ""}
             </span>
           </div>
           {baseResume ? (
@@ -254,7 +263,7 @@ export default function DashboardLive({
                 type="button"
                 className="tm-btn tm-btn--primary tm-btn--sm"
                 onClick={() => {
-                  setTargetResume(docToResumeText(baseResume));
+                  setTargetResume(docToResumeText(baseResume), baseResumeId ?? undefined);
                   router.push(`${ROUTES.audit}?from=base`);
                 }}
               >

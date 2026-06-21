@@ -53,6 +53,7 @@ export async function POST(request: Request) {
     postingText?: string;
     useSample?: boolean;
     proofPoints?: unknown;
+    resumeId?: string; // base resume this run was launched from (for grouping)
   };
   try {
     body = await request.json();
@@ -151,6 +152,18 @@ export async function POST(request: Request) {
     // show "what the tailoring addressed."
     result.proofPoints = sanitizeProofPoints(body.proofPoints);
 
+    // Link to the base resume this run came from (verify it's the user's own).
+    let resumeId: string | null = null;
+    if (typeof body.resumeId === "string" && body.resumeId) {
+      const { data: owned } = await sb
+        .from("resumes")
+        .select("id")
+        .eq("id", body.resumeId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (owned) resumeId = body.resumeId;
+    }
+
     // Spend the credit after a successful run, then persist the application.
     if (!creditsDisabled) await sb.rpc("consume_credit");
     const { data: app } = await sb
@@ -163,6 +176,7 @@ export async function POST(request: Request) {
         fit_score: result.fit.overall,
         status: "ready",
         result,
+        resume_id: resumeId,
       })
       .select("id")
       .single();

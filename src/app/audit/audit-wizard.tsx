@@ -42,6 +42,7 @@ import {
   clearSavedResume,
   loadSavedResume,
   loadTargetResume,
+  loadTargetResumeId,
   saveResume,
   type SavedResume,
 } from "@/lib/resume";
@@ -2663,11 +2664,13 @@ function StepResults({
   resumeText,
   posting,
   proofPoints,
+  resumeId,
 }: {
   useSample: boolean;
   resumeText: string;
   posting: string;
   proofPoints: ProofPoint[];
+  resumeId: string | null;
 }) {
   const router = useRouter();
   const { user } = useSession();
@@ -2720,7 +2723,7 @@ function StepResults({
     try {
       sessionStorage.setItem(
         "tm_tailor",
-        JSON.stringify({ useSample, resumeText, postingText: posting, proofPoints }),
+        JSON.stringify({ useSample, resumeText, postingText: posting, proofPoints, resumeId }),
       );
     } catch {
       /* ignore */
@@ -2891,11 +2894,14 @@ export default function AuditWizard() {
   // reading sessionStorage in the initializers is safe — no SSR/hydration.)
   const fromBase = search.get("from") === "base";
   const seededResume = fromBase ? loadTargetResume() : "";
+  const seededResumeId = fromBase ? loadTargetResumeId() : null;
   const [step, setStep] = useState(seededResume ? 1 : 0);
   const [mode, setMode] = useState<"choose" | "upload">(
     fromBase || search.get("start") === "upload" ? "upload" : "choose",
   );
   const [resumeText, setResumeText] = useState(seededResume);
+  // Captured once on mount so a later target-resume clear can't null it before the run.
+  const [resumeId] = useState<string | null>(seededResumeId);
   const [useSample, setUseSample] = useState(false);
   const [stats, setStats] = useState<ResumeStats | null>(null);
   const [posting, setPosting] = useState("");
@@ -2970,6 +2976,7 @@ export default function AuditWizard() {
               resumeText={resumeText}
               posting={posting}
               proofPoints={stats?.proofPoints ?? []}
+              resumeId={resumeId}
             />
           )}
           </div>
