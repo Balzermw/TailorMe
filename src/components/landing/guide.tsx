@@ -53,6 +53,7 @@ export default function Guide() {
                   bg: "var(--tm-blue-50)",
                   fg: "var(--tm-blue-600)",
                   name: "Ada",
+                  role: "ATS agent",
                   text: "checks the keywords an ATS screens for",
                 },
                 {
@@ -60,6 +61,7 @@ export default function Guide() {
                   bg: "#e9f8f1",
                   fg: "#0f7a52",
                   name: "Max",
+                  role: "impact agent",
                   text: "flags lines missing a hard number",
                 },
                 {
@@ -67,9 +69,10 @@ export default function Guide() {
                   bg: "var(--tm-blue-50)",
                   fg: "var(--tm-blue-800)",
                   name: "Remy",
+                  role: "role-fit agent",
                   text: "ranks each line, trims to two pages",
                 },
-              ].map(({ Icon, bg, fg, name, text }) => (
+              ].map(({ Icon, bg, fg, name, role, text }) => (
                 <li key={name} style={{ display: "flex", gap: "11px", alignItems: "flex-start" }}>
                   <span
                     style={{
@@ -87,7 +90,10 @@ export default function Guide() {
                     <Icon size={15} />
                   </span>
                   <span className="tm-small" style={{ lineHeight: 1.5 }}>
-                    <b style={{ color: "var(--tm-ink)" }}>{name}</b> {text}
+                    <b style={{ color: "var(--tm-ink)" }}>{name}</b>
+                    <span style={{ color: fg, fontWeight: 600 }}> · {role}</span>
+                    <br />
+                    <span style={{ color: "var(--tm-zinc)" }}>{text}</span>
                   </span>
                 </li>
               ))}

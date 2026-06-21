@@ -12,7 +12,6 @@ import {
   PenLine,
   Plus,
   RotateCcw,
-  ShieldCheck,
   Target,
   Trash2,
   X,
@@ -170,7 +169,6 @@ export default function EditEditor({
   bulletDiffs,
   initialDecisions,
   keywords,
-  verificationStatus,
   initialUserEdited,
   proofPoints: initialProofPoints,
   company,
@@ -216,7 +214,6 @@ export default function EditEditor({
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ text: string; err: boolean } | null>(null);
   const [dirty, setDirty] = useState(false);
-  const [trustDismissed, setTrustDismissed] = useState(false);
   const [review, setReview] = useState<{ items: ReviewItem[] } | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
@@ -253,10 +250,6 @@ export default function EditEditor({
     initialUserEdited ||
     dirty ||
     Object.values(decisions).some((d) => d === "rejected" || d === "edited");
-  const showVerified =
-    !modified &&
-    !trustDismissed &&
-    (verificationStatus === "clean" || verificationStatus === "corrected");
 
   function touch() {
     setDirty(true);
@@ -662,26 +655,6 @@ export default function EditEditor({
                 ))}
             </div>
           )}
-          {showVerified && (
-            <div className="tmE-trust is-ok">
-              <span className="tmE-trust-ic">
-                <ShieldCheck size={15} />
-              </span>
-              <div>
-                <b>Verified against your resume</b>
-                <span>Every line traces back to your original. Nothing invented.</span>
-              </div>
-              <button
-                type="button"
-                className="tmE-trust-x"
-                aria-label="Dismiss"
-                onClick={() => setTrustDismissed(true)}
-              >
-                <X size={14} />
-              </button>
-            </div>
-          )}
-
           {section === "header" && (
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Header</h2>

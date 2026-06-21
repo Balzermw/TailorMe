@@ -24,11 +24,12 @@
   border-radius: 8px;
   padding: 0 0 40px;
   margin-bottom: 24px;
-  overflow: hidden;
-  /* Mimic a real US Letter sheet (8.5 x 11) so the preview reads as a full
-     page, not a short card. If content runs longer than one page the box
-     grows; the actual PDF paginates via the @media print rules below. */
-  aspect-ratio: 8.5 / 11;
+  /* Mimic a real US Letter sheet (8.5 x 11) as a MINIMUM so a short resume reads
+     as a full page, not a stub — but the box must grow (never clip) when content
+     runs longer, or sections after a long Experience (skills, education, etc.)
+     get cut off. Use min-height from the ratio, not a hard aspect-ratio + clip.
+     The actual PDF paginates via the @media print rules below. */
+  min-height: calc((760px - 48px) * 11 / 8.5);
   box-shadow: 0 1px 4px rgba(24, 24, 27, 0.07);
 }
 
