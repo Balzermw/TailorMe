@@ -25,7 +25,7 @@ import type {
 import { pdfHref } from "@/lib/apply/render";
 import { ROUTES } from "@/components/landing/data";
 import { bulletKey, diffMap } from "@/lib/apply/redline";
-import { highlight } from "@/lib/highlight";
+import { highlight, highlightHits } from "@/lib/highlight";
 import PrintDoc from "../print/print-doc";
 
 type Section = "header" | "summary" | "experience" | "education" | "skills" | "fixes";
@@ -417,6 +417,12 @@ export default function EditEditor({
     ...(proofPoints.length ? [{ key: "fixes" as Section, label: "Suggestions", badge: proofPoints.length }] : []),
   ];
 
+  // Only advertise the highlight legend for colors actually on screen. Match the
+  // text the preview actually tints (summary + bullets via highlight()); skills,
+  // header, and education are rendered without highlighting, so they don't count.
+  const previewText = [doc.summary, ...doc.experience.flatMap((e) => e.bullets)].join("  ");
+  const previewHits = highlightHits(previewText, keywords);
+
   return (
     <div className="tmE-wrap">
       <div className="tmE-head">
@@ -793,16 +799,26 @@ export default function EditEditor({
         <div className="tmE-preview">
           <div className="tmE-preview-head">
             <p className="tmE-preview-label">Live preview</p>
-            {keywords.length > 0 && (
+            {(previewHits.kw || previewHits.metric) && (
               <span className="tmE-preview-legend">
-                <i className="tmE-lk" /> keywords
-                <i className="tmE-lm" /> metrics
+                {previewHits.kw && (
+                  <>
+                    <i className="tmE-lk" /> keywords
+                  </>
+                )}
+                {previewHits.metric && (
+                  <>
+                    <i className="tmE-lm" /> metrics
+                  </>
+                )}
               </span>
             )}
           </div>
-          {keywords.length > 0 && (
+          {(previewHits.kw || previewHits.metric) && (
             <p className="tmE-preview-note">
-              Highlights show the posting keywords and metrics your audit folded in.
+              {previewHits.kw
+                ? "Highlights mark the posting keywords and metrics your resume hits."
+                : "Highlights mark the metrics in your resume."}
             </p>
           )}
           <PrintDoc doc={doc} id={id} resumeOnly hideToolbar highlightKeywords={keywords} />

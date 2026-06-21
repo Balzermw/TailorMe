@@ -33,6 +33,22 @@ function splitTag(parts: Piece[], re: RegExp, kind: "kw" | "metric"): Piece[] {
   return out;
 }
 
+// Does this text actually contain anything `highlight()` would tint? Lets the
+// editor show the keyword/metric legend only when there's real color on screen.
+export function highlightHits(
+  text: string,
+  keywords: string[] = [],
+): { kw: boolean; metric: boolean } {
+  if (!text) return { kw: false, metric: false };
+  const metric = new RegExp(METRIC_RE.source, "i").test(text);
+  const kw = keywords.some((k) => {
+    const t = k.trim();
+    if (t.length <= 1) return false;
+    return new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text);
+  });
+  return { kw, metric };
+}
+
 export function highlight(text: string, keywords: string[] = []): ReactNode {
   if (!text) return text;
   let parts: Piece[] = [{ t: text, kind: null }];
