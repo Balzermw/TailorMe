@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   const text = (body.text ?? "").trim().slice(0, MAX_RESUME_CHARS);
   if (text.length < 40) {
     return NextResponse.json(
-      { error: "Paste a bit more — at least a few lines of your background." },
+      { error: "Paste a bit more, at least a few lines of your background." },
       { status: 400 },
     );
   }

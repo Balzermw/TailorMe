@@ -83,7 +83,7 @@ export default function ScratchBuilder() {
       <header className="tmB-build-head">
         <h1>Let’s build your resume</h1>
         <p>
-          Add the basics below — you don’t need everything. Once it’s started, you’ll
+          Add the basics below; you don’t need everything. Once it’s started, you’ll
           refine every section in the editor and can get feedback.
         </p>
       </header>
@@ -121,7 +121,7 @@ export default function ScratchBuilder() {
         <div className="tmE-field">
           <label>Target role or headline</label>
           <input className="tmE-input" value={headline} placeholder="Customer Support Specialist" onChange={(e) => setHeadline(e.target.value)} />
-          <p className="tmE-hint">No resume yet? This is the kind of job you want — we’ll shape the rest around it.</p>
+          <p className="tmE-hint">No resume yet? This is the kind of job you want, and we’ll shape the rest around it.</p>
         </div>
       </section>
 
@@ -129,7 +129,7 @@ export default function ScratchBuilder() {
       <section className="tmB-build-sec">
         <h2 className="tmE-panel-title">Experience</h2>
         <p className="tmE-hint" style={{ marginTop: 0 }}>
-          Start with your most recent role. One result per line — lead with what you did and any numbers.
+          Start with your most recent role. One result per line. Lead with what you did and any numbers.
         </p>
         {exp.map((e, i) => (
           <div key={i} className="tmE-edu">

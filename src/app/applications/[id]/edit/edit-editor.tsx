@@ -398,7 +398,7 @@ export default function EditEditor({
         setGroupMsg(
           data.demo
             ? "AI grouping isn't available in demo mode."
-            : "Couldn't group these skills — try editing them first.",
+            : "Couldn't group these skills. Try editing them first.",
         );
       } else {
         mutateGroups(() => groups);
@@ -508,7 +508,7 @@ export default function EditEditor({
     try {
       const pts = await onGetFeedback(doc);
       setProofPoints(pts);
-      if (!pts.length) setFeedbackError("Looks solid — no major issues found.");
+      if (!pts.length) setFeedbackError("Looks solid. No major issues found.");
     } catch {
       setFeedbackError("Couldn't get feedback. Try again.");
     } finally {
@@ -879,7 +879,7 @@ export default function EditEditor({
           {section === "projects" && (
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Projects</h2>
-              <p className="tmE-panel-sub">Side projects, portfolio, or open source — the name plus what you did and any result.</p>
+              <p className="tmE-panel-sub">Side projects, portfolio, or open source: the name plus what you did and any result.</p>
               {(doc.projects ?? []).map((p, i) => (
                 <div key={i} className="tmE-edu">
                   <div className="tmE-field">
@@ -896,7 +896,7 @@ export default function EditEditor({
                 </div>
               ))}
               {(doc.projects ?? []).length === 0 && (
-                <p className="tmE-hint">No projects yet — great for students or career changers with a lighter work history.</p>
+                <p className="tmE-hint">No projects yet. Great for students or career changers with a lighter work history.</p>
               )}
               <button type="button" className="tmE-add" onClick={addProject}>
                 <Plus size={14} /> Add project
@@ -907,7 +907,7 @@ export default function EditEditor({
           {section === "certifications" && (
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Certifications</h2>
-              <p className="tmE-panel-sub">Licenses and certifications — name, who issued it, and when.</p>
+              <p className="tmE-panel-sub">Licenses and certifications: name, who issued it, and when.</p>
               {(doc.certifications ?? []).map((c, i) => (
                 <div key={i} className="tmE-edu">
                   <div className="tmE-field">
@@ -978,7 +978,7 @@ export default function EditEditor({
               {doc.skillGroups?.length ? (
                 <>
                   <p className="tmE-panel-sub">
-                    Grouped into categories — this is how they show on your resume. Edit a
+                    Grouped into categories. This is how they show on your resume. Edit a
                     label or its skills, or re-group after big changes.
                   </p>
                   {doc.skillGroups.map((g, i) => (
@@ -1085,7 +1085,7 @@ export default function EditEditor({
               {feedbackError && <p className="tmE-fix-status">{feedbackError}</p>}
               {onGetFeedback && !proofPoints.length && !feedbackLoading && !feedbackError && (
                 <p className="tmE-fix-status">
-                  No feedback yet — add your experience and skills, then run a review.
+                  No feedback yet. Add your experience and skills, then run a review.
                 </p>
               )}
               {(["high", "medium", "low"] as const).map((sev) => {
