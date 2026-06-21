@@ -53,24 +53,24 @@ export default function Guide() {
                   bg: "var(--tm-blue-50)",
                   fg: "var(--tm-blue-600)",
                   name: "Ada",
-                  role: "ATS agent",
-                  text: "checks the keywords an ATS screens for",
+                  role: "ATS Agent",
+                  text: "Checks the keywords an ATS screens for.",
                 },
                 {
                   Icon: TrendingUp,
                   bg: "#e9f8f1",
                   fg: "#0f7a52",
                   name: "Max",
-                  role: "impact agent",
-                  text: "flags lines missing a hard number",
+                  role: "Impact Agent",
+                  text: "Flags lines missing a hard number.",
                 },
                 {
                   Icon: Target,
                   bg: "var(--tm-blue-50)",
                   fg: "var(--tm-blue-800)",
                   name: "Remy",
-                  role: "role-fit agent",
-                  text: "ranks each line, trims to two pages",
+                  role: "Role-Fit Agent",
+                  text: "Ranks each line, trims to two pages.",
                 },
               ].map(({ Icon, bg, fg, name, role, text }) => (
                 <li key={name} style={{ display: "flex", gap: "11px", alignItems: "flex-start" }}>
@@ -90,8 +90,8 @@ export default function Guide() {
                     <Icon size={15} />
                   </span>
                   <span className="tm-small" style={{ lineHeight: 1.5 }}>
-                    <b style={{ color: "var(--tm-ink)" }}>{name}</b>
-                    <span style={{ color: fg, fontWeight: 600 }}> · {role}</span>
+                    <b style={{ color: fg }}>{name}</b>
+                    <span style={{ color: "var(--tm-ink)", fontWeight: 600 }}> · {role}</span>
                     <br />
                     <span style={{ color: "var(--tm-zinc)" }}>{text}</span>
                   </span>

@@ -43,17 +43,20 @@ export const PLAN = [
 export const AGENT_NOTES = [
   {
     agent: "Ada",
+    accent: "var(--tm-blue-600)",
     name: "ATS & keywords",
     note: "Posting names observability 3×; your resume names it 0×. Add your Datadog dashboard work.",
   },
   {
     agent: "Max",
+    accent: "#0f7a52",
     name: "Impact & metrics",
     note: "“Mentored junior engineers”: how many, over how long? Add team scope.",
   },
   {
     agent: "Remy",
-    name: "Role-fit",
+    accent: "var(--tm-blue-800)",
+    name: "Role-Fit",
     note: "This role is 80% backend/platform. Move distributed-systems work above the frontend section.",
   },
 ];

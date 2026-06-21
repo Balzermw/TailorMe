@@ -67,7 +67,7 @@ export default function RunTimeline() {
                 {AGENT_NOTES.map((a) => (
                   <p key={a.name} className="tmB-rq-item">
                     <span className="tm-pill">
-                      {a.agent} · {a.name}
+                      <b style={{ color: a.accent }}>{a.agent}</b> · {a.name}
                     </span>
                     {a.note}
                   </p>
