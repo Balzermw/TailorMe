@@ -31,6 +31,29 @@ describe("latex generation", () => {
     expect(tex.trimEnd().endsWith("\\end{document}")).toBe(true);
   });
 
+  it("renders the classic (article serif) template when selected", () => {
+    const tex = renderResumeTex({ ...SAMPLE_DOC, template: "classic" });
+    expect(tex).toContain("\\documentclass[11pt,a4paper]{article}");
+    expect(tex).toContain("\\scshape"); // small-caps ruled section titles
+    expect(tex).toContain("Alex Mercer");
+    expect(tex).toContain("\\section{Experience}");
+    expect(tex).not.toContain("moderncv");
+    expect(tex.trimEnd().endsWith("\\end{document}")).toBe(true);
+  });
+
+  it("renders the modern (article sans) template when selected", () => {
+    const tex = renderResumeTex({ ...SAMPLE_DOC, template: "modern" });
+    expect(tex).toContain("\\documentclass[11pt,a4paper]{article}");
+    expect(tex).toContain("\\sfdefault"); // sans-serif body
+    expect(tex).toContain("\\section{Skills}");
+    expect(tex).not.toContain("moderncv");
+  });
+
+  it("falls back to moderncv for a missing or unknown template id", () => {
+    expect(renderResumeTex({ ...SAMPLE_DOC, template: "bogus" })).toContain("{moderncv}");
+    expect(renderResumeTex(SAMPLE_DOC)).toContain("{moderncv}");
+  });
+
   it("renders a cover letter with opening and closing", () => {
     const tex = renderCoverTex(SAMPLE_DOC, "Nordpeak Systems");
     expect(tex).toContain("\\recipient{Nordpeak Systems}");

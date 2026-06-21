@@ -94,6 +94,7 @@ export interface TailoredDoc {
   projects?: { name: string; description: string }[];
   certifications?: { name: string; issuer: string; date: string }[];
   coverLetter: string; // plain paragraphs joined by \n\n
+  template?: string; // résumé style id (see lib/apply/templates.ts); default moderncv-banking
 }
 
 export interface ResumeStats {

@@ -1,4 +1,5 @@
 import type { TailoredDoc } from "@/lib/types";
+import { isTemplateId } from "./templates";
 
 function str(v: unknown, max: number): string {
   return typeof v === "string" ? v.slice(0, max) : "";
@@ -97,6 +98,7 @@ export function sanitizeDoc(input: unknown): TailoredDoc | null {
       ? Array.from(new Set(skillGroups.flatMap((g) => g.skills))).slice(0, 48)
       : flatSkills,
     ...(skillGroups.length ? { skillGroups } : {}),
+    ...(isTemplateId(d.template) ? { template: d.template } : {}),
     coverLetter: str(d.coverLetter, 6000),
   };
   if (!doc.name && experience.length === 0) return null;

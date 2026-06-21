@@ -1,4 +1,5 @@
 import type { TailoredDoc } from "@/lib/types";
+import { DEFAULT_TEMPLATE, isTemplateId } from "./templates";
 
 // Real moderncv (banking) LaTeX generation for the tailored documents, plus a
 // pluggable compile step. Generating the .tex is pure and always available;
@@ -172,9 +173,17 @@ export function clampToTwoPages(doc: TailoredDoc): TailoredDoc {
   };
 }
 
-/** moderncv-banking résumé as compilable LaTeX (clamped to two pages). */
+/** Résumé as compilable LaTeX in the doc's chosen template (clamped to two pages). */
 export function renderResumeTex(input: TailoredDoc): string {
   const doc = clampToTwoPages(input);
+  const id = isTemplateId(input.template) ? input.template : DEFAULT_TEMPLATE;
+  if (id === "classic") return renderClassic(doc);
+  if (id === "modern") return renderModern(doc);
+  return renderModerncv(doc);
+}
+
+/** moderncv-banking — the original colored single-column style. */
+function renderModerncv(doc: TailoredDoc): string {
   const lines: string[] = [PREAMBLE(doc), "\\begin{document}", "\\makecvtitle"];
 
   if (doc.summary) {
@@ -241,6 +250,127 @@ export function renderResumeTex(input: TailoredDoc): string {
 
   lines.push("\\end{document}");
   return lines.join("\n");
+}
+
+// ---- stock-LaTeX article templates: single column, no custom fonts/.cls, so the
+// stock-TeXLive XeLaTeX service compiles them as-is. ATS-safe (selectable text). ----
+
+/** Contact line joined for an inline header (pipe-separated -> \textbar). */
+function contactInline(contact: string): string {
+  return (contact || "")
+    .split(/\s*\|\s*/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map(escapeLatex)
+    .join(" \\textbar{} ");
+}
+
+/** Shared section body for the article templates. The section *format* differs
+ *  per preamble; the \section commands themselves are identical. */
+function articleBody(doc: TailoredDoc): string[] {
+  const L: string[] = [];
+  if (doc.summary) L.push("\\section{Summary}", escapeLatex(doc.summary));
+  if (doc.experience.length) {
+    L.push("\\section{Experience}");
+    for (const e of doc.experience) {
+      L.push(
+        `\\noindent\\textbf{${escapeLatex(e.role)}}, ${escapeLatex(e.company)}\\hfill ${escapeLatex(e.dates)}\\par`,
+      );
+      if (e.bullets.length) {
+        L.push("\\begin{itemize}");
+        for (const b of e.bullets) L.push(`  \\item ${escapeLatex(b)}`);
+        L.push("\\end{itemize}");
+      } else {
+        L.push("\\vspace{3pt}");
+      }
+    }
+  }
+  if (doc.education && doc.education.length) {
+    L.push("\\section{Education}");
+    for (const ed of doc.education) {
+      L.push(
+        `\\noindent\\textbf{${escapeLatex(ed.degree)}}, ${escapeLatex(ed.school)}\\hfill ${escapeLatex(ed.dates)}\\par`,
+      );
+    }
+  }
+  if (doc.projects && doc.projects.length) {
+    L.push("\\section{Projects}");
+    for (const p of doc.projects) {
+      L.push(`\\noindent\\textbf{${escapeLatex(p.name)}}: ${escapeLatex(p.description)}\\par`);
+    }
+  }
+  if (doc.certifications && doc.certifications.length) {
+    L.push("\\section{Certifications}");
+    for (const c of doc.certifications) {
+      const tail = [c.issuer, c.date].filter(Boolean).map(escapeLatex).join(", ");
+      L.push(`\\noindent\\textbf{${escapeLatex(c.name)}}${tail ? ` (${tail})` : ""}\\par`);
+    }
+  }
+  if (doc.skillGroups?.length) {
+    L.push("\\section{Skills}");
+    for (const g of doc.skillGroups) {
+      L.push(
+        `\\noindent\\textbf{${escapeLatex(g.label)}:} ${normalizeSkills(g.skills)
+          .map(escapeLatex)
+          .join(", ")}\\par`,
+      );
+    }
+  } else if (doc.skills.length) {
+    L.push("\\section{Skills}", normalizeSkills(doc.skills).map(escapeLatex).join(", "));
+  }
+  return L;
+}
+
+/** Classic — serif, centered header, ruled small-caps section titles. */
+function renderClassic(doc: TailoredDoc): string {
+  return [
+    "\\documentclass[11pt,a4paper]{article}",
+    "\\usepackage[margin=0.9in]{geometry}",
+    "\\usepackage{enumitem}",
+    "\\usepackage{titlesec}",
+    "\\usepackage[hidelinks]{hyperref}",
+    "\\titleformat{\\section}{\\large\\scshape\\bfseries}{}{0em}{}[\\titlerule]",
+    "\\titlespacing*{\\section}{0pt}{10pt}{4pt}",
+    "\\setlist[itemize]{leftmargin=1.2em,itemsep=1pt,topsep=2pt,parsep=0pt}",
+    "\\setlength{\\parindent}{0pt}",
+    "\\pagestyle{empty}",
+    "\\begin{document}",
+    "\\begin{center}",
+    `{\\LARGE\\bfseries ${escapeLatex(doc.name)}}\\\\[3pt]`,
+    `{\\normalsize ${escapeLatex(doc.headline)}}\\\\[3pt]`,
+    `{\\small ${contactInline(doc.contact)}}`,
+    "\\end{center}",
+    "\\vspace{2pt}",
+    ...articleBody(doc),
+    "\\end{document}",
+  ].join("\n");
+}
+
+/** Modern — sans-serif, bold titles, tight single column (the popular SWE look). */
+function renderModern(doc: TailoredDoc): string {
+  return [
+    "\\documentclass[11pt,a4paper]{article}",
+    "\\usepackage[margin=0.75in]{geometry}",
+    "\\usepackage{enumitem}",
+    "\\usepackage{titlesec}",
+    "\\usepackage[hidelinks]{hyperref}",
+    "\\renewcommand{\\familydefault}{\\sfdefault}",
+    "\\titleformat{\\section}{\\large\\bfseries}{}{0em}{}[\\titlerule]",
+    "\\titlespacing*{\\section}{0pt}{9pt}{3pt}",
+    "\\setlist[itemize]{leftmargin=1.1em,itemsep=0pt,topsep=1pt,parsep=0pt}",
+    "\\setlength{\\parindent}{0pt}",
+    "\\pagestyle{empty}",
+    "\\begin{document}",
+    "\\begin{center}",
+    `{\\Huge\\bfseries ${escapeLatex(doc.name)}}\\\\[4pt]`,
+    `{\\small ${escapeLatex(doc.headline)}${
+      doc.contact ? ` \\textbar{} ${contactInline(doc.contact)}` : ""
+    }}`,
+    "\\end{center}",
+    "\\vspace{2pt}",
+    ...articleBody(doc),
+    "\\end{document}",
+  ].join("\n");
 }
 
 /** Split a cover letter into bounded paragraphs (≤1 page) for either renderer. */
