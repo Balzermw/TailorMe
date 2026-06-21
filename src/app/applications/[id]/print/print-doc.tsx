@@ -178,14 +178,25 @@ export default function PrintDoc({
             </>
           )}
 
-          {doc.skills.length > 0 && (
+          {(doc.skillGroups?.length || doc.skills.length > 0) && (
             <>
               <h2 className="mcv-sec">Skills</h2>
-              <ul className="mcv-skills">
-                {normalizeSkills(doc.skills).map((s) => (
-                  <li key={s}>{s}</li>
-                ))}
-              </ul>
+              {doc.skillGroups?.length ? (
+                <div className="mcv-skillgroups">
+                  {doc.skillGroups.map((g) => (
+                    <p key={g.label} className="mcv-skillgroup">
+                      <span className="mcv-skillgroup-label">{g.label}</span>
+                      {normalizeSkills(g.skills).join(", ")}
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <ul className="mcv-skills">
+                  {normalizeSkills(doc.skills).map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
+                </ul>
+              )}
             </>
           )}
         </div>

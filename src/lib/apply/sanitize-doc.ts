@@ -62,6 +62,28 @@ export function sanitizeDoc(input: unknown): TailoredDoc | null {
     })
     .filter((e) => e.name);
 
+  const flatSkills = (Array.isArray(d.skills) ? d.skills : [])
+    .map((s) => str(s, 80).trim())
+    .filter(Boolean)
+    .slice(0, 48);
+
+  // Optional categorized skills. Bound count/labels; drop empty groups. When
+  // present, the flat `skills` is re-derived from the groups so every flat
+  // reader (serialize/score/ATS) stays consistent with what's rendered.
+  const skillGroups = (Array.isArray(d.skillGroups) ? d.skillGroups : [])
+    .slice(0, 6)
+    .map((g) => {
+      const x = (g ?? {}) as Record<string, unknown>;
+      return {
+        label: str(x.label, 50).trim(),
+        skills: (Array.isArray(x.skills) ? x.skills : [])
+          .map((s) => str(s, 80).trim())
+          .filter(Boolean)
+          .slice(0, 14),
+      };
+    })
+    .filter((g) => g.label && g.skills.length > 0);
+
   const doc: TailoredDoc = {
     name: str(d.name, 120).trim(),
     headline: str(d.headline, 160).trim(),
@@ -71,10 +93,10 @@ export function sanitizeDoc(input: unknown): TailoredDoc | null {
     education,
     projects,
     certifications,
-    skills: (Array.isArray(d.skills) ? d.skills : [])
-      .map((s) => str(s, 80).trim())
-      .filter(Boolean)
-      .slice(0, 48),
+    skills: skillGroups.length
+      ? Array.from(new Set(skillGroups.flatMap((g) => g.skills))).slice(0, 48)
+      : flatSkills,
+    ...(skillGroups.length ? { skillGroups } : {}),
     coverLetter: str(d.coverLetter, 6000),
   };
   if (!doc.name && experience.length === 0) return null;

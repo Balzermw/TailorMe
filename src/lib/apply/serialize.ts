@@ -48,7 +48,12 @@ export function docToResumeText(doc: TailoredDoc): string {
     }
   }
 
-  if (doc.skills?.length) {
+  if (doc.skillGroups?.length) {
+    lines.push("", "Skills");
+    for (const g of doc.skillGroups) {
+      lines.push(`${g.label}: ${g.skills.join(", ")}`);
+    }
+  } else if (doc.skills?.length) {
     lines.push("", `Skills: ${doc.skills.join(", ")}`);
   }
 

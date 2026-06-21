@@ -341,7 +341,102 @@ export async function structureResume(
     3200,
     provider,
   );
-  return sanitizeDoc(data);
+  const doc = sanitizeDoc(data);
+  if (!doc) return null;
+  // Pre-group skills so an imported resume opens already categorized.
+  if (!doc.skillGroups?.length && doc.skills.length >= 4) {
+    try {
+      const groups = await categorizeSkills(doc.skills, provider);
+      if (groups.length) doc.skillGroups = groups;
+    } catch {
+      /* best-effort — flat skills still render */
+    }
+  }
+  return doc;
+}
+
+// ---------- 0a3. categorize a flat skills list into labeled groups ----------
+const CATEGORIZE_SYSTEM =
+  GUARDRAILS +
+  " You organize an EXISTING list of resume skills into a few labeled categories. " +
+  "Rules: use EVERY skill exactly once; do NOT invent, rename, split, merge, or drop " +
+  "any skill — copy each verbatim. Create 3–5 SHORT, role-relevant labels: 2–4 words, " +
+  "use '&' rather than 'and' (e.g. 'Integration & APIs', 'Data & Analytics', " +
+  "'Tools & Platforms', 'Support & Troubleshooting'). Prefer categories that each hold " +
+  "two or more related skills.";
+
+/** Organize a flat skills list into labeled groups for the categorized resume
+ * layout. Faithful by construction: only real input skills survive, none are
+ * invented, and any the model drops are re-appended so nothing is lost. */
+export async function categorizeSkills(
+  skills: string[],
+  provider?: Provider,
+): Promise<{ label: string; skills: string[] }[]> {
+  const clean = Array.from(
+    new Map(
+      (skills ?? [])
+        .map((s) => (typeof s === "string" ? s.trim() : ""))
+        .filter(Boolean)
+        .map((s) => [s.toLowerCase(), s]),
+    ).values(),
+  );
+  if (clean.length < 4) return []; // too few to be worth grouping
+
+  const data = await callTool<{ groups?: { label?: string; skills?: string[] }[] }>(
+    "review",
+    CATEGORIZE_SYSTEM,
+    `Skills to organize (use each exactly once, verbatim):\n${clean
+      .map((s) => `- ${s}`)
+      .join("\n")}\n\nReturn the categorized groups.`,
+    {
+      name: "categorize_skills",
+      description: "Organize the given skills into a few labeled categories.",
+      input_schema: {
+        type: "object",
+        required: ["groups"],
+        properties: {
+          groups: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["label", "skills"],
+              properties: {
+                label: { type: "string" },
+                skills: { type: "array", items: { type: "string" } },
+              },
+            },
+          },
+        },
+      },
+    },
+    1500,
+    provider,
+  );
+
+  // Map returned skills back to the canonical input casing; drop anything not in
+  // the input (no hallucinated skills) and any duplicate placement.
+  const byLower = new Map(clean.map((s) => [s.toLowerCase(), s]));
+  const placed = new Set<string>();
+  const groups = (Array.isArray(data.groups) ? data.groups : [])
+    .slice(0, 6)
+    .map((g) => {
+      const label = (typeof g.label === "string" ? g.label : "").trim().slice(0, 50);
+      const items = (Array.isArray(g.skills) ? g.skills : [])
+        .map((s) => byLower.get((typeof s === "string" ? s : "").trim().toLowerCase()))
+        .filter((s): s is string => !!s && !placed.has(s));
+      items.forEach((s) => placed.add(s));
+      return { label, skills: items };
+    })
+    .filter((g) => g.label && g.skills.length > 0);
+  if (!groups.length) return [];
+
+  // Re-append any skill the model dropped so nothing is silently lost.
+  const missed = clean.filter((s) => !placed.has(s));
+  if (missed.length) {
+    const target = groups.reduce((a, b) => (a.skills.length <= b.skills.length ? a : b));
+    target.skills.push(...missed);
+  }
+  return groups;
 }
 
 // ---------- 0b. role context (fast, candidate-independent background research) ----------

@@ -8,12 +8,14 @@ import {
   Check,
   ChevronDown,
   Download,
+  Layers,
   ListChecks,
   PenLine,
   Plus,
   RotateCcw,
   Target,
   Trash2,
+  Ungroup,
   X,
 } from "lucide-react";
 import type {
@@ -217,6 +219,8 @@ export default function EditEditor({
   const [review, setReview] = useState<{ items: ReviewItem[] } | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [grouping, setGrouping] = useState(false);
+  const [groupMsg, setGroupMsg] = useState<string | null>(null);
   const [proofPoints, setProofPoints] = useState<ProofPoint[]>(initialProofPoints);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
@@ -341,6 +345,69 @@ export default function EditEditor({
   function removeCert(i: number) {
     setDoc((d) => ({ ...d, certifications: (d.certifications ?? []).filter((_, j) => j !== i) }));
     touch();
+  }
+  // ----- skill groups (categorized skills) -----
+  // Edits to groups keep the flat `skills` in sync (= flattened, deduped) so the
+  // serialize/score/ATS paths that read the flat list stay correct.
+  function mutateGroups(
+    fn: (groups: { label: string; skills: string[] }[]) => { label: string; skills: string[] }[],
+  ) {
+    setDoc((d) => {
+      const groups = fn(d.skillGroups ?? []);
+      const flat = Array.from(
+        new Set(groups.flatMap((g) => g.skills).map((s) => s.trim()).filter(Boolean)),
+      );
+      return { ...d, skillGroups: groups, skills: flat.length ? flat : d.skills };
+    });
+    touch();
+  }
+  function setGroupLabel(i: number, label: string) {
+    mutateGroups((gs) => gs.map((g, j) => (j === i ? { ...g, label } : g)));
+  }
+  function setGroupSkills(i: number, text: string) {
+    mutateGroups((gs) =>
+      gs.map((g, j) => (j === i ? { ...g, skills: text.split("\n").map((s) => s.trim()) } : g)),
+    );
+  }
+  function addGroup() {
+    mutateGroups((gs) => [...gs, { label: "", skills: [] }]);
+  }
+  function removeGroup(i: number) {
+    mutateGroups((gs) => gs.filter((_, j) => j !== i));
+  }
+  function ungroupSkills() {
+    setDoc((d) => ({ ...d, skillGroups: undefined }));
+    touch();
+  }
+  async function groupWithAI() {
+    if (grouping) return;
+    setGrouping(true);
+    setGroupMsg(null);
+    try {
+      const res = await fetch("/api/resume/group-skills", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skills: doc.skills }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((data && data.error) || "failed");
+      const groups: { label: string; skills: string[] }[] = Array.isArray(data.skillGroups)
+        ? data.skillGroups
+        : [];
+      if (!groups.length) {
+        setGroupMsg(
+          data.demo
+            ? "AI grouping isn't available in demo mode."
+            : "Couldn't group these skills — try editing them first.",
+        );
+      } else {
+        mutateGroups(() => groups);
+      }
+    } catch {
+      setGroupMsg("Couldn't group your skills. Try again.");
+    } finally {
+      setGrouping(false);
+    }
   }
   // Collect the lines the user changed from the AI's original tailored doc.
   function collectChanges(): ReviewItem[] {
@@ -908,14 +975,81 @@ export default function EditEditor({
           {section === "skills" && (
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Skills</h2>
-              <p className="tmE-panel-sub">One skill per line.</p>
-              <div className="tmE-field">
-                <textarea
-                  className="tmE-textarea tmE-textarea--lg"
-                  value={doc.skills.join("\n")}
-                  onChange={(e) => patch({ skills: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
-                />
-              </div>
+              {doc.skillGroups?.length ? (
+                <>
+                  <p className="tmE-panel-sub">
+                    Grouped into categories — this is how they show on your resume. Edit a
+                    label or its skills, or re-group after big changes.
+                  </p>
+                  {doc.skillGroups.map((g, i) => (
+                    <div key={i} className="tmE-edu">
+                      <div className="tmE-field">
+                        <label>Category</label>
+                        <input
+                          className="tmE-input"
+                          value={g.label}
+                          placeholder="Cloud & DevOps"
+                          onChange={(e) => setGroupLabel(i, e.target.value)}
+                        />
+                      </div>
+                      <div className="tmE-field" style={{ marginBottom: 0 }}>
+                        <label>Skills (one per line)</label>
+                        <textarea
+                          className="tmE-textarea"
+                          value={g.skills.join("\n")}
+                          onChange={(e) => setGroupSkills(i, e.target.value)}
+                        />
+                      </div>
+                      <button type="button" className="tmE-edu-remove" onClick={() => removeGroup(i)}>
+                        <Trash2 size={13} /> Remove
+                      </button>
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button type="button" className="tmE-add" onClick={addGroup}>
+                      <Plus size={14} /> Add category
+                    </button>
+                    <button
+                      type="button"
+                      className="tmE-add"
+                      onClick={groupWithAI}
+                      disabled={grouping}
+                    >
+                      <Layers size={14} /> {grouping ? "Re-grouping…" : "Re-group with AI"}
+                    </button>
+                    <button type="button" className="tmE-add" onClick={ungroupSkills}>
+                      <Ungroup size={14} /> Ungroup
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="tmE-panel-sub">
+                    One skill per line. Group them into labeled categories for a sharper,
+                    professional layout.
+                  </p>
+                  <div className="tmE-field">
+                    <textarea
+                      className="tmE-textarea tmE-textarea--lg"
+                      value={doc.skills.join("\n")}
+                      onChange={(e) => patch({ skills: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="tmE-add"
+                    onClick={groupWithAI}
+                    disabled={grouping || doc.skills.length < 4}
+                  >
+                    <Layers size={14} /> {grouping ? "Grouping…" : "Group into categories with AI"}
+                  </button>
+                </>
+              )}
+              {groupMsg && (
+                <p className="tmE-hint" style={{ color: "var(--tm-zinc)", marginTop: 8 }}>
+                  {groupMsg}
+                </p>
+              )}
             </section>
           )}
 

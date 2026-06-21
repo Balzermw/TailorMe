@@ -86,6 +86,10 @@ export interface TailoredDoc {
     bullets: string[];
   }[];
   skills: string[];
+  // Optional categorized view of `skills` (e.g. "Cloud & DevOps: AWS, Azure").
+  // When present it drives rendering; `skills` stays in sync (= flattened groups)
+  // so ATS/serialize/score paths that read the flat list keep working.
+  skillGroups?: { label: string; skills: string[] }[];
   education?: { school: string; degree: string; dates: string }[];
   projects?: { name: string; description: string }[];
   certifications?: { name: string; issuer: string; date: string }[];

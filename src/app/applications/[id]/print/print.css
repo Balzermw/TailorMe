@@ -148,6 +148,25 @@
   border-radius: 50%;
   background: var(--mcv-blue);
 }
+/* Categorized skills: a bold label + comma list per group (moderncv cvitem). */
+.mcv-skillgroups {
+  margin-top: 2px;
+}
+.mcv-skillgroup {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 5px;
+}
+.mcv-skillgroup:last-child {
+  margin-bottom: 0;
+}
+.mcv-skillgroup-label {
+  font-weight: 700;
+  color: var(--mcv-ink);
+}
+.mcv-skillgroup-label::after {
+  content: ":  ";
+}
 .mcv-para {
   font-size: 12.5px;
   line-height: 1.7;

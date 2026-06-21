@@ -222,7 +222,17 @@ export function renderResumeTex(input: TailoredDoc): string {
     }
   }
 
-  if (doc.skills.length) {
+  if (doc.skillGroups?.length) {
+    // Categorized: a labeled cvitem per group — the dominant professional layout.
+    lines.push("\\section{Skills}");
+    for (const g of doc.skillGroups) {
+      lines.push(
+        `\\cvitem{${escapeLatex(g.label)}}{${normalizeSkills(g.skills)
+          .map(escapeLatex)
+          .join(", ")}}`,
+      );
+    }
+  } else if (doc.skills.length) {
     lines.push("\\section{Skills}");
     // Comma-separated reads cleaner than a bullet run-on (the dominant
     // professional pattern); normalizeSkills has already split jammed entries.
