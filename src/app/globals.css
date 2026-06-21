@@ -1041,6 +1041,82 @@ body {
   gap: 26px;
   align-items: start;
 }
+
+/* "What goes out the door" annotated explainer: resume (left) + change cards
+   (right). Keyword chips are blue, metrics are green — color-coded to the cards. */
+.tmB-doc-kw {
+  background: var(--tm-blue-50);
+  color: var(--tm-blue-800);
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+.tmB-doc-mx {
+  background: none;
+  color: var(--tm-mint-600);
+  font-weight: 700;
+}
+.tmB-annot-grid {
+  display: grid;
+  grid-template-columns: 1.08fr 1fr;
+  gap: 30px;
+  align-items: start;
+  margin-top: 30px;
+}
+.tmB-annot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.tmB-annot {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: #fff;
+  border: 0.5px solid var(--tm-border);
+  border-radius: 14px;
+  padding: 17px 19px;
+}
+.tmB-annot-ic {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tmB-annot-body {
+  min-width: 0;
+}
+.tmB-annot-head {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.tmB-annot-num {
+  font-size: 19px;
+  font-weight: 800;
+  margin-right: 5px;
+}
+.tmB-annot-from {
+  margin: 5px 0 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--tm-ink);
+}
+.tmB-annot-desc {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: var(--tm-zinc);
+  line-height: 1.5;
+}
+@media (max-width: 760px) {
+  .tmB-annot-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .tmB-paperwrap {
   display: flex;
   flex-direction: column;

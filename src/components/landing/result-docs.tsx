@@ -1,20 +1,16 @@
-import { Check } from "lucide-react";
+import { ArrowUpDown, BarChart3, Search } from "lucide-react";
 
+// The tailored resume that goes out the door — keyword chips (blue) and metrics
+// (green) are color-coded to the annotation cards on the right, which explain
+// what changed and why it earns its place.
 function ResumePaper() {
   return (
     <div className="tmB-paperwrap">
       <div className="tmB-paper tmB-paper--doc">
         <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            marginBottom: "8px",
-          }}
+          style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}
         >
-          <span
-            className="tm-pill tm-pill--mint"
-            style={{ fontSize: "10px" }}
-          >
+          <span className="tm-pill tm-pill--mint" style={{ fontSize: "10px" }}>
             Tailored for Nordpeak
           </span>
         </div>
@@ -35,9 +31,11 @@ function ResumePaper() {
             marginBottom: "10px",
           }}
         >
-          Platform engineer specialising in distributed Node.js services,
-          checkout reliability, and observability-backed releases for high-volume
-          commerce systems.
+          Platform engineer specialising in{" "}
+          <mark className="tmB-doc-kw">distributed Node.js services</mark>,{" "}
+          <mark className="tmB-doc-kw">checkout reliability</mark>, and{" "}
+          <mark className="tmB-doc-kw">observability</mark>-backed releases for
+          high-volume commerce systems.
         </p>
         <p className="tmB-pdoc-sec">Experience</p>
         <div className="tmB-pdoc-entry">
@@ -48,13 +46,13 @@ function ResumePaper() {
         </div>
         <p className="tmB-pdoc-bullet">
           Led migration of checkout to a{" "}
-          <mark className="tm-k">distributed Node.js service</mark>, cutting
-          p95 latency <mark className="tm-m">38%</mark> across{" "}
-          <mark className="tm-m">2.4M daily transactions</mark>.
+          <mark className="tmB-doc-kw">distributed Node.js service</mark>, cutting
+          p95 latency <mark className="tmB-doc-mx">38%</mark> across{" "}
+          <mark className="tmB-doc-mx">2.4M daily transactions</mark>.
         </p>
         <p className="tmB-pdoc-bullet">
-          Mentored <mark className="tm-m">6 engineers</mark> through promotion
-          cycles while owning <mark className="tm-k">Kubernetes</mark>{" "}
+          Mentored <mark className="tmB-doc-mx">6 engineers</mark> through promotion
+          cycles while owning <mark className="tmB-doc-kw">Kubernetes</mark>{" "}
           deployment standards.
         </p>
         <div className="tmB-pdoc-entry">
@@ -63,72 +61,80 @@ function ResumePaper() {
         </div>
         <p className="tmB-pdoc-bullet">
           Built the order-events pipeline handling{" "}
-          <mark className="tm-m">40k messages/min</mark> with{" "}
-          <mark className="tm-k">observability</mark> baked in.
+          <mark className="tmB-doc-mx">40k messages/min</mark> with{" "}
+          <mark className="tmB-doc-kw">observability</mark> baked in.
         </p>
         <p className="tmB-pdoc-sec">Skills</p>
         <p className="tmB-pdoc-skills">
-          Distributed systems · Node.js at scale · Kubernetes · Observability ·
-          Mentorship
+          <mark className="tmB-doc-kw">Distributed systems</mark> ·{" "}
+          <mark className="tmB-doc-kw">Node.js at scale</mark> ·{" "}
+          <mark className="tmB-doc-kw">Kubernetes</mark> ·{" "}
+          <mark className="tmB-doc-kw">Observability</mark> · Mentorship
         </p>
       </div>
     </div>
   );
 }
 
-function CoverPaper() {
-  return (
-    <div className="tmB-paperwrap">
-      <div className="tmB-paper tmB-paper--doc">
-        <div className="tmB-pdoc-head">
-          <p className="tmB-pdoc-name">Alex Mercer</p>
-          <p className="tmB-pdoc-contact">Copenhagen · alex.m@email.com</p>
-        </div>
-        <div className="tmB-pdoc-rule"></div>
-        <p className="tmB-pdoc-meta">
-          Nordpeak Systems · hiring team
-          <br />
-          Re: Senior Platform Engineer
-        </p>
-        <p className="tmB-pdoc-body">Dear Nordpeak team,</p>
-        <p className="tmB-pdoc-body">
-          Your posting asks for someone who has run distributed Node.js services
-          in production. That has been my work for the past five years, most
-          recently leading the checkout migration at Brightline.
-        </p>
-        <p className="tmB-pdoc-body">
-          I&apos;d welcome the chance to bring that platform experience to Nordpeak.
-        </p>
-        <p className="tmB-pdoc-body">Sincerely,</p>
-        <p className="tmB-pdoc-sig">Alex Mercer</p>
-      </div>
-    </div>
-  );
-}
+// Each change, annotated: what we did, where it came from, why it earns its place.
+const ANNOTATIONS = [
+  {
+    Icon: Search,
+    bg: "var(--tm-blue-50)",
+    fg: "var(--tm-blue-600)",
+    num: "7",
+    unit: "keywords",
+    from: "From the Nordpeak posting",
+    desc: "Added only where your history already backs them — never stuffed.",
+  },
+  {
+    Icon: BarChart3,
+    bg: "var(--tm-mint-50)",
+    fg: "var(--tm-mint-600)",
+    num: "4",
+    unit: "metrics",
+    from: "Pulled from your real work",
+    desc: "p95 latency, transaction volume, throughput, team size — scoped to truth.",
+  },
+  {
+    Icon: ArrowUpDown,
+    bg: "#eceef3",
+    fg: "var(--tm-ink)",
+    num: "",
+    unit: "Re-ranked",
+    from: "For this posting",
+    desc: "Your strongest, most relevant bullets surface to the top.",
+  },
+];
 
 export default function ResultDocs() {
   return (
     <section className="tm-sec tm-tint--mint">
-      <div className="tm-wrap tmB-success">
-        <div>
-          <h2 className="tm-h2">What goes out the door</h2>
-          <p className="tm-body mt-[12px]">
-            A compiled, inspected resume and cover letter, re-ranked for the
-            posting, with every claim scoped to real numbers and keywords added
-            only where your experience backs them.
-          </p>
-          <div className="mt-[20px] flex flex-wrap gap-[10px]">
-            <span className="tm-pill tm-pill--mint">
-              <Check size={12} /> recruiter-ready
-            </span>
-            <span className="tm-pill tm-pill--mint">
-              <Check size={12} /> ATS-aligned
-            </span>
-          </div>
-        </div>
-        <div className="tmB-result">
+      <div className="tm-wrap">
+        <h2 className="tm-h2">What goes out the door.</h2>
+        <p className="tm-body mt-[12px] max-w-[64ch]">
+          Two documents leave together — your resume and a matching cover letter.
+          Here&apos;s exactly what we changed, and why each change earns its place.
+        </p>
+        <div className="tmB-annot-grid">
           <ResumePaper />
-          <CoverPaper />
+          <div className="tmB-annot-list">
+            {ANNOTATIONS.map(({ Icon, bg, fg, num, unit, from, desc }) => (
+              <div key={unit} className="tmB-annot">
+                <span className="tmB-annot-ic" style={{ background: bg, color: fg }}>
+                  <Icon size={18} />
+                </span>
+                <div className="tmB-annot-body">
+                  <p className="tmB-annot-head" style={{ color: fg }}>
+                    {num && <span className="tmB-annot-num">{num}</span>}
+                    {unit}
+                  </p>
+                  <p className="tmB-annot-from">{from}</p>
+                  <p className="tmB-annot-desc">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
