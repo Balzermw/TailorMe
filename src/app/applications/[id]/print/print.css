@@ -131,7 +131,7 @@
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 5px 24px;
+  gap: 4px 15px;
 }
 .mcv-skills li {
   position: relative;
