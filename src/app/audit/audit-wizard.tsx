@@ -18,6 +18,7 @@ import {
   Calendar,
   Check,
   ChevronDown,
+  ClipboardList,
   FileText,
   List,
   Minus,
@@ -2821,6 +2822,7 @@ const START_OPTIONS = [
     title: "I already have a resume",
     blurb: "Upload it, get instant feedback, and tailor it to any job.",
     cta: "Upload my resume",
+    route: "",
   },
   {
     id: "scratch" as const,
@@ -2828,6 +2830,15 @@ const START_OPTIONS = [
     title: "I need to create a resume",
     blurb: "Start with guided sections and build a resume before targeting jobs.",
     cta: "Build from scratch",
+    route: ROUTES.resumeNew,
+  },
+  {
+    id: "paste" as const,
+    icon: ClipboardList,
+    title: "I have some info, but no resume",
+    blurb: "Paste your LinkedIn, work history, or notes and we’ll structure it.",
+    cta: "Paste & structure",
+    route: ROUTES.resumeImport,
   },
 ];
 
@@ -2852,7 +2863,7 @@ function StartChooser({ onUpload }: { onUpload: () => void }) {
                 type="button"
                 className="tmF-start-card"
                 onClick={() =>
-                  o.id === "upload" ? onUpload() : router.push(ROUTES.resumeNew)
+                  o.id === "upload" ? onUpload() : router.push(o.route)
                 }
               >
                 <span className="tmF-start-ic">

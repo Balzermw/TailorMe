@@ -30,7 +30,15 @@ import { highlight, highlightHits } from "@/lib/highlight";
 import { composeContact, parseContact, type ContactFields } from "@/lib/apply/contact";
 import PrintDoc from "../print/print-doc";
 
-type Section = "header" | "summary" | "experience" | "education" | "skills" | "fixes";
+type Section =
+  | "header"
+  | "summary"
+  | "experience"
+  | "projects"
+  | "education"
+  | "certifications"
+  | "skills"
+  | "fixes";
 
 const SEV: Record<ProofPoint["severity"], { label: string; color: string; bg: string }> = {
   high: { label: "High priority", color: "#b3261e", bg: "#fdecea" },
@@ -61,7 +69,9 @@ const SECTION_LABEL: Record<Section, string> = {
   header: "Header",
   summary: "Summary",
   experience: "Experience",
+  projects: "Projects",
   education: "Education",
+  certifications: "Certifications",
   skills: "Skills",
   fixes: "Feedback",
 };
@@ -71,6 +81,8 @@ const SECTION_LABEL: Record<Section, string> = {
 function fixSection(p: ProofPoint): Section {
   const t = `${p.title} ${p.summary} ${p.quote ?? ""} ${p.fix}`.toLowerCase();
   if (/summary|objective|profile/.test(t)) return "summary";
+  if (/certif|credential|license/.test(t)) return "certifications";
+  if (/\bprojects?\b|portfolio/.test(t)) return "projects";
   if (/\bskills?\b|toolset|technolog/.test(t)) return "skills";
   if (/education|degree|\bgpa\b|coursework|university|college/.test(t)) return "education";
   if (/contact|email|phone|linkedin|headline|\bname\b|\btitle\b/.test(t)) return "header";
@@ -304,6 +316,39 @@ export default function EditEditor({
     }));
     touch();
   }
+  function setProject(i: number, p: Partial<{ name: string; description: string }>) {
+    setDoc((d) => ({
+      ...d,
+      projects: (d.projects ?? []).map((pr, j) => (j === i ? { ...pr, ...p } : pr)),
+    }));
+    touch();
+  }
+  function addProject() {
+    setDoc((d) => ({ ...d, projects: [...(d.projects ?? []), { name: "", description: "" }] }));
+    touch();
+  }
+  function removeProject(i: number) {
+    setDoc((d) => ({ ...d, projects: (d.projects ?? []).filter((_, j) => j !== i) }));
+    touch();
+  }
+  function setCert(i: number, p: Partial<{ name: string; issuer: string; date: string }>) {
+    setDoc((d) => ({
+      ...d,
+      certifications: (d.certifications ?? []).map((c, j) => (j === i ? { ...c, ...p } : c)),
+    }));
+    touch();
+  }
+  function addCert() {
+    setDoc((d) => ({
+      ...d,
+      certifications: [...(d.certifications ?? []), { name: "", issuer: "", date: "" }],
+    }));
+    touch();
+  }
+  function removeCert(i: number) {
+    setDoc((d) => ({ ...d, certifications: (d.certifications ?? []).filter((_, j) => j !== i) }));
+    touch();
+  }
   // Collect the lines the user changed from the AI's original tailored doc.
   function collectChanges(): ReviewItem[] {
     if (!originalDoc) return [];
@@ -464,7 +509,9 @@ export default function EditEditor({
     { key: "header", label: "Header" },
     { key: "summary", label: "Summary" },
     { key: "experience", label: "Experience", badge: totalPending || undefined },
+    { key: "projects", label: "Projects" },
     { key: "education", label: "Education" },
+    { key: "certifications", label: "Certifications" },
     { key: "skills", label: "Skills" },
     ...(proofPoints.length || onGetFeedback
       ? [
@@ -786,6 +833,68 @@ export default function EditEditor({
                 </div>
                 );
               })}
+            </section>
+          )}
+
+          {section === "projects" && (
+            <section className="tmE-panel tmF-anim">
+              <h2 className="tmE-panel-title">Projects</h2>
+              <p className="tmE-panel-sub">Side projects, portfolio, or open source — the name plus what you did and any result.</p>
+              {(doc.projects ?? []).map((p, i) => (
+                <div key={i} className="tmE-edu">
+                  <div className="tmE-field">
+                    <label>Project</label>
+                    <input className="tmE-input" value={p.name} placeholder="Inventory dashboard" onChange={(e) => setProject(i, { name: e.target.value })} />
+                  </div>
+                  <div className="tmE-field" style={{ marginBottom: 0 }}>
+                    <label>What you did</label>
+                    <textarea className="tmE-textarea" value={p.description} placeholder="Built a React dashboard that cut stock-checks 30%." onChange={(e) => setProject(i, { description: e.target.value })} />
+                  </div>
+                  <button type="button" className="tmE-edu-remove" onClick={() => removeProject(i)}>
+                    <Trash2 size={13} /> Remove
+                  </button>
+                </div>
+              ))}
+              {(doc.projects ?? []).length === 0 && (
+                <p className="tmE-hint">No projects yet — great for students or career changers with a lighter work history.</p>
+              )}
+              <button type="button" className="tmE-add" onClick={addProject}>
+                <Plus size={14} /> Add project
+              </button>
+            </section>
+          )}
+
+          {section === "certifications" && (
+            <section className="tmE-panel tmF-anim">
+              <h2 className="tmE-panel-title">Certifications</h2>
+              <p className="tmE-panel-sub">Licenses and certifications — name, who issued it, and when.</p>
+              {(doc.certifications ?? []).map((c, i) => (
+                <div key={i} className="tmE-edu">
+                  <div className="tmE-field">
+                    <label>Certification</label>
+                    <input className="tmE-input" value={c.name} placeholder="AWS Solutions Architect" onChange={(e) => setCert(i, { name: e.target.value })} />
+                  </div>
+                  <div className="tmE-row2">
+                    <div className="tmE-field" style={{ marginBottom: 0 }}>
+                      <label>Issuer</label>
+                      <input className="tmE-input" value={c.issuer} placeholder="Amazon Web Services" onChange={(e) => setCert(i, { issuer: e.target.value })} />
+                    </div>
+                    <div className="tmE-field" style={{ marginBottom: 0 }}>
+                      <label>Date</label>
+                      <input className="tmE-input" value={c.date} placeholder="2024" onChange={(e) => setCert(i, { date: e.target.value })} />
+                    </div>
+                  </div>
+                  <button type="button" className="tmE-edu-remove" onClick={() => removeCert(i)}>
+                    <Trash2 size={13} /> Remove
+                  </button>
+                </div>
+              ))}
+              {(doc.certifications ?? []).length === 0 && (
+                <p className="tmE-hint">No certifications yet.</p>
+              )}
+              <button type="button" className="tmE-add" onClick={addCert}>
+                <Plus size={14} /> Add certification
+              </button>
             </section>
           )}
 

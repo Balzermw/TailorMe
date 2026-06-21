@@ -139,6 +139,45 @@ export default function PrintDoc({
             </>
           )}
 
+          {doc.projects && doc.projects.length > 0 && (
+            <>
+              <h2 className="mcv-sec">Projects</h2>
+              {doc.projects.map((p, i) => (
+                <div key={i} className="mcv-entry">
+                  <div className="mcv-entry-dates" />
+                  <div>
+                    <div className="mcv-entry-role">{p.name}</div>
+                    {p.description && (
+                      <ul>
+                        {p.description
+                          .split("\n")
+                          .filter((l) => l.trim())
+                          .map((l, j) => (
+                            <li key={j}>{hl(l)}</li>
+                          ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
+          {doc.certifications && doc.certifications.length > 0 && (
+            <>
+              <h2 className="mcv-sec">Certifications</h2>
+              {doc.certifications.map((c, i) => (
+                <div key={i} className="mcv-entry">
+                  <div className="mcv-entry-dates">{c.date}</div>
+                  <div>
+                    <div className="mcv-entry-role">{c.name}</div>
+                    {c.issuer && <div className="mcv-entry-company">{c.issuer}</div>}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
           {doc.skills.length > 0 && (
             <>
               <h2 className="mcv-sec">Skills</h2>

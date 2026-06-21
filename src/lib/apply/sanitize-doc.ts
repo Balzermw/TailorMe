@@ -39,6 +39,29 @@ export function sanitizeDoc(input: unknown): TailoredDoc | null {
     })
     .filter((e) => e.school || e.degree);
 
+  const projects = (Array.isArray(d.projects) ? d.projects : [])
+    .slice(0, 12)
+    .map((e) => {
+      const x = (e ?? {}) as Record<string, unknown>;
+      return {
+        name: str(x.name, 160).trim(),
+        description: str(x.description, 600).trim(),
+      };
+    })
+    .filter((e) => e.name || e.description);
+
+  const certifications = (Array.isArray(d.certifications) ? d.certifications : [])
+    .slice(0, 16)
+    .map((e) => {
+      const x = (e ?? {}) as Record<string, unknown>;
+      return {
+        name: str(x.name, 160).trim(),
+        issuer: str(x.issuer, 160).trim(),
+        date: str(x.date, 80).trim(),
+      };
+    })
+    .filter((e) => e.name);
+
   const doc: TailoredDoc = {
     name: str(d.name, 120).trim(),
     headline: str(d.headline, 160).trim(),
@@ -46,6 +69,8 @@ export function sanitizeDoc(input: unknown): TailoredDoc | null {
     summary: str(d.summary, 1400).trim(),
     experience,
     education,
+    projects,
+    certifications,
     skills: (Array.isArray(d.skills) ? d.skills : [])
       .map((s) => str(s, 80).trim())
       .filter(Boolean)

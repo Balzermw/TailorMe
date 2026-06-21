@@ -24,7 +24,10 @@ export default function ResumeEditLoader({
   serverDoc: TailoredDoc | null;
 }) {
   const router = useRouter();
-  const [doc, setDoc] = useState<TailoredDoc | null>(serverDoc);
+  // Start null and resolve in the effect so EditEditor mounts ONCE on the final
+  // doc — a freshly-built/imported draft must win over any server doc, and
+  // EditEditor's internal useState(initialDoc) won't pick up a later prop change.
+  const [doc, setDoc] = useState<TailoredDoc | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -40,21 +43,23 @@ export default function ResumeEditLoader({
     };
   }, [serverDoc]);
 
+  if (!loaded) {
+    return (
+      <div style={{ padding: "64px 24px", textAlign: "center" }}>
+        <p className="tm-body">Loading your resume…</p>
+      </div>
+    );
+  }
+
   if (!doc) {
     return (
       <div style={{ padding: "64px 24px", textAlign: "center" }}>
         <p className="tm-body">
-          {loaded ? (
-            <>
-              You don’t have a resume yet.{" "}
-              <Link href={ROUTES.resumeNew} style={{ color: "var(--tm-blue-600)" }}>
-                Build one from scratch
-              </Link>
-              .
-            </>
-          ) : (
-            "Loading your resume…"
-          )}
+          You don’t have a resume yet.{" "}
+          <Link href={ROUTES.resumeNew} style={{ color: "var(--tm-blue-600)" }}>
+            Build one from scratch
+          </Link>
+          .
         </p>
       </div>
     );

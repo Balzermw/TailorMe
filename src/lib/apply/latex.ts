@@ -58,6 +58,12 @@ export const TWO_PAGE = {
   maxEducation: 4,
   maxSchoolChars: 70,
   maxDegreeChars: 90,
+  maxProjects: 6,
+  maxProjectNameChars: 90,
+  maxProjectDescChars: 240,
+  maxCerts: 10,
+  maxCertNameChars: 110,
+  maxCertIssuerChars: 70,
   maxSummary: 360,
   maxBulletChars: 160, // ~2 lines each in the content column
   maxSkillChars: 40,
@@ -150,6 +156,19 @@ export function clampToTwoPages(doc: TailoredDoc): TailoredDoc {
         school: clampLen(ed.school ?? "", TWO_PAGE.maxSchoolChars),
         dates: clampLen(ed.dates ?? "", TWO_PAGE.maxDatesChars),
       })),
+    projects: (doc.projects ?? [])
+      .slice(0, TWO_PAGE.maxProjects)
+      .map((p) => ({
+        name: clampLen(p.name ?? "", TWO_PAGE.maxProjectNameChars),
+        description: clampLen(p.description ?? "", TWO_PAGE.maxProjectDescChars),
+      })),
+    certifications: (doc.certifications ?? [])
+      .slice(0, TWO_PAGE.maxCerts)
+      .map((c) => ({
+        name: clampLen(c.name ?? "", TWO_PAGE.maxCertNameChars),
+        issuer: clampLen(c.issuer ?? "", TWO_PAGE.maxCertIssuerChars),
+        date: clampLen(c.date ?? "", TWO_PAGE.maxDatesChars),
+      })),
   };
 }
 
@@ -185,6 +204,21 @@ export function renderResumeTex(input: TailoredDoc): string {
           ed.school,
         )}}{}{}{}`,
       );
+    }
+  }
+
+  if (doc.projects && doc.projects.length) {
+    lines.push("\\section{Projects}");
+    for (const p of doc.projects) {
+      lines.push(`\\cvitem{${escapeLatex(p.name)}}{${escapeLatex(p.description)}}`);
+    }
+  }
+
+  if (doc.certifications && doc.certifications.length) {
+    lines.push("\\section{Certifications}");
+    for (const c of doc.certifications) {
+      const tail = [c.issuer, c.date].filter(Boolean).map(escapeLatex).join(", ");
+      lines.push(`\\cvitem{${escapeLatex(c.name)}}{${tail}}`);
     }
   }
 

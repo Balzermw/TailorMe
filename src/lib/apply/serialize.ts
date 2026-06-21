@@ -32,6 +32,22 @@ export function docToResumeText(doc: TailoredDoc): string {
     }
   }
 
+  if (doc.projects?.length) {
+    lines.push("", "Projects");
+    for (const p of doc.projects) {
+      lines.push(p.name.trim());
+      if (p.description?.trim()) lines.push(p.description.trim());
+    }
+  }
+
+  if (doc.certifications?.length) {
+    lines.push("", "Certifications");
+    for (const c of doc.certifications) {
+      const tail = [c.issuer, c.date].filter(Boolean).join(", ");
+      lines.push(`${c.name}${tail ? ` (${tail})` : ""}`.trim());
+    }
+  }
+
   if (doc.skills?.length) {
     lines.push("", `Skills: ${doc.skills.join(", ")}`);
   }

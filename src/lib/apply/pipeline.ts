@@ -7,6 +7,7 @@ import {
 } from "@/lib/config";
 import { CLICHES, principlesClause } from "@/lib/apply/doctrine";
 import { withTemplateRules } from "@/lib/apply/template";
+import { sanitizeDoc } from "@/lib/apply/sanitize-doc";
 import type {
   AgentNote,
   ApplyResult,
@@ -250,6 +251,97 @@ export async function parseResume(
     // Legacy summary line kept for any non-proof-point consumer.
     weaknesses: proofPoints.map((p) => p.title),
   };
+}
+
+// ---------- 0a2. structure raw text into a base resume (paste-import) ----------
+const STRUCTURE_SYSTEM =
+  "You convert a person's raw resume text, LinkedIn export, or rough career notes " +
+  "into a STRUCTURED resume. Extract ONLY what is actually in the text — never " +
+  "invent employers, job titles, dates, metrics, schools, certifications, or " +
+  "skills. Produce: the candidate's name; a headline (their most recent or stated " +
+  "target title); a single contact line joining phone, email, city/state, and any " +
+  "LinkedIn URL with ' | '; a short professional summary ONLY if the text has one " +
+  "(otherwise empty); experience entries (role, company, dates, and the bullet " +
+  "points roughly as written); education; projects; certifications; and a " +
+  "deduplicated skills list. Keep wording close to the original. Plain text only.";
+
+/** Structure pasted resume/LinkedIn/notes text into a TailoredDoc (no posting,
+ * no scoring). Powers the paste-import path. Returns null if too thin to use. */
+export async function structureResume(
+  text: string,
+  provider?: Provider,
+): Promise<TailoredDoc | null> {
+  const data = await callTool<unknown>(
+    "parse",
+    STRUCTURE_SYSTEM,
+    `Raw resume / profile text:\n\n${text}\n\nReturn the structured resume.`,
+    {
+      name: "structured_resume",
+      description: "The text organized into structured resume fields.",
+      input_schema: {
+        type: "object",
+        required: ["name", "headline", "contact", "summary", "experience", "skills"],
+        properties: {
+          name: { type: "string" },
+          headline: { type: "string" },
+          contact: { type: "string" },
+          summary: { type: "string" },
+          experience: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["role", "company", "dates", "bullets"],
+              properties: {
+                role: { type: "string" },
+                company: { type: "string" },
+                dates: { type: "string" },
+                bullets: { type: "array", items: { type: "string" } },
+              },
+            },
+          },
+          education: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["school", "degree", "dates"],
+              properties: {
+                school: { type: "string" },
+                degree: { type: "string" },
+                dates: { type: "string" },
+              },
+            },
+          },
+          projects: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["name", "description"],
+              properties: {
+                name: { type: "string" },
+                description: { type: "string" },
+              },
+            },
+          },
+          certifications: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["name", "issuer", "date"],
+              properties: {
+                name: { type: "string" },
+                issuer: { type: "string" },
+                date: { type: "string" },
+              },
+            },
+          },
+          skills: { type: "array", items: { type: "string" } },
+        },
+      },
+    },
+    3200,
+    provider,
+  );
+  return sanitizeDoc(data);
 }
 
 // ---------- 0b. role context (fast, candidate-independent background research) ----------

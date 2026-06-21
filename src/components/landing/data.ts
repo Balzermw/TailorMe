@@ -121,6 +121,7 @@ export const ROUTES = {
   resumeNew: "/resume/new",
   resumeEdit: "/resume/edit",
   resumePrint: "/resume/print",
+  resumeImport: "/resume/import",
   transformation: "/transformation",
   pricing: "/pricing",
   coaching: "/coaching",
