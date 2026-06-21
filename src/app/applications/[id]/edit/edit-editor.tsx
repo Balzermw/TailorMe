@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -224,6 +224,8 @@ export default function EditEditor({
   const [proofPoints, setProofPoints] = useState<ProofPoint[]>(initialProofPoints);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  // The live-preview container — feedback findings spotlight their line in it on hover.
+  const previewRef = useRef<HTMLDivElement>(null);
   // Experience entries collapse to a one-line header; open entries that still
   // have AI rewrites to review so those aren't hidden.
   const [openEntries, setOpenEntries] = useState<Set<number>>(() => {
@@ -589,6 +591,57 @@ export default function EditEditor({
   // header, and education are rendered without highlighting, so they don't count.
   const previewText = [doc.summary, ...doc.experience.flatMap((e) => e.bullets)].join("  ");
   const previewHits = highlightHits(previewText, keywords);
+
+  // Spotlight the line a feedback finding references in the live preview. Match
+  // the finding's verbatim quote to a rendered element (bullet, skill, role,
+  // summary, contact); fall back to the relevant section heading.
+  function clearHighlight() {
+    previewRef.current
+      ?.querySelectorAll(".mcv-hl")
+      .forEach((e) => e.classList.remove("mcv-hl"));
+  }
+  function highlightFinding(quote: string | undefined, section: Section) {
+    const root = previewRef.current;
+    if (!root) return;
+    clearHighlight();
+    const norm = (s: string) =>
+      (s || "")
+        .toLowerCase()
+        .replace(/[“”"’']/g, "")
+        .replace(/^[\s•\-–—]+/, "")
+        .replace(/^skills:\s*/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    const q = norm(quote || "");
+    let el: Element | null = null;
+    if (q.length >= 4) {
+      const sel =
+        ".mcv-entry li, .mcv-skills li, .mcv-skillgroup, .mcv-entry-role, .mcv-entry-company, .mcv-summary, .mcv-para, .mcv-contact";
+      for (const c of Array.from(root.querySelectorAll(sel))) {
+        const t = norm(c.textContent || "");
+        if (t.length < 3) continue;
+        if (t.includes(q) || (t.length > 6 && q.includes(t))) {
+          el = c;
+          break;
+        }
+      }
+    }
+    if (!el) {
+      if (section === "header") {
+        el = root.querySelector(".mcv-head");
+      } else {
+        const label = (SECTION_LABEL[section] || "").toLowerCase();
+        el =
+          Array.from(root.querySelectorAll(".mcv-sec")).find(
+            (h) => (h.textContent || "").trim().toLowerCase() === label,
+          ) || null;
+      }
+    }
+    if (el) {
+      el.classList.add("mcv-hl");
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }
 
   return (
     <div className="tmE-wrap">
@@ -1077,7 +1130,7 @@ export default function EditEditor({
                     {feedbackLoading
                       ? "Reviewing…"
                       : proofPoints.length
-                        ? "Refresh feedback"
+                        ? "Refresh"
                         : "Get feedback"}
                   </button>
                 )}
@@ -1100,7 +1153,12 @@ export default function EditEditor({
                     {group.map((p, i) => {
                       const target = fixSection(p);
                       return (
-                        <div key={i} className="tmE-fix">
+                        <div
+                          key={i}
+                          className="tmE-fix"
+                          onMouseEnter={() => highlightFinding(p.quote, target)}
+                          onMouseLeave={clearHighlight}
+                        >
                           <b>{p.title}</b>
                           {p.summary && <p className="tmE-fix-sum">{p.summary}</p>}
                           {p.quote && (
@@ -1130,7 +1188,7 @@ export default function EditEditor({
         </div>
 
         {/* ---- wide résumé-only preview ---- */}
-        <div className="tmE-preview">
+        <div className="tmE-preview" ref={previewRef}>
           <div className="tmE-preview-head">
             <p className="tmE-preview-label">Live preview</p>
             {(previewHits.kw || previewHits.metric) && (

@@ -780,6 +780,17 @@
   padding-left: 26px;
   padding-right: 26px;
 }
+/* Spotlight the line a hovered feedback finding points to. */
+.tmE-preview .mcv-hl {
+  background: var(--tm-blue-50);
+  box-shadow:
+    0 0 0 3px var(--tm-blue-50),
+    0 0 0 4px var(--tm-blue-200);
+  border-radius: 3px;
+  transition:
+    background 0.12s ease,
+    box-shadow 0.12s ease;
+}
 
 /* suggestions ("carry to editor") */
 .tmE-fix-top {
@@ -827,6 +838,10 @@
   padding: 13px 15px;
   margin-bottom: 9px;
   background: #fff;
+  transition: border-color 0.12s ease;
+}
+.tmE-fix:hover {
+  border-color: var(--tm-blue-200);
 }
 .tmE-fix b {
   font-size: 13.5px;
