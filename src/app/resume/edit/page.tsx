@@ -19,7 +19,10 @@ export default async function ResumeEditPage() {
     <div className="tm">
       <Nav active="Dashboard" />
       <main>
-        <ResumeEditLoader serverDoc={base?.doc ?? null} />
+        <ResumeEditLoader
+          serverDoc={base?.doc ?? null}
+          serverProofPoints={base?.proofPoints ?? []}
+        />
       </main>
     </div>
   );

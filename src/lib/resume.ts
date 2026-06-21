@@ -160,6 +160,15 @@ export function clearResumeDraft(): void {
   }
 }
 
+export function hasResumeDraft(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return !!window.sessionStorage.getItem(DRAFT_KEY);
+  } catch {
+    return false;
+  }
+}
+
 const TARGET_KEY = "tm_target_resume"; // handoff: base resume -> audit job step
 
 export function setTargetResume(text: string): void {

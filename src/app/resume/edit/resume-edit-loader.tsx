@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { TailoredDoc } from "@/lib/types";
+import type { TailoredDoc, ProofPoint } from "@/lib/types";
 import {
   loadBaseResumeDoc,
   saveResumeDoc,
   clearResumeDraft,
+  hasResumeDraft,
   setTargetResume,
 } from "@/lib/resume";
 import { docToResumeText } from "@/lib/apply/serialize";
@@ -20,28 +21,35 @@ import EditEditor from "../../applications/[id]/edit/edit-editor";
 // server may pass a doc for a signed-in user to avoid a flash.
 export default function ResumeEditLoader({
   serverDoc,
+  serverProofPoints,
 }: {
   serverDoc: TailoredDoc | null;
+  serverProofPoints: ProofPoint[];
 }) {
   const router = useRouter();
   // Start null and resolve in the effect so EditEditor mounts ONCE on the final
   // doc — a freshly-built/imported draft must win over any server doc, and
   // EditEditor's internal useState(initialDoc) won't pick up a later prop change.
   const [doc, setDoc] = useState<TailoredDoc | null>(null);
+  const [proofPoints, setProofPoints] = useState<ProofPoint[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
+    const fromDraft = hasResumeDraft();
     loadBaseResumeDoc().then((d) => {
       if (!active) return;
       setDoc(d ?? serverDoc ?? null);
+      // A freshly built/imported résumé (draft) has no prior feedback; only a
+      // reload of the saved résumé shows the last review persisted server-side.
+      setProofPoints(fromDraft ? [] : serverProofPoints);
       clearResumeDraft(); // consume the one-time handoff so reloads use the saved copy
       setLoaded(true);
     });
     return () => {
       active = false;
     };
-  }, [serverDoc]);
+  }, [serverDoc, serverProofPoints]);
 
   if (!loaded) {
     return (
@@ -75,7 +83,7 @@ export default function ResumeEditLoader({
       keywords={[]}
       verificationStatus={null}
       initialUserEdited={false}
-      proofPoints={[]}
+      proofPoints={proofPoints}
       company=""
       role={doc.headline || "Base resume"}
       kind="resume"

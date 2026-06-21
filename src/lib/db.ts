@@ -7,6 +7,7 @@ import type {
   Profile,
   ApplyResult,
   TailoredDoc,
+  ProofPoint,
 } from "@/lib/types";
 
 interface DbApplication {
@@ -92,6 +93,7 @@ export async function getSavedResumeDoc(): Promise<{
   name: string;
   doc: TailoredDoc | null;
   source: string;
+  proofPoints: ProofPoint[];
 } | null> {
   const sb = await getServerSupabase();
   if (!sb) return null;
@@ -111,6 +113,8 @@ export async function getSavedResumeDoc(): Promise<{
     name: data.name,
     doc: (data.doc ?? null) as TailoredDoc | null,
     source: (data.source ?? "uploaded") as string,
+    proofPoints:
+      ((data.stats as { proofPoints?: ProofPoint[] } | null)?.proofPoints ?? []),
   };
 }
 

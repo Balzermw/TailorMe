@@ -34,13 +34,11 @@ export async function POST(request: Request) {
     );
   }
 
+  const sb = await getServerSupabase();
+  const user = sb ? (await sb.auth.getUser()).data.user : null;
+
   if (!rateLimitDisabled) {
-    const sb = await getServerSupabase();
-    let who = getClientIp(request);
-    if (sb) {
-      const { data } = await sb.auth.getUser();
-      if (data.user?.id) who = data.user.id;
-    }
+    const who = user?.id ?? getClientIp(request);
     const res = consume(`resume-feedback:${who}`, EDIT_REVIEW_RULES);
     if (!res.allowed) {
       return tooManyRequests(
@@ -52,7 +50,18 @@ export async function POST(request: Request) {
 
   try {
     const stats = await parseResume(docToResumeText(doc), undefined, true);
-    return NextResponse.json({ proofPoints: stats.proofPoints ?? [] });
+    const proofPoints = stats.proofPoints ?? [];
+    // Persist for signed-in users so the editor shows the last review on reload.
+    if (sb && user) {
+      const { data: row } = await sb
+        .from("resumes")
+        .select("stats")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const merged = { ...((row?.stats as Record<string, unknown>) ?? {}), proofPoints };
+      await sb.from("resumes").update({ stats: merged }).eq("user_id", user.id);
+    }
+    return NextResponse.json({ proofPoints });
   } catch {
     return NextResponse.json(
       { error: "Couldn't review your resume. Try again." },
