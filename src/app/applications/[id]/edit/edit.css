@@ -628,6 +628,37 @@
   color: var(--tm-zinc);
   margin-top: 4px;
 }
+/* An observation read from the résumé (e.g. an empty section), not plain
+   instructional text — a tinted note with an info icon makes that clear. */
+.tmE-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 2px 0 4px;
+  padding: 10px 12px;
+  background: var(--tm-blue-50);
+  border: 0.5px solid var(--tm-blue-200);
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--tm-slate);
+}
+.tmE-note > svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--tm-blue-600);
+}
+/* Inline label tooltip trigger (e.g. the graduation-date ageism note). */
+.tmE-tip {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 4px;
+  color: var(--tm-zinc);
+  cursor: help;
+}
+.tmE-tip:hover {
+  color: var(--tm-blue-600);
+}
 
 /* "Review my edits": AI report on the user's own changes vs the AI original */
 .tmE-review {

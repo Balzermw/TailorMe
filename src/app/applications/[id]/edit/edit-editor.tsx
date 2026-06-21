@@ -8,6 +8,7 @@ import {
   Check,
   ChevronDown,
   Download,
+  Info,
   Layers,
   ListChecks,
   PenLine,
@@ -650,7 +651,7 @@ export default function EditEditor({
           <ArrowLeft size={15} /> {backLabel}
         </Link>
         <h1>
-          {role}
+          {kind === "resume" ? doc.headline?.trim() || "Base resume" : role}
           {company && <span className="tmE-head-co"> at {company}</span>}
         </h1>
         <div className="tmE-head-right">
@@ -949,7 +950,10 @@ export default function EditEditor({
                 </div>
               ))}
               {(doc.projects ?? []).length === 0 && (
-                <p className="tmE-hint">No projects yet. Great for students or career changers with a lighter work history.</p>
+                <p className="tmE-note">
+                  <Info size={14} /> No projects yet. Great for students or career changers
+                  with a lighter work history.
+                </p>
               )}
               <button type="button" className="tmE-add" onClick={addProject}>
                 <Plus size={14} /> Add project
@@ -983,7 +987,10 @@ export default function EditEditor({
                 </div>
               ))}
               {(doc.certifications ?? []).length === 0 && (
-                <p className="tmE-hint">No certifications yet.</p>
+                <p className="tmE-note">
+                  <Info size={14} /> No certifications yet. Optional, but a relevant license or
+                  credential can boost credibility.
+                </p>
               )}
               <button type="button" className="tmE-add" onClick={addCert}>
                 <Plus size={14} /> Add certification
@@ -1007,7 +1014,15 @@ export default function EditEditor({
                       <input className="tmE-input" value={ed.school} placeholder="University of Copenhagen" onChange={(e) => setEdu(i, { school: e.target.value })} />
                     </div>
                     <div className="tmE-field" style={{ marginBottom: 0 }}>
-                      <label>Dates</label>
+                      <label>
+                        Dates
+                        <span
+                          className="tmE-tip"
+                          title="Optional. Many people leave off the graduation year to avoid age bias."
+                        >
+                          <Info size={12} />
+                        </span>
+                      </label>
                       <input className="tmE-input" value={ed.dates} placeholder="2012 – 2016" onChange={(e) => setEdu(i, { dates: e.target.value })} />
                     </div>
                   </div>
@@ -1017,7 +1032,10 @@ export default function EditEditor({
                 </div>
               ))}
               {(doc.education ?? []).length === 0 && (
-                <p className="tmE-hint">No education on file yet. Add a degree so it shows on your resume.</p>
+                <p className="tmE-note">
+                  <Info size={14} /> No education on file yet. Add a degree so it shows on your
+                  resume.
+                </p>
               )}
               <button type="button" className="tmE-add" onClick={addEdu}>
                 <Plus size={14} /> Add education
