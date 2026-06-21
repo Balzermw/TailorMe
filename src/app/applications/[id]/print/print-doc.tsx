@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, Printer } from "lucide-react";
 import type { TailoredDoc } from "@/lib/types";
-import { coverParagraphs } from "@/lib/apply/latex";
+import { coverParagraphs, normalizeSkills } from "@/lib/apply/latex";
 import { editHref } from "@/lib/apply/render";
 import { highlight } from "@/lib/highlight";
 
@@ -134,7 +134,7 @@ export default function PrintDoc({
           {doc.skills.length > 0 && (
             <>
               <h2 className="mcv-sec">Skills</h2>
-              <p className="mcv-skills">{doc.skills.join("  •  ")}</p>
+              <p className="mcv-skills">{normalizeSkills(doc.skills).join("  •  ")}</p>
             </>
           )}
         </div>

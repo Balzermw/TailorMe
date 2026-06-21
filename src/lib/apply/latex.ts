@@ -91,6 +91,31 @@ function clampLen(s: string, max: number): string {
 }
 
 /**
+ * Skills arrive from the model as a free list; some entries are really several
+ * comma- or semicolon-separated skills crammed into one string (e.g.
+ * "Salesforce, Zendesk, Intercom, Confluence"). Split those into atomic skills,
+ * trim, and dedupe so the " • "-joined line reads cleanly and the bullet is the
+ * only separator. Grouped terms joined by "/" (e.g. "SSO / SAML / OAuth") are
+ * left intact — that slash is part of the term, not a list.
+ */
+export function normalizeSkills(skills: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of skills ?? []) {
+    if (typeof raw !== "string") continue;
+    for (const piece of raw.split(/\s*[,;]\s*/)) {
+      const s = piece.trim();
+      if (!s) continue;
+      const key = s.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(s);
+    }
+  }
+  return out;
+}
+
+/**
  * Trim a tailored doc so the moderncv render reliably fits two pages — bounds
  * BOTH the number of entries/bullets/skills AND the length of each individual
  * bullet, skill, and the summary (a count cap alone can't bound page height).
@@ -115,7 +140,7 @@ export function clampToTwoPages(doc: TailoredDoc): TailoredDoc {
     contact: clampLen(doc.contact ?? "", TWO_PAGE.maxContactChars),
     summary: clampLen(doc.summary ?? "", TWO_PAGE.maxSummary),
     experience,
-    skills: (doc.skills ?? [])
+    skills: normalizeSkills(doc.skills ?? [])
       .slice(0, TWO_PAGE.maxSkills)
       .map((s) => clampLen(s, TWO_PAGE.maxSkillChars)),
     education: (doc.education ?? [])
