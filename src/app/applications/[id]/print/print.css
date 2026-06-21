@@ -120,9 +120,33 @@
   line-height: 1.55;
   margin-top: 4px;
 }
+/* Skills as a scannable multi-column list (the professional pattern) rather
+   than one run-on bullet line. column-width auto-fits: ~2 columns at full page
+   width, gracefully collapsing to 1 in the narrow in-editor preview. */
 .mcv-skills {
-  font-size: 12.5px;
-  line-height: 1.8;
+  font-size: 12px;
+  line-height: 1.45;
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  column-width: 15em;
+  column-gap: 34px;
+}
+.mcv-skills li {
+  position: relative;
+  padding-left: 13px;
+  margin-bottom: 4px;
+  break-inside: avoid;
+}
+.mcv-skills li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.5em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--mcv-blue);
 }
 .mcv-para {
   font-size: 12.5px;

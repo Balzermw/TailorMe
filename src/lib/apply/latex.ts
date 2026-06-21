@@ -224,7 +224,9 @@ export function renderResumeTex(input: TailoredDoc): string {
 
   if (doc.skills.length) {
     lines.push("\\section{Skills}");
-    lines.push(`\\cvitem{}{${doc.skills.map(escapeLatex).join(" \\textbullet{} ")}}`);
+    // Comma-separated reads cleaner than a bullet run-on (the dominant
+    // professional pattern); normalizeSkills has already split jammed entries.
+    lines.push(`\\cvitem{}{${normalizeSkills(doc.skills).map(escapeLatex).join(", ")}}`);
   }
 
   lines.push("\\end{document}");

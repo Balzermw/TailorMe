@@ -181,7 +181,11 @@ export default function PrintDoc({
           {doc.skills.length > 0 && (
             <>
               <h2 className="mcv-sec">Skills</h2>
-              <p className="mcv-skills">{normalizeSkills(doc.skills).join("  •  ")}</p>
+              <ul className="mcv-skills">
+                {normalizeSkills(doc.skills).map((s) => (
+                  <li key={s}>{s}</li>
+                ))}
+              </ul>
             </>
           )}
         </div>
