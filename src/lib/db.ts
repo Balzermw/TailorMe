@@ -6,6 +6,7 @@ import type {
   MichaelStatus,
   Profile,
   ApplyResult,
+  TailoredDoc,
 } from "@/lib/types";
 
 interface DbApplication {
@@ -83,6 +84,34 @@ export async function getApplication(id: string): Promise<ApplicationRow | null>
     .eq("id", id)
     .single();
   return data ? rowToApp(data as DbApplication) : null;
+}
+
+/** Signed-in user's structured base resume (build-from-scratch / editor). RLS-scoped. */
+export async function getSavedResumeDoc(): Promise<{
+  id: string;
+  name: string;
+  doc: TailoredDoc | null;
+  source: string;
+} | null> {
+  const sb = await getServerSupabase();
+  if (!sb) return null;
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+  if (!user) return null;
+  // select("*") so this works before the doc/source migration is applied.
+  const { data } = await sb
+    .from("resumes")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    id: data.id,
+    name: data.name,
+    doc: (data.doc ?? null) as TailoredDoc | null,
+    source: (data.source ?? "uploaded") as string,
+  };
 }
 
 /**

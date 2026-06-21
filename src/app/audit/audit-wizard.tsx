@@ -10,7 +10,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
   ArrowRight,
@@ -2811,8 +2811,73 @@ function StepResults({
   );
 }
 
+// Entry chooser: the two ways to start. Data-driven so a third "paste resume
+// text" card is a one-line add later.
+const START_OPTIONS = [
+  {
+    id: "upload" as const,
+    icon: FileText,
+    title: "I already have a resume",
+    blurb: "Upload it, get instant feedback, and tailor it to any job.",
+    cta: "Upload my resume",
+  },
+  {
+    id: "scratch" as const,
+    icon: PenLine,
+    title: "I need to create a resume",
+    blurb: "Start with guided sections and build a resume before targeting jobs.",
+    cta: "Build from scratch",
+  },
+];
+
+function StartChooser({ onUpload }: { onUpload: () => void }) {
+  const router = useRouter();
+  return (
+    <Fragment>
+      <section className="tm-sec tmF-head" style={{ paddingBottom: 0 }}>
+        <h1 className="tm-h1">How would you like to start?</h1>
+        <p className="tm-body">
+          Two ways in — either works. You’ll end up in the same editor with the same
+          three-agent AI review.
+        </p>
+      </section>
+      <section className="tm-sec" style={{ paddingTop: 24 }}>
+        <div className="tmF-start">
+          {START_OPTIONS.map((o) => {
+            const Icon = o.icon;
+            return (
+              <button
+                key={o.id}
+                type="button"
+                className="tmF-start-card"
+                onClick={() =>
+                  o.id === "upload" ? onUpload() : router.push(ROUTES.resumeNew)
+                }
+              >
+                <span className="tmF-start-ic">
+                  <Icon size={22} />
+                </span>
+                <b>{o.title}</b>
+                <span className="tmF-start-blurb">{o.blurb}</span>
+                <span className="tmF-start-cta">
+                  {o.cta} <ArrowRight size={15} />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    </Fragment>
+  );
+}
+
 export default function AuditWizard() {
+  const search = useSearchParams();
   const [step, setStep] = useState(0);
+  // Deep-link past the chooser: /audit?start=upload lands directly on upload.
+  const [mode, setMode] = useState<"choose" | "upload">(
+    search.get("start") === "upload" ? "upload" : "choose",
+  );
   const [resumeText, setResumeText] = useState("");
   const [useSample, setUseSample] = useState(false);
   const [stats, setStats] = useState<ResumeStats | null>(null);
@@ -2830,6 +2895,10 @@ export default function AuditWizard() {
     }
     headRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [step]);
+
+  if (mode === "choose") {
+    return <StartChooser onUpload={() => setMode("upload")} />;
+  }
 
   return (
     <Fragment>

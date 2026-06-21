@@ -43,12 +43,16 @@ export default function PrintDoc({
   resumeOnly = false,
   hideToolbar = false,
   highlightKeywords,
+  backHref,
+  backLabel = "Back to editor",
 }: {
   doc: TailoredDoc;
   id: string;
   resumeOnly?: boolean; // editor preview shows the résumé only (no cover letter)
   hideToolbar?: boolean; // editor has its own download controls
   highlightKeywords?: string[]; // editor preview: tint posting keywords + metrics
+  backHref?: string; // override the toolbar "Back" link (base resume → /resume/edit)
+  backLabel?: string;
 }) {
   // In the editor preview we tint the posting keywords (mint) and metrics (blue)
   // right in the résumé, so it visibly carries the audit's findings instead of
@@ -66,8 +70,8 @@ export default function PrintDoc({
     <div className="print-wrap">
       {!hideToolbar && (
         <div className="print-toolbar">
-          <Link className="tm-btn tm-btn--outline tm-btn--sm" href={editHref(id)}>
-            <ArrowLeft size={14} /> Back to editor
+          <Link className="tm-btn tm-btn--outline tm-btn--sm" href={backHref ?? editHref(id)}>
+            <ArrowLeft size={14} /> {backLabel}
           </Link>
           <button
             type="button"

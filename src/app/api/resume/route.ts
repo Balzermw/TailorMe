@@ -18,9 +18,11 @@ async function authed() {
 export async function GET() {
   const { sb, user } = await authed();
   if (!sb || !user) return NextResponse.json({ resume: null });
+  // select("*") so this still works before the doc/source migration is applied
+  // (an explicit column list would 400 on a missing column).
   const { data } = await sb
     .from("resumes")
-    .select("name, raw_text, stats, updated_at")
+    .select("*")
     .eq("user_id", user.id)
     .maybeSingle();
   if (!data) return NextResponse.json({ resume: null });
@@ -29,6 +31,8 @@ export async function GET() {
       name: data.name,
       text: data.raw_text,
       stats: data.stats,
+      doc: data.doc ?? null,
+      source: data.source ?? "uploaded",
       savedAt: data.updated_at,
     },
   });

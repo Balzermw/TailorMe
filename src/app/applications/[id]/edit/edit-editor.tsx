@@ -26,6 +26,7 @@ import { pdfHref } from "@/lib/apply/render";
 import { ROUTES } from "@/components/landing/data";
 import { bulletKey, diffMap } from "@/lib/apply/redline";
 import { highlight, highlightHits } from "@/lib/highlight";
+import { composeContact, parseContact, type ContactFields } from "@/lib/apply/contact";
 import PrintDoc from "../print/print-doc";
 
 type Section = "header" | "summary" | "experience" | "education" | "skills" | "fixes";
@@ -54,32 +55,6 @@ const VERDICT_LABEL: Record<Verdict, string> = {
   weaker: "Weaker than the AI version",
   issue: "Worth a look",
 };
-
-// The doc stores contact as one pipe-joined string (print-doc linkifies emails
-// and real URLs in it). The editor splits it into fields for editing, then
-// recomposes. Parse is best-effort; the user can correct any field.
-type ContactFields = { phone: string; email: string; location: string; linkedin: string };
-function parseContact(contact: string): ContactFields {
-  const parts = (contact || "").split(/\s*[|·]\s*/).map((s) => s.trim()).filter(Boolean);
-  const f: ContactFields = { phone: "", email: "", location: "", linkedin: "" };
-  const rest: string[] = [];
-  for (const p of parts) {
-    const digits = (p.match(/\d/g) || []).length;
-    if (!f.email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p)) f.email = p;
-    else if (!f.linkedin && /linkedin\.com/i.test(p)) f.linkedin = p;
-    else if (/^linkedin$/i.test(p)) continue; // bare "LinkedIn" placeholder, drop
-    else if (!f.phone && digits >= 7 && !/@/.test(p)) f.phone = p;
-    else rest.push(p);
-  }
-  f.location = rest.join(", ");
-  return f;
-}
-function composeContact(f: ContactFields): string {
-  return [f.phone, f.email, f.location, f.linkedin]
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .join(" | ");
-}
 
 // Section-at-a-time résumé editor (Res.Me builder pattern): sidebar nav →
 // one section in the center with full-size inputs → wide résumé-only live
@@ -167,6 +142,11 @@ export default function EditEditor({
   proofPoints,
   company,
   role,
+  kind = "application",
+  onSave,
+  pdfUrl,
+  backHref = ROUTES.dashboard,
+  backLabel = "Dashboard",
 }: {
   id: string;
   doc: TailoredDoc;
@@ -179,6 +159,17 @@ export default function EditEditor({
   proofPoints: ProofPoint[];
   company: string;
   role: string;
+  // Base-resume mode reuses this editor with no application row: a custom save
+  // adapter, PDF url, and back link; application mode keeps today's defaults.
+  kind?: "application" | "resume";
+  onSave?: (payload: {
+    doc: TailoredDoc;
+    decisions: Record<string, EditDecision>;
+    userEdited: boolean;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  pdfUrl?: string;
+  backHref?: string;
+  backLabel?: string;
 }) {
   const [doc, setDoc] = useState<TailoredDoc>(initialDoc);
   const [decisions, setDecisions] = useState<Record<string, EditDecision>>(initialDecisions);
@@ -389,17 +380,27 @@ export default function EditEditor({
     setSaving(true);
     setMsg(null);
     try {
-      const res = await fetch(`/api/applications/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ doc, decisions, userEdited: true }),
-      });
-      const data = await res.json();
-      if (res.ok && data.ok) {
+      let ok = false;
+      let error: string | undefined;
+      if (onSave) {
+        const r = await onSave({ doc, decisions, userEdited: true });
+        ok = r.ok;
+        error = r.error;
+      } else {
+        const res = await fetch(`/api/applications/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ doc, decisions, userEdited: true }),
+        });
+        const data = await res.json();
+        ok = res.ok && data.ok;
+        error = data.error;
+      }
+      if (ok) {
         setMsg({ text: "Saved", err: false });
         setDirty(false);
       } else {
-        setMsg({ text: data.error || "Couldn’t save your edits.", err: true });
+        setMsg({ text: error || "Couldn’t save your edits.", err: true });
       }
     } catch {
       setMsg({ text: "Couldn’t save your edits.", err: true });
@@ -426,11 +427,12 @@ export default function EditEditor({
   return (
     <div className="tmE-wrap">
       <div className="tmE-head">
-        <Link className="tmE-back" href={ROUTES.dashboard}>
-          <ArrowLeft size={15} /> Dashboard
+        <Link className="tmE-back" href={backHref}>
+          <ArrowLeft size={15} /> {backLabel}
         </Link>
         <h1>
-          {role} <span className="tmE-head-co">at {company}</span>
+          {role}
+          {company && <span className="tmE-head-co"> at {company}</span>}
         </h1>
         <div className="tmE-head-right">
           {bulletDiffs.length > 0 && (
@@ -464,7 +466,7 @@ export default function EditEditor({
               <RotateCcw size={13} /> Undo my edits
             </button>
           )}
-          <a className="tm-btn tm-btn--outline tm-btn--sm" href={pdfHref(id)} target="_blank" rel="noopener noreferrer">
+          <a className="tm-btn tm-btn--outline tm-btn--sm" href={pdfUrl ?? pdfHref(id)} target="_blank" rel="noopener noreferrer">
             <Download size={14} /> PDF
           </a>
           <button
@@ -473,7 +475,7 @@ export default function EditEditor({
             onClick={() => void save()}
             disabled={saving || !dirty}
           >
-            {saving ? "Saving…" : dirty ? "Save edits" : "Saved"}
+            {saving ? "Saving…" : dirty ? (kind === "resume" ? "Save resume" : "Save edits") : "Saved"}
           </button>
         </div>
       </div>

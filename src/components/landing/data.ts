@@ -118,6 +118,9 @@ export const HERO_STAGES = [
 export const ROUTES = {
   home: "/",
   audit: "/audit",
+  resumeNew: "/resume/new",
+  resumeEdit: "/resume/edit",
+  resumePrint: "/resume/print",
   transformation: "/transformation",
   pricing: "/pricing",
   coaching: "/coaching",

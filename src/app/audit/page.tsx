@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Nav from "@/components/landing/nav";
 import Footer from "@/components/landing/footer";
 import AuditWizard from "./audit-wizard";
@@ -12,7 +13,10 @@ export default function AuditPage() {
     <div className="tm">
       <Nav active="" />
       <main>
-        <AuditWizard />
+        {/* AuditWizard reads ?start via useSearchParams → needs a Suspense boundary */}
+        <Suspense fallback={null}>
+          <AuditWizard />
+        </Suspense>
       </main>
       <Footer />
     </div>

@@ -2109,6 +2109,63 @@ body {
 .tmF-head {
   text-align: center;
 }
+/* start chooser: upload vs build-from-scratch */
+.tmF-start {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(244px, 1fr));
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.tmF-start-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  text-align: left;
+  padding: 24px 22px;
+  border: 0.5px solid var(--tm-border);
+  border-radius: 16px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.tmF-start-card:hover {
+  border-color: var(--tm-blue-400);
+  box-shadow: 0 4px 16px rgba(24, 24, 27, 0.06);
+  transform: translateY(-2px);
+}
+.tmF-start-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--tm-blue-50);
+  color: var(--tm-blue-800);
+  margin-bottom: 4px;
+}
+.tmF-start-card b {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tm-ink);
+}
+.tmF-start-blurb {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tm-zinc);
+}
+.tmF-start-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tm-blue-600);
+}
 .tmF-head .tm-h1 {
   font-size: clamp(32px, 4.2vw, 48px);
   max-width: 24ch;
