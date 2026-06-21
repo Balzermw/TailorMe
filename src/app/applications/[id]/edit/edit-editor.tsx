@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Check,
+  ChevronDown,
   Download,
   ListChecks,
   PenLine,
@@ -163,6 +164,21 @@ export default function EditEditor({
   const [review, setReview] = useState<{ items: ReviewItem[] } | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  // Experience entries collapse to a one-line header; open entries that still
+  // have AI rewrites to review so those aren't hidden.
+  const [openEntries, setOpenEntries] = useState<Set<number>>(() => {
+    const s = new Set<number>();
+    bulletDiffs.forEach((d) => s.add(d.entry));
+    return s;
+  });
+  function toggleEntry(i: number) {
+    setOpenEntries((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  }
 
   const diffs = diffMap(bulletDiffs);
   const totalPending = bulletDiffs.filter((d) => !decisions[bulletKey(d.entry, d.bullet)]).length;
@@ -537,8 +553,31 @@ export default function EditEditor({
                   ? "Accept, reject, or edit each AI rewrite. Highlighted text shows posting keywords and metrics."
                   : "Edit any line. Highlighted text shows posting keywords and metrics."}
               </p>
-              {doc.experience.map((e, ei) => (
-                <div key={ei} className="tmE-entry">
+              {doc.experience.map((e, ei) => {
+                const open = openEntries.has(ei);
+                const meta = [e.company, e.dates].filter(Boolean).join(" · ");
+                return (
+                <div key={ei} className={"tmE-entry" + (open ? " is-open" : "")}>
+                  <button
+                    type="button"
+                    className="tmE-entry-head"
+                    aria-expanded={open}
+                    onClick={() => toggleEntry(ei)}
+                  >
+                    <span className="tmE-entry-headtext">
+                      <span className="tmE-entry-role">{e.role || "Untitled role"}</span>
+                      <span className="tmE-entry-meta">{meta || "No company or dates yet"}</span>
+                    </span>
+                    <span className="tmE-entry-count">
+                      {e.bullets.length} bullet{e.bullets.length === 1 ? "" : "s"}
+                    </span>
+                    <span className="tmE-entry-chev" aria-hidden="true">
+                      <ChevronDown size={16} />
+                    </span>
+                  </button>
+                  <div className="tmE-entry-bodywrap">
+                    <div className="tmE-entry-body">
+                      <div className="tmE-entry-body-inner">
                   <div className="tmE-row2">
                     <div className="tmE-field" style={{ marginBottom: 0 }}>
                       <label>Role</label>
@@ -602,8 +641,12 @@ export default function EditEditor({
                       <Plus size={14} /> Add bullet
                     </button>
                   </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              ))}
+                );
+              })}
             </section>
           )}
 
