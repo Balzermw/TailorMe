@@ -2979,10 +2979,10 @@ export default function AuditWizard() {
             />
           )}
           </div>
-          {step > 0 && step < 2 && (
+          {step < 2 && (
             <p
               className="tm-small mt-[16px] cursor-pointer text-center"
-              onClick={() => setStep(step - 1)}
+              onClick={() => (step === 0 ? setMode("choose") : setStep(step - 1))}
             >
               ← back
             </p>

@@ -3,6 +3,21 @@
   margin: 0 auto;
   padding: 32px 24px 80px;
 }
+.tmB-build-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--tm-zinc);
+  margin-bottom: 18px;
+  transition: color 0.15s ease;
+}
+.tmB-build-back:hover {
+  color: var(--tm-ink);
+}
+.tmB-build-head {
+  margin-bottom: 28px;
+}
 .tmB-build-head h1 {
   font-size: 28px;
   font-weight: 600;

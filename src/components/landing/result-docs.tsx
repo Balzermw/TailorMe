@@ -71,14 +71,8 @@ function ResumePaper() {
           <mark className="tmB-doc-kw">Kubernetes</mark> ·{" "}
           <mark className="tmB-doc-kw">Observability</mark> · Mentorship
         </p>
-        {/* Faint trimmed continuation — signals this is a clipping, not the full résumé. */}
-        <div className="tmB-pdoc-cont" aria-hidden="true">
-          <span className="tmB-pdoc-cont-head" />
-          <span className="tmB-pdoc-cont-line" style={{ width: "94%" }} />
-          <span className="tmB-pdoc-cont-line" style={{ width: "85%" }} />
-          <span className="tmB-pdoc-cont-line" style={{ width: "68%" }} />
-        </div>
       </div>
+      <p className="tmB-pdoc-pages">Page 1 of 2 · full résumé continues</p>
     </div>
   );
 }

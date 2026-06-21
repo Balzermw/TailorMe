@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
 import type { TailoredDoc } from "@/lib/types";
 import { composeContact } from "@/lib/apply/contact";
 import { setResumeDraft, saveResumeDoc } from "@/lib/resume";
@@ -76,6 +77,9 @@ export default function ScratchBuilder() {
 
   return (
     <div className="tmB-build">
+      <Link href={ROUTES.audit} className="tmB-build-back">
+        <ArrowLeft size={15} /> Back
+      </Link>
       <header className="tmB-build-head">
         <h1>Let’s build your resume</h1>
         <p>

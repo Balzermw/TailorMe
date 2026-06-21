@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { setResumeDraft } from "@/lib/resume";
 import { ROUTES } from "@/components/landing/data";
 
@@ -48,12 +49,14 @@ export default function PasteImport() {
 
   return (
     <div className="tmB-build">
+      <Link href={ROUTES.audit} className="tmB-build-back">
+        <ArrowLeft size={15} /> Back
+      </Link>
       <header className="tmB-build-head">
         <h1>Paste what you have</h1>
         <p>
-          Drop in your LinkedIn “About” + experience, an old resume, or rough notes about
-          your jobs and skills. We’ll structure it into a resume you can edit — and we won’t
-          invent anything that isn’t in your text.
+          Paste a LinkedIn “About”, an old resume, or rough notes. We’ll structure it
+          and never invent anything.
         </p>
       </header>
       <div className="tmE-field">
