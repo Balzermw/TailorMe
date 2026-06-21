@@ -120,23 +120,22 @@
   line-height: 1.55;
   margin-top: 4px;
 }
-/* Skills as a scannable multi-column list (the professional pattern) rather
-   than one run-on bullet line. column-width auto-fits: ~2 columns at full page
-   width, gracefully collapsing to 1 in the narrow in-editor preview. */
+/* Skills as a left-packed wrapping list (the professional pattern) rather than
+   one run-on bullet line. Flex-wrap keeps items close together for any count —
+   a few skills sit side by side instead of spreading across empty columns. */
 .mcv-skills {
   font-size: 12px;
   line-height: 1.45;
   list-style: none;
   margin: 2px 0 0;
   padding: 0;
-  column-width: 15em;
-  column-gap: 34px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 24px;
 }
 .mcv-skills li {
   position: relative;
   padding-left: 13px;
-  margin-bottom: 4px;
-  break-inside: avoid;
 }
 .mcv-skills li::before {
   content: "";
