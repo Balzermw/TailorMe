@@ -6,7 +6,7 @@ import { ArrowUpDown, BarChart3, Search } from "lucide-react";
 function ResumePaper() {
   return (
     <div className="tmB-paperwrap">
-      <div className="tmB-paper tmB-paper--doc">
+      <div className="tmB-paper tmB-paper--doc tmB-paper--clip">
         <div
           style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}
         >
@@ -71,6 +71,13 @@ function ResumePaper() {
           <mark className="tmB-doc-kw">Kubernetes</mark> ·{" "}
           <mark className="tmB-doc-kw">Observability</mark> · Mentorship
         </p>
+        {/* Faint trimmed continuation — signals this is a clipping, not the full résumé. */}
+        <div className="tmB-pdoc-cont" aria-hidden="true">
+          <span className="tmB-pdoc-cont-head" />
+          <span className="tmB-pdoc-cont-line" style={{ width: "94%" }} />
+          <span className="tmB-pdoc-cont-line" style={{ width: "85%" }} />
+          <span className="tmB-pdoc-cont-line" style={{ width: "68%" }} />
+        </div>
       </div>
     </div>
   );

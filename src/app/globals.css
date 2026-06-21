@@ -1056,6 +1056,38 @@ body {
   color: var(--tm-mint-600);
   font-weight: 700;
 }
+/* Clipping affordance: faint trimmed lines that fade out, so the preview reads
+   as a snippet of a longer résumé rather than the whole thing. */
+.tmB-paper--clip {
+  overflow: hidden;
+}
+.tmB-paper--clip::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 66px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #fff 82%);
+  pointer-events: none;
+}
+.tmB-pdoc-cont {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 16px;
+}
+.tmB-pdoc-cont-head {
+  height: 7px;
+  width: 30%;
+  border-radius: 3px;
+  background: #d7dbe6;
+}
+.tmB-pdoc-cont-line {
+  height: 5px;
+  border-radius: 3px;
+  background: #e7eaf1;
+}
 .tmB-annot-grid {
   display: grid;
   grid-template-columns: 1.08fr 1fr;
