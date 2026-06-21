@@ -1195,7 +1195,6 @@ body {
   letter-spacing: 0.02em;
 }
 .tmB-pdoc-contact {
-  font-family: var(--tm-font);
   font-size: 9.5px;
   color: var(--tm-zinc);
   margin-top: 4px;
@@ -1227,7 +1226,6 @@ body {
   font-weight: 700;
 }
 .tmB-pdoc-date {
-  font-family: var(--tm-font);
   font-size: 9.5px;
   color: var(--tm-zinc);
   white-space: nowrap;
@@ -1251,7 +1249,6 @@ body {
   margin-top: 2px;
 }
 .tmB-pdoc-foot {
-  font-family: var(--tm-font);
   text-align: center;
   font-size: 9px;
   color: var(--tm-zinc);
