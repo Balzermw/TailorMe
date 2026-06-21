@@ -91,8 +91,8 @@ const ANNOTATIONS = [
     fg: "var(--tm-blue-600)",
     num: "7",
     unit: "keywords",
-    from: "From the Nordpeak posting",
-    desc: "Added only where your history already backs them — never stuffed.",
+    from: "from the Nordpeak posting",
+    desc: "Added only where your history already backs them. Never stuffed.",
   },
   {
     Icon: BarChart3,
@@ -100,8 +100,8 @@ const ANNOTATIONS = [
     fg: "var(--tm-mint-600)",
     num: "4",
     unit: "metrics",
-    from: "Pulled from your real work",
-    desc: "p95 latency, transaction volume, throughput, team size — scoped to truth.",
+    from: "pulled from your real work",
+    desc: "p95 latency, transaction volume, throughput, team size. All scoped to truth.",
   },
   {
     Icon: ArrowUpDown,
@@ -109,7 +109,7 @@ const ANNOTATIONS = [
     fg: "var(--tm-ink)",
     num: "",
     unit: "Re-ranked",
-    from: "For this posting",
+    from: "for this posting",
     desc: "Your strongest, most relevant bullets surface to the top.",
   },
 ];
@@ -120,7 +120,6 @@ export default function ResultDocs() {
       <div className="tm-wrap">
         <h2 className="tm-h2">What goes out the door.</h2>
         <p className="tm-body mt-[12px] max-w-[64ch]">
-          Two documents leave together — your resume and a matching cover letter.
           Here&apos;s exactly what we changed, and why each change earns its place.
         </p>
         <div className="tmB-annot-grid">
@@ -135,8 +134,9 @@ export default function ResultDocs() {
                   <p className="tmB-annot-head" style={{ color: fg }}>
                     {num && <span className="tmB-annot-num">{num}</span>}
                     {unit}
+                    {" "}
+                    <span className="tmB-annot-from">{from}</span>
                   </p>
-                  <p className="tmB-annot-from">{from}</p>
                   <p className="tmB-annot-desc">{desc}</p>
                 </div>
               </div>

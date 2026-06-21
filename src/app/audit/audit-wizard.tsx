@@ -2852,8 +2852,7 @@ function StartChooser({ onUpload }: { onUpload: () => void }) {
       <section className="tm-sec tmF-head" style={{ paddingBottom: 0 }}>
         <h1 className="tm-h1">How would you like to start?</h1>
         <p className="tm-body">
-          Two ways in — either works. You’ll end up in the same editor with the same
-          three-agent AI review.
+          Three ways in. Same editor, same three-agent review.
         </p>
       </section>
       <section className="tm-sec" style={{ paddingTop: 24 }}>
