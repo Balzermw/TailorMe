@@ -42,14 +42,17 @@ export const PLAN = [
 
 export const AGENT_NOTES = [
   {
+    agent: "Ada",
     name: "ATS & keywords",
     note: "Posting names observability 3×; your resume names it 0×. Add your Datadog dashboard work.",
   },
   {
+    agent: "Max",
     name: "Impact & metrics",
     note: "“Mentored junior engineers”: how many, over how long? Add team scope.",
   },
   {
+    agent: "Remy",
     name: "Role-fit",
     note: "This role is 80% backend/platform. Move distributed-systems work above the frontend section.",
   },

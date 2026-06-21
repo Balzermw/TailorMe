@@ -66,7 +66,9 @@ export default function RunTimeline() {
               <div className="tm-card tmB-tl-card">
                 {AGENT_NOTES.map((a) => (
                   <p key={a.name} className="tmB-rq-item">
-                    <span className="tm-pill">{a.name}</span>
+                    <span className="tm-pill">
+                      {a.agent} · {a.name}
+                    </span>
                     {a.note}
                   </p>
                 ))}
