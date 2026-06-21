@@ -116,6 +116,21 @@ export default function PrintDoc({
             </>
           )}
 
+          {doc.education && doc.education.length > 0 && (
+            <>
+              <h2 className="mcv-sec">Education</h2>
+              {doc.education.map((ed, i) => (
+                <div key={i} className="mcv-entry">
+                  <div className="mcv-entry-dates">{ed.dates}</div>
+                  <div>
+                    <div className="mcv-entry-role">{ed.degree}</div>
+                    <div className="mcv-entry-company">{ed.school}</div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
           {doc.skills.length > 0 && (
             <>
               <h2 className="mcv-sec">Skills</h2>

@@ -86,6 +86,7 @@ export interface TailoredDoc {
     bullets: string[];
   }[];
   skills: string[];
+  education?: { school: string; degree: string; dates: string }[];
   coverLetter: string; // plain paragraphs joined by \n\n
 }
 

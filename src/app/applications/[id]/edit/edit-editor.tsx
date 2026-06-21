@@ -28,7 +28,7 @@ import { bulletKey, diffMap } from "@/lib/apply/redline";
 import { highlight } from "@/lib/highlight";
 import PrintDoc from "../print/print-doc";
 
-type Section = "header" | "summary" | "experience" | "skills" | "fixes";
+type Section = "header" | "summary" | "experience" | "education" | "skills" | "fixes";
 
 const SEV: Record<ProofPoint["severity"], { label: string; color: string; bg: string }> = {
   high: { label: "High priority", color: "#b3261e", bg: "#fdecea" },
@@ -54,6 +54,32 @@ const VERDICT_LABEL: Record<Verdict, string> = {
   weaker: "Weaker than the AI version",
   issue: "Worth a look",
 };
+
+// The doc stores contact as one pipe-joined string (print-doc linkifies emails
+// and real URLs in it). The editor splits it into fields for editing, then
+// recomposes. Parse is best-effort; the user can correct any field.
+type ContactFields = { phone: string; email: string; location: string; linkedin: string };
+function parseContact(contact: string): ContactFields {
+  const parts = (contact || "").split(/\s*[|·]\s*/).map((s) => s.trim()).filter(Boolean);
+  const f: ContactFields = { phone: "", email: "", location: "", linkedin: "" };
+  const rest: string[] = [];
+  for (const p of parts) {
+    const digits = (p.match(/\d/g) || []).length;
+    if (!f.email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p)) f.email = p;
+    else if (!f.linkedin && /linkedin\.com/i.test(p)) f.linkedin = p;
+    else if (/^linkedin$/i.test(p)) continue; // bare "LinkedIn" placeholder, drop
+    else if (!f.phone && digits >= 7 && !/@/.test(p)) f.phone = p;
+    else rest.push(p);
+  }
+  f.location = rest.join(", ");
+  return f;
+}
+function composeContact(f: ContactFields): string {
+  return [f.phone, f.email, f.location, f.linkedin]
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(" | ");
+}
 
 // Section-at-a-time résumé editor (Res.Me builder pattern): sidebar nav →
 // one section in the center with full-size inputs → wide résumé-only live
@@ -179,6 +205,14 @@ export default function EditEditor({
       return next;
     });
   }
+  const [contactFields, setContactFields] = useState<ContactFields>(() =>
+    parseContact(initialDoc.contact),
+  );
+  function updateContact(part: Partial<ContactFields>) {
+    const next = { ...contactFields, ...part };
+    setContactFields(next);
+    patch({ contact: composeContact(next) });
+  }
 
   const diffs = diffMap(bulletDiffs);
   const totalPending = bulletDiffs.filter((d) => !decisions[bulletKey(d.entry, d.bullet)]).length;
@@ -225,6 +259,27 @@ export default function EditEditor({
       experience: d.experience.map((e, j) =>
         j === ei ? { ...e, bullets: e.bullets.filter((_, k) => k !== bi) } : e,
       ),
+    }));
+    touch();
+  }
+  function setEdu(i: number, p: Partial<{ school: string; degree: string; dates: string }>) {
+    setDoc((d) => ({
+      ...d,
+      education: (d.education ?? []).map((ed, j) => (j === i ? { ...ed, ...p } : ed)),
+    }));
+    touch();
+  }
+  function addEdu() {
+    setDoc((d) => ({
+      ...d,
+      education: [...(d.education ?? []), { school: "", degree: "", dates: "" }],
+    }));
+    touch();
+  }
+  function removeEdu(i: number) {
+    setDoc((d) => ({
+      ...d,
+      education: (d.education ?? []).filter((_, j) => j !== i),
     }));
     touch();
   }
@@ -324,6 +379,7 @@ export default function EditEditor({
   function resetToAi() {
     if (!originalDoc) return;
     setDoc(JSON.parse(JSON.stringify(originalDoc)) as TailoredDoc);
+    setContactFields(parseContact(originalDoc.contact));
     setDecisions({});
     touch();
   }
@@ -356,6 +412,7 @@ export default function EditEditor({
     { key: "header", label: "Header" },
     { key: "summary", label: "Summary" },
     { key: "experience", label: "Experience", badge: totalPending || undefined },
+    { key: "education", label: "Education" },
     { key: "skills", label: "Skills" },
     ...(proofPoints.length ? [{ key: "fixes" as Section, label: "Suggestions", badge: proofPoints.length }] : []),
   ];
@@ -501,22 +558,11 @@ export default function EditEditor({
               </button>
             </div>
           )}
-          {modified && (
-            <div className="tmE-trust is-edited">
-              <span className="tmE-trust-ic">
-                <PenLine size={15} />
-              </span>
-              <div>
-                <b>Edited by you</b>
-                <span>Saved, but no longer carries the AI faithfulness check.</span>
-              </div>
-            </div>
-          )}
 
           {section === "header" && (
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Header</h2>
-              <p className="tmE-panel-sub">Your name, target headline, and contact line.</p>
+              <p className="tmE-panel-sub">Your name, target headline, and contact details.</p>
               <div className="tmE-field">
                 <label>Name</label>
                 <input className="tmE-input" value={doc.name} onChange={(e) => patch({ name: e.target.value })} />
@@ -525,20 +571,37 @@ export default function EditEditor({
                 <label>Headline</label>
                 <input className="tmE-input" value={doc.headline} onChange={(e) => patch({ headline: e.target.value })} />
               </div>
-              <div className="tmE-field">
-                <label>Contact</label>
-                <input className="tmE-input" value={doc.contact} onChange={(e) => patch({ contact: e.target.value })} />
+              <label className="tmE-field-grouplabel">Contact</label>
+              <div className="tmE-contact-grid">
+                <div className="tmE-field" style={{ marginBottom: 0 }}>
+                  <label>Phone</label>
+                  <input className="tmE-input" value={contactFields.phone} placeholder="612-227-1149" onChange={(e) => updateContact({ phone: e.target.value })} />
+                </div>
+                <div className="tmE-field" style={{ marginBottom: 0 }}>
+                  <label>Email</label>
+                  <input className="tmE-input" type="email" value={contactFields.email} placeholder="you@email.com" onChange={(e) => updateContact({ email: e.target.value })} />
+                </div>
+                <div className="tmE-field" style={{ marginBottom: 0 }}>
+                  <label>City / State</label>
+                  <input className="tmE-input" value={contactFields.location} placeholder="Portland, OR" onChange={(e) => updateContact({ location: e.target.value })} />
+                </div>
+                <div className="tmE-field" style={{ marginBottom: 0 }}>
+                  <label>LinkedIn URL</label>
+                  <input className="tmE-input" type="url" value={contactFields.linkedin} placeholder="linkedin.com/in/you" onChange={(e) => updateContact({ linkedin: e.target.value })} />
+                </div>
               </div>
+              {contactFields.linkedin && (
+                <p className="tmE-hint">
+                  Your LinkedIn shows as a clickable link in the PDF.
+                </p>
+              )}
             </section>
           )}
 
           {section === "summary" && (
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Summary</h2>
-              <p className="tmE-panel-sub">
-                Why it works: it leads with your seniority and scale, then the exact
-                skills this posting screens for. It’s the first thing a recruiter reads.
-              </p>
+              <p className="tmE-panel-sub">The first thing a recruiter reads. Keep it tight and aimed at this role.</p>
               <div className="tmE-field">
                 <textarea className="tmE-textarea tmE-textarea--lg" value={doc.summary} onChange={(e) => patch({ summary: e.target.value })} />
               </div>
@@ -647,6 +710,40 @@ export default function EditEditor({
                 </div>
                 );
               })}
+            </section>
+          )}
+
+          {section === "education" && (
+            <section className="tmE-panel tmF-anim">
+              <h2 className="tmE-panel-title">Education</h2>
+              <p className="tmE-panel-sub">Degrees, schools, and dates. Add anything the tailoring missed.</p>
+              {(doc.education ?? []).map((ed, i) => (
+                <div key={i} className="tmE-edu">
+                  <div className="tmE-field">
+                    <label>Degree</label>
+                    <input className="tmE-input" value={ed.degree} placeholder="BSc Computer Science" onChange={(e) => setEdu(i, { degree: e.target.value })} />
+                  </div>
+                  <div className="tmE-row2">
+                    <div className="tmE-field" style={{ marginBottom: 0 }}>
+                      <label>School</label>
+                      <input className="tmE-input" value={ed.school} placeholder="University of Copenhagen" onChange={(e) => setEdu(i, { school: e.target.value })} />
+                    </div>
+                    <div className="tmE-field" style={{ marginBottom: 0 }}>
+                      <label>Dates</label>
+                      <input className="tmE-input" value={ed.dates} placeholder="2012 – 2016" onChange={(e) => setEdu(i, { dates: e.target.value })} />
+                    </div>
+                  </div>
+                  <button type="button" className="tmE-edu-remove" onClick={() => removeEdu(i)}>
+                    <Trash2 size={13} /> Remove
+                  </button>
+                </div>
+              ))}
+              {(doc.education ?? []).length === 0 && (
+                <p className="tmE-hint">No education on file yet. Add a degree so it shows on your resume.</p>
+              )}
+              <button type="button" className="tmE-add" onClick={addEdu}>
+                <Plus size={14} /> Add education
+              </button>
             </section>
           )}
 

@@ -55,6 +55,9 @@ export const TWO_PAGE = {
   bulletsByIndex: [4, 4, 3, 3, 2, 2], // 18 bullets total; newest roles get more room
   minBullets: 2,
   maxSkills: 18,
+  maxEducation: 4,
+  maxSchoolChars: 70,
+  maxDegreeChars: 90,
   maxSummary: 360,
   maxBulletChars: 160, // ~2 lines each in the content column
   maxSkillChars: 40,
@@ -115,6 +118,13 @@ export function clampToTwoPages(doc: TailoredDoc): TailoredDoc {
     skills: (doc.skills ?? [])
       .slice(0, TWO_PAGE.maxSkills)
       .map((s) => clampLen(s, TWO_PAGE.maxSkillChars)),
+    education: (doc.education ?? [])
+      .slice(0, TWO_PAGE.maxEducation)
+      .map((ed) => ({
+        degree: clampLen(ed.degree ?? "", TWO_PAGE.maxDegreeChars),
+        school: clampLen(ed.school ?? "", TWO_PAGE.maxSchoolChars),
+        dates: clampLen(ed.dates ?? "", TWO_PAGE.maxDatesChars),
+      })),
   };
 }
 
@@ -140,6 +150,17 @@ export function renderResumeTex(input: TailoredDoc): string {
     }
     const items = e.bullets.map((b) => `  \\item ${escapeLatex(b)}`).join("\n");
     lines.push(`${head}{%\n\\begin{itemize}\n${items}\n\\end{itemize}}`);
+  }
+
+  if (doc.education && doc.education.length) {
+    lines.push("\\section{Education}");
+    for (const ed of doc.education) {
+      lines.push(
+        `\\cventry{${escapeLatex(ed.dates)}}{${escapeLatex(ed.degree)}}{${escapeLatex(
+          ed.school,
+        )}}{}{}{}`,
+      );
+    }
   }
 
   if (doc.skills.length) {

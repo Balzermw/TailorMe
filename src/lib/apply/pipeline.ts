@@ -563,7 +563,8 @@ async function tailor(
       "relevance over completeness. Return: a few before/after bullet pairs (the strongest " +
       "rewrites), the aligned keywords, and a complete tailored document (name, headline, " +
       "contact line, 1–2 sentence summary, experience entries with rewritten bullets, skills, " +
-      "and a 3-paragraph cover letter). Plain text only.",
+      "education entries (degree, school, and dates — include ONLY if the resume actually lists " +
+      "education; never invent a school or degree), and a 3-paragraph cover letter). Plain text only.",
     {
       name: "tailor_resume",
       description: "Return the tailored bullets, keywords, and full document.",
@@ -613,6 +614,18 @@ async function tailor(
                 },
               },
               skills: { type: "array", items: { type: "string" } },
+              education: {
+                type: "array",
+                items: {
+                  type: "object",
+                  required: ["school", "degree", "dates"],
+                  properties: {
+                    school: { type: "string" },
+                    degree: { type: "string" },
+                    dates: { type: "string" },
+                  },
+                },
+              },
               coverLetter: { type: "string" },
             },
           },
