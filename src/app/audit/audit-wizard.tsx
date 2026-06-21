@@ -770,63 +770,40 @@ function StepUpload({
           {saved && (
             <>
               <div className="tm-card tmF-saved">
-                {/* mini résumé "paper" so the saved doc reads as a document,
-                    not just an icon — distinct from the action buttons below */}
-                <span
-                  aria-hidden="true"
-                  style={{
-                    gridColumn: 1,
-                    gridRow: 1,
-                    alignSelf: "center",
-                    position: "relative",
-                    flex: "none",
-                    width: 60,
-                    height: 80,
-                    background: "#fff",
-                    borderRadius: 8,
-                    border: "0.5px solid var(--tm-border)",
-                    boxShadow: "0 3px 10px rgba(24, 24, 27, 0.10)",
-                    padding: "12px 10px 0",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 5,
-                    overflow: "hidden",
-                  }}
-                >
-                  <span style={{ position: "absolute", top: 0, left: 0, right: 0, height: 6, background: "var(--tm-blue-600)" }} />
-                  <span style={{ height: 6, width: "64%", borderRadius: 2, background: "var(--tm-slate)", marginTop: 2 }} />
-                  <span style={{ height: 3, width: "86%", borderRadius: 2, background: "var(--tm-border)" }} />
-                  <span style={{ height: 3, width: "100%", borderRadius: 2, background: "var(--tm-gray)", marginTop: 3 }} />
-                  <span style={{ height: 3, width: "92%", borderRadius: 2, background: "var(--tm-gray)" }} />
-                  <span style={{ height: 3, width: "97%", borderRadius: 2, background: "var(--tm-gray)" }} />
-                  <span style={{ height: 3, width: "55%", borderRadius: 2, background: "var(--tm-gray)" }} />
+                <span aria-hidden="true" className="tmF-saved-thumb">
+                  <FileText size={22} />
                 </span>
                 <div className="tmF-saved-body">
-                  <b>{saved.name}</b>
-                  <span>Saved resume, ready to reuse</span>
+                  <div className="tmF-saved-name">
+                    <b>{saved.name}</b>
+                    <span className="tm-pill tm-pill--mint tmF-saved-badge">
+                      <Check size={11} /> Saved
+                    </span>
+                  </div>
+                  <span className="tmF-saved-sub">Saved resume, ready to reuse</span>
                   <div className="tmF-saved-meta">
                     {savedPages > 0 && (
-                      <span>
+                      <span className="tmF-saved-chip">
                         ~{savedPages} {savedPages === 1 ? "page" : "pages"}
                       </span>
                     )}
-                    {savedWords > 0 && <span>{savedWords.toLocaleString()} words</span>}
                     {savedRoles > 0 && (
-                      <span>
+                      <span className="tmF-saved-chip">
                         {savedRoles} {savedRoles === 1 ? "role" : "roles"}
                       </span>
                     )}
-                    {savedSkills > 0 && <span>{savedSkills} skills</span>}
-                    {savedDateLabel && <span>saved {savedDateLabel}</span>}
+                    {savedSkills > 0 && (
+                      <span className="tmF-saved-chip">{savedSkills} skills</span>
+                    )}
+                    {savedDateLabel && (
+                      <span className="tmF-saved-date">saved {savedDateLabel}</span>
+                    )}
                   </div>
                 </div>
-                <span className="tm-pill tm-pill--mint tmF-saved-badge">
-                  <Check size={12} /> saved
-                </span>
                 <div className="tmF-saved-actions">
                   <button
                     type="button"
-                    className="tm-btn tm-btn--primary"
+                    className="tm-btn tm-btn--primary tmF-saved-use"
                     onClick={useSaved}
                   >
                     Use this resume <ArrowRight size={15} />
@@ -836,7 +813,7 @@ function StepUpload({
                     onClick={forgetSaved}
                     className="tmF-saved-forget"
                   >
-                    forget it
+                    Not your resume? <span>Forget it</span>
                   </button>
                 </div>
               </div>
