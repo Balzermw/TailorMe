@@ -10,6 +10,7 @@ import {
   Download,
   Info,
   Layers,
+  LayoutTemplate,
   ListChecks,
   PenLine,
   Plus,
@@ -26,6 +27,7 @@ import type {
   TailoredDoc,
 } from "@/lib/types";
 import { pdfHref } from "@/lib/apply/render";
+import { RESUME_TEMPLATES, DEFAULT_TEMPLATE, templateName } from "@/lib/apply/templates";
 import { ROUTES } from "@/components/landing/data";
 import { bulletKey, diffMap } from "@/lib/apply/redline";
 import { highlight, highlightHits } from "@/lib/highlight";
@@ -215,6 +217,7 @@ export default function EditEditor({
   const [decisions, setDecisions] = useState<Record<string, EditDecision>>(initialDecisions);
   const [section, setSection] = useState<Section>("header");
   const [saving, setSaving] = useState(false);
+  const [templateOpen, setTemplateOpen] = useState(false);
   const [msg, setMsg] = useState<{ text: string; err: boolean } | null>(null);
   const [dirty, setDirty] = useState(false);
   const [review, setReview] = useState<{ items: ReviewItem[] } | null>(null);
@@ -534,22 +537,23 @@ export default function EditEditor({
     touch();
   }
 
-  async function save() {
+  async function save(override?: TailoredDoc) {
     if (saving) return;
+    const docToSave = override ?? doc;
     setSaving(true);
     setMsg(null);
     try {
       let ok = false;
       let error: string | undefined;
       if (onSave) {
-        const r = await onSave({ doc, decisions, userEdited: true });
+        const r = await onSave({ doc: docToSave, decisions, userEdited: true });
         ok = r.ok;
         error = r.error;
       } else {
         const res = await fetch(`/api/applications/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ doc, decisions, userEdited: true }),
+          body: JSON.stringify({ doc: docToSave, decisions, userEdited: true }),
         });
         const data = await res.json();
         ok = res.ok && data.ok;
@@ -566,6 +570,17 @@ export default function EditEditor({
     } finally {
       setSaving(false);
     }
+  }
+
+  // Pick a résumé template. Free (a recompile, never an AI call). Persist
+  // immediately with the explicit doc so the PDF/download reflects it at once.
+  function chooseTemplate(id: string) {
+    setTemplateOpen(false);
+    if ((doc.template ?? DEFAULT_TEMPLATE) === id) return;
+    const next = { ...doc, template: id };
+    setDoc(next);
+    touch();
+    void save(next);
   }
 
   const NAV: { key: Section; label: string; badge?: number }[] = [
@@ -695,6 +710,51 @@ export default function EditEditor({
               <Target size={14} /> Target a job
             </button>
           )}
+          <div className="tmE-tplpick">
+            <button
+              type="button"
+              className="tm-btn tm-btn--outline tm-btn--sm"
+              onClick={() => setTemplateOpen((o) => !o)}
+              aria-expanded={templateOpen}
+              title="Choose a résumé style — free to switch"
+            >
+              <LayoutTemplate size={14} /> {templateName(doc.template)}
+              <ChevronDown size={13} />
+            </button>
+            {templateOpen && (
+              <>
+                <div className="tmE-tplbackdrop" onClick={() => setTemplateOpen(false)} />
+                <div className="tmE-tplmenu" role="menu">
+                  <p className="tmE-tplmenu-head">Résumé style</p>
+                  {RESUME_TEMPLATES.map((t) => {
+                    const on = (doc.template ?? DEFAULT_TEMPLATE) === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={"tmE-tplopt" + (on ? " is-on" : "")}
+                        onClick={() => chooseTemplate(t.id)}
+                      >
+                        <span className="tmE-tplopt-top">
+                          <span className="tmE-tplopt-name">
+                            {t.name}
+                            {on && <Check size={12} />}
+                          </span>
+                          <span className={"tmE-tplopt-ats tmE-ats-" + t.ats}>
+                            {t.ats === "safe" ? "ATS-safe" : "ATS-friendly"}
+                          </span>
+                        </span>
+                        <span className="tmE-tplopt-blurb">{t.blurb}</span>
+                      </button>
+                    );
+                  })}
+                  <p className="tmE-tplmenu-foot">
+                    Sets the style of your downloaded PDF. Switching is always free.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
           <a className="tm-btn tm-btn--outline tm-btn--sm" href={pdfUrl ?? pdfHref(id)} target="_blank" rel="noopener noreferrer">
             <Download size={14} /> PDF
           </a>
