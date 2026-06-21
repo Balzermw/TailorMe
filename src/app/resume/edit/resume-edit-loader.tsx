@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { TailoredDoc } from "@/lib/types";
-import { loadBaseResumeDoc, saveResumeDoc, clearResumeDraft } from "@/lib/resume";
+import {
+  loadBaseResumeDoc,
+  saveResumeDoc,
+  clearResumeDraft,
+  setTargetResume,
+} from "@/lib/resume";
+import { docToResumeText } from "@/lib/apply/serialize";
 import { supabaseConfigured } from "@/lib/config";
 import { ROUTES } from "@/components/landing/data";
 import EditEditor from "../../applications/[id]/edit/edit-editor";
@@ -16,6 +23,7 @@ export default function ResumeEditLoader({
 }: {
   serverDoc: TailoredDoc | null;
 }) {
+  const router = useRouter();
   const [doc, setDoc] = useState<TailoredDoc | null>(serverDoc);
   const [loaded, setLoaded] = useState(false);
 
@@ -76,6 +84,10 @@ export default function ResumeEditLoader({
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data?.error || "failed");
         return Array.isArray(data.proofPoints) ? data.proofPoints : [];
+      }}
+      onTargetJob={(current) => {
+        setTargetResume(docToResumeText(current));
+        router.push(`${ROUTES.audit}?from=base`);
       }}
       pdfUrl={supabaseConfigured ? "/api/resume/pdf" : ROUTES.resumePrint}
       backHref={ROUTES.dashboard}

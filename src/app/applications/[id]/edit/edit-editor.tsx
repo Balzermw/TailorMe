@@ -13,6 +13,7 @@ import {
   Plus,
   RotateCcw,
   ShieldCheck,
+  Target,
   Trash2,
   X,
 } from "lucide-react";
@@ -148,6 +149,7 @@ export default function EditEditor({
   backHref = ROUTES.dashboard,
   backLabel = "Dashboard",
   onGetFeedback,
+  onTargetJob,
 }: {
   id: string;
   doc: TailoredDoc;
@@ -173,6 +175,8 @@ export default function EditEditor({
   backLabel?: string;
   // Base resume: fetch first-pass feedback on demand (returns proof points).
   onGetFeedback?: (doc: TailoredDoc) => Promise<ProofPoint[]>;
+  // Base resume: send this resume into the job-targeting flow.
+  onTargetJob?: (doc: TailoredDoc) => void;
 }) {
   const [doc, setDoc] = useState<TailoredDoc>(initialDoc);
   const [decisions, setDecisions] = useState<Record<string, EditDecision>>(initialDecisions);
@@ -501,12 +505,21 @@ export default function EditEditor({
               <RotateCcw size={13} /> Undo my edits
             </button>
           )}
+          {onTargetJob && (
+            <button
+              type="button"
+              className="tm-btn tm-btn--primary tm-btn--sm"
+              onClick={() => onTargetJob(doc)}
+            >
+              <Target size={14} /> Target a job
+            </button>
+          )}
           <a className="tm-btn tm-btn--outline tm-btn--sm" href={pdfUrl ?? pdfHref(id)} target="_blank" rel="noopener noreferrer">
             <Download size={14} /> PDF
           </a>
           <button
             type="button"
-            className="tm-btn tm-btn--primary tm-btn--sm"
+            className={"tm-btn tm-btn--sm " + (onTargetJob ? "tm-btn--outline" : "tm-btn--primary")}
             onClick={() => void save()}
             disabled={saving || !dirty}
           >

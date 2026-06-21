@@ -160,6 +160,35 @@ export function clearResumeDraft(): void {
   }
 }
 
+const TARGET_KEY = "tm_target_resume"; // handoff: base resume -> audit job step
+
+export function setTargetResume(text: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(TARGET_KEY, text);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function loadTargetResume(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.sessionStorage.getItem(TARGET_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function clearTargetResume(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(TARGET_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function clearSavedResume(): Promise<void> {
   if (supabaseConfigured) {
     try {

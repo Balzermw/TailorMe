@@ -5,12 +5,15 @@
 // Rendered only when Supabase is configured; demo mode uses dashboard-client.tsx.
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Check, ChevronRight, Download, FileText, MoreHorizontal, PenLine, Plus, Settings, X } from "lucide-react";
+import { Check, ChevronRight, Download, FileText, MoreHorizontal, PenLine, Plus, Settings, Target, X } from "lucide-react";
 import { ROUTES } from "@/components/landing/data";
 import { editHref, pdfHref } from "@/lib/apply/render";
-import type { ApplicationRow } from "@/lib/types";
+import { setTargetResume } from "@/lib/resume";
+import { docToResumeText } from "@/lib/apply/serialize";
+import type { ApplicationRow, TailoredDoc } from "@/lib/types";
 import type { SessionUser as AuthUser } from "@/lib/auth";
 
 type View = "apps" | "docs";
@@ -157,11 +160,14 @@ export default function DashboardLive({
   user,
   credits,
   apps,
+  baseResume,
 }: {
   user: AuthUser;
   credits: number;
   apps: ApplicationRow[];
+  baseResume: TailoredDoc | null;
 }) {
+  const router = useRouter();
   const [view, setView] = useState<View>("apps");
   const [openId, setOpenId] = useState<string | null>(apps[0]?.id ?? null);
   const [requesting, setRequesting] = useState(false);
@@ -213,6 +219,53 @@ export default function DashboardLive({
               <Settings size={14} /> Settings
             </Link>
           </div>
+        </div>
+
+        {/* Base resume hub: one reusable resume → tailor to any job */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            padding: "14px 18px",
+            border: "0.5px solid var(--tm-border)",
+            borderRadius: 14,
+            background: "var(--tm-blue-50)",
+            marginBottom: 22,
+          }}
+        >
+          <FileText size={18} style={{ color: "var(--tm-blue-800)", flex: "none" }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <b style={{ display: "block", fontSize: 14, color: "var(--tm-ink)" }}>
+              {baseResume ? "Your base resume" : "Build a base resume"}
+            </b>
+            <span className="tm-small" style={{ display: "block", color: "var(--tm-zinc)" }}>
+              {baseResume
+                ? baseResume.headline || baseResume.name || "Edit it, then tailor it to any job."
+                : "Create one resume you can reuse and tailor to every job."}
+            </span>
+          </div>
+          {baseResume ? (
+            <>
+              <Link className="tm-btn tm-btn--outline tm-btn--sm" href={ROUTES.resumeEdit}>
+                <PenLine size={14} /> Edit
+              </Link>
+              <button
+                type="button"
+                className="tm-btn tm-btn--primary tm-btn--sm"
+                onClick={() => {
+                  setTargetResume(docToResumeText(baseResume));
+                  router.push(`${ROUTES.audit}?from=base`);
+                }}
+              >
+                <Target size={14} /> Target a job
+              </button>
+            </>
+          ) : (
+            <Link className="tm-btn tm-btn--primary tm-btn--sm" href={ROUTES.resumeNew}>
+              Build from scratch
+            </Link>
+          )}
         </div>
 
         {/* User identity row */}

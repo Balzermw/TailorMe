@@ -4,7 +4,7 @@ import Nav from "@/components/landing/nav";
 import Footer from "@/components/landing/footer";
 import { supabaseConfigured } from "@/lib/config";
 import { getServerUser } from "@/lib/auth-server";
-import { getProfile, listApplications } from "@/lib/db";
+import { getProfile, listApplications, getSavedResumeDoc } from "@/lib/db";
 import { ROUTES } from "@/components/landing/data";
 import DashboardClient from "./dashboard-client";
 import DashboardLive from "./dashboard-live";
@@ -19,12 +19,18 @@ export default async function DashboardPage() {
   if (supabaseConfigured) {
     const user = await getServerUser();
     if (!user) redirect(ROUTES.signIn);
-    const [profile, apps] = await Promise.all([
+    const [profile, apps, base] = await Promise.all([
       getProfile(),
       listApplications(),
+      getSavedResumeDoc(),
     ]);
     body = (
-      <DashboardLive user={user} credits={profile?.credits ?? 0} apps={apps} />
+      <DashboardLive
+        user={user}
+        credits={profile?.credits ?? 0}
+        apps={apps}
+        baseResume={base?.doc ?? null}
+      />
     );
   }
 

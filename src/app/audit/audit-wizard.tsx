@@ -40,6 +40,7 @@ import { useSession } from "@/lib/auth";
 import {
   clearSavedResume,
   loadSavedResume,
+  loadTargetResume,
   saveResume,
   type SavedResume,
 } from "@/lib/resume";
@@ -2873,12 +2874,17 @@ function StartChooser({ onUpload }: { onUpload: () => void }) {
 
 export default function AuditWizard() {
   const search = useSearchParams();
-  const [step, setStep] = useState(0);
-  // Deep-link past the chooser: /audit?start=upload lands directly on upload.
+  // /audit?from=base seeds the resume from a base resume (handed off via
+  // sessionStorage) and jumps straight to the job step. /audit?start=upload
+  // skips the chooser. (This component is client-rendered under Suspense, so
+  // reading sessionStorage in the initializers is safe — no SSR/hydration.)
+  const fromBase = search.get("from") === "base";
+  const seededResume = fromBase ? loadTargetResume() : "";
+  const [step, setStep] = useState(seededResume ? 1 : 0);
   const [mode, setMode] = useState<"choose" | "upload">(
-    search.get("start") === "upload" ? "upload" : "choose",
+    fromBase || search.get("start") === "upload" ? "upload" : "choose",
   );
-  const [resumeText, setResumeText] = useState("");
+  const [resumeText, setResumeText] = useState(seededResume);
   const [useSample, setUseSample] = useState(false);
   const [stats, setStats] = useState<ResumeStats | null>(null);
   const [posting, setPosting] = useState("");
