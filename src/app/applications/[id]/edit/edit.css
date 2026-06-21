@@ -857,6 +857,20 @@
   font-weight: 600;
   color: var(--tm-mint-700);
 }
+.tmE-fix-goto {
+  margin-top: 11px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--tm-blue-600);
+  background: none;
+  border: none;
+  padding: 2px 0;
+  cursor: pointer;
+}
+.tmE-fix-goto:hover {
+  text-decoration: underline;
+}
 
 @media (max-width: 1080px) {
   .tmE-grid3 {

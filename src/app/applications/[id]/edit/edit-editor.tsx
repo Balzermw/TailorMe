@@ -57,6 +57,26 @@ const VERDICT_LABEL: Record<Verdict, string> = {
   issue: "Worth a look",
 };
 
+const SECTION_LABEL: Record<Section, string> = {
+  header: "Header",
+  summary: "Summary",
+  experience: "Experience",
+  education: "Education",
+  skills: "Skills",
+  fixes: "Feedback",
+};
+
+// Route a finding to the editor section the user edits to act on it, so each
+// piece of feedback links straight to where the change is made.
+function fixSection(p: ProofPoint): Section {
+  const t = `${p.title} ${p.summary} ${p.quote ?? ""} ${p.fix}`.toLowerCase();
+  if (/summary|objective|profile/.test(t)) return "summary";
+  if (/\bskills?\b|toolset|technolog/.test(t)) return "skills";
+  if (/education|degree|\bgpa\b|coursework|university|college/.test(t)) return "education";
+  if (/contact|email|phone|linkedin|headline|\bname\b|\btitle\b/.test(t)) return "header";
+  return "experience"; // dates, bullets, metrics, scope, achievements, etc.
+}
+
 // Section-at-a-time résumé editor (Res.Me builder pattern): sidebar nav →
 // one section in the center with full-size inputs → wide résumé-only live
 // preview. Per-bullet Accept/Reject/Edit diff rows appear in Experience when
@@ -826,7 +846,7 @@ export default function EditEditor({
                   </h2>
                   <p className="tmE-panel-sub">
                     {onGetFeedback
-                      ? "A first-pass review of your content. Run it whenever you’ve made changes."
+                      ? "A first-pass review of your content."
                       : "What the tailoring targeted. Use these as a checklist while you edit."}
                   </p>
                 </div>
@@ -861,14 +881,31 @@ export default function EditEditor({
                       {SEV[sev].label}
                       <span style={{ background: SEV[sev].bg, color: SEV[sev].color }}>{group.length}</span>
                     </p>
-                    {group.map((p, i) => (
-                      <div key={i} className="tmE-fix">
-                        <b>{p.title}</b>
-                        {p.summary && <p className="tmE-fix-sum">{p.summary}</p>}
-                        {p.quote && <p className="tmE-fix-quote">“{p.quote}”</p>}
-                        {p.fix && <p className="tmE-fix-fix"><span>Fix:</span> {p.fix}</p>}
-                      </div>
-                    ))}
+                    {group.map((p, i) => {
+                      const target = fixSection(p);
+                      return (
+                        <div key={i} className="tmE-fix">
+                          <b>{p.title}</b>
+                          {p.summary && <p className="tmE-fix-sum">{p.summary}</p>}
+                          {p.quote && (
+                            <p
+                              className="tmE-fix-quote"
+                              title={`From your ${SECTION_LABEL[target]} section`}
+                            >
+                              “{p.quote}”
+                            </p>
+                          )}
+                          {p.fix && <p className="tmE-fix-fix"><span>Fix:</span> {p.fix}</p>}
+                          <button
+                            type="button"
+                            className="tmE-fix-goto"
+                            onClick={() => setSection(target)}
+                          >
+                            Edit {SECTION_LABEL[target]} →
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}

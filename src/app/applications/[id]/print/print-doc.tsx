@@ -57,8 +57,12 @@ export default function PrintDoc({
   // In the editor preview we tint the posting keywords (mint) and metrics (blue)
   // right in the résumé, so it visibly carries the audit's findings instead of
   // reading as a fresh, unrelated document. Left off for the real PDF render.
+  // Highlight whenever the editor preview asks for it (highlightKeywords is
+  // provided, even as []). Metrics tint blue without any keywords; posting
+  // keywords tint mint when present. The real PDF/print render passes nothing,
+  // so it stays untinted.
   const hl = (t: string) =>
-    highlightKeywords && highlightKeywords.length ? highlight(t, highlightKeywords) : t;
+    highlightKeywords !== undefined ? highlight(t, highlightKeywords) : t;
   const first = doc.name.split(/\s+/).slice(0, -1).join(" ") || doc.name;
   const last =
     doc.name.split(/\s+/).length > 1
