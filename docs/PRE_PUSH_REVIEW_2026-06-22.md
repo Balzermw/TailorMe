@@ -46,10 +46,12 @@ build are all green. Three **minor, non-blocking** follow-ups noted at the botto
 3. **Detector coverage is partial (≈13/79 rules).** Already documented in the handoff §10 #3 —
    noted here so the reviewer doesn't read it as a diff defect.
 
-## Push checklist (for the rooted tailorcv session)
+## Push status / checklist
 
-- [ ] `git push -u origin ui-review-polish` (only after the user green-lights — handoff rule).
-- [ ] Open the PR; paste this verdict + the handoff §2 summary as the description.
+- [x] Pushed to `origin/ui-review-polish` on 2026-06-22 (tip `7f35081`); branch is in sync.
+- [x] Follow-up #1 (one-line comment fix in `0006`) applied in this review.
+- [n/a] PR: the remote's **default branch is `ui-review-polish`** and `gh` is not installed, so
+      there is no base branch to open a PR against. The push is the publish step. Create/designate
+      a base branch first if a formal PR review is desired.
 - [ ] **Migrations are NOT applied by pushing.** At deploy time the user must run `0006` + `0007`
       in Supabase, set `ADMIN_EMAILS`, and toggle leaked-password protection (handoff §5/§10 #1).
-- [x] Follow-up #1 (one-line comment fix in `0006`) applied in this review.
