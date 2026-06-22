@@ -29,7 +29,7 @@ import type {
 import { pdfHref } from "@/lib/apply/render";
 import { RESUME_TEMPLATES, DEFAULT_TEMPLATE, templateName } from "@/lib/apply/templates";
 import { feedbackHash } from "@/lib/apply/hash";
-import { track } from "@/lib/track";
+import { track, getSessionId } from "@/lib/track";
 import { ROUTES } from "@/components/landing/data";
 import { bulletKey, diffMap } from "@/lib/apply/redline";
 import { highlight, highlightHits } from "@/lib/highlight";
@@ -392,13 +392,12 @@ export default function EditEditor({
   }
   async function groupWithAI() {
     if (grouping) return;
-    track("group_skills_click", { count: doc.skills.length });
     setGrouping(true);
     setGroupMsg(null);
     try {
       const res = await fetch("/api/resume/group-skills", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-tm-session": getSessionId() ?? "" },
         body: JSON.stringify({ skills: doc.skills }),
       });
       const data = await res.json().catch(() => ({}));

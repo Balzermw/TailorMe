@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { llmConfigured } from "@/lib/config";
 import { categorizeSkills } from "@/lib/apply/pipeline";
+import { withAiRun } from "@/lib/apply/ai-telemetry";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { EDIT_REVIEW_RULES, rateLimitDisabled } from "@/lib/limits";
 import { consume, getClientIp, tooManyRequests } from "@/lib/rate-limit";
@@ -46,7 +47,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const skillGroups = await categorizeSkills(skills);
+    const skillGroups = await withAiRun(
+      "group_skills",
+      { userId: user?.id ?? null, sessionId: request.headers.get("x-tm-session") },
+      () => categorizeSkills(skills),
+    );
     return NextResponse.json({ skillGroups });
   } catch {
     return NextResponse.json(

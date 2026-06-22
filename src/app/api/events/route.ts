@@ -1,25 +1,36 @@
 import { NextResponse } from "next/server";
-import { getServerSupabase } from "@/lib/supabase/server";
+import { getServerSupabase, getServiceSupabase } from "@/lib/supabase/server";
 
-// Product telemetry sink. Records allowlisted INTERACTION events with small,
-// primitive-only props — never résumé content or PII. Fire-and-forget: always
-// returns 204 and never throws, so a telemetry failure can't affect the app.
+// Product telemetry sink. The browser may ONLY reach product_events through
+// here — the table denies direct public access (RLS, no policies), and this
+// route validates + sanitizes, sets user_id server-side, and writes with the
+// service role. Stores allowlisted event names + small primitive props only —
+// never résumé/job content or PII. Fire-and-forget: always 204, never throws.
 
 export const runtime = "nodejs";
 
-// Only these event names are stored — anything else is silently dropped.
 const ALLOWED = new Set([
+  "chooser_select",
+  "resume_import_start",
+  "resume_import_success",
+  "resume_import_failed",
+  "start_from_scratch",
   "template_select",
   "feedback_click",
-  "group_skills_click",
   "target_job_click",
-  "pdf_click",
   "tailor_click",
-  "chooser_select",
-  "import_structure_click",
+  "pdf_click",
+  "pricing_view",
+  "checkout_start",
+  "checkout_success",
+  "credit_gate_shown",
+  "limit_hit",
 ]);
 
-// Keep only small primitive props; drop strings that look like free-form content.
+const MAX_BATCH = 10;
+const MAX_BODY = 8_000; // reject oversized payloads (chars ≈ bytes for this JSON)
+
+// Props may only contain small, safe primitives — drop everything else.
 function sanitizeProps(input: unknown): Record<string, string | number | boolean> {
   if (!input || typeof input !== "object") return {};
   const out: Record<string, string | number | boolean> = {};
@@ -34,33 +45,60 @@ function sanitizeProps(input: unknown): Record<string, string | number | boolean
   return out;
 }
 
+const noContent = () => new NextResponse(null, { status: 204 });
+
 export async function POST(request: Request) {
-  let body: { name?: unknown; props?: unknown; sessionId?: unknown };
+  if (Number(request.headers.get("content-length") || 0) > MAX_BODY) return noContent();
+  let raw: string;
   try {
-    body = await request.json();
+    raw = await request.text();
   } catch {
-    return new NextResponse(null, { status: 204 });
+    return noContent();
   }
-  const name = typeof body.name === "string" ? body.name : "";
-  if (!ALLOWED.has(name)) return new NextResponse(null, { status: 204 });
+  if (raw.length > MAX_BODY) return noContent();
 
-  const sb = await getServerSupabase();
-  if (!sb) return new NextResponse(null, { status: 204 }); // demo / no DB: drop
+  let body: unknown;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return noContent();
+  }
+
+  // One event or an array of up to MAX_BATCH.
+  const list = Array.isArray(body) ? body : [body];
+  if (!list.length || list.length > MAX_BATCH) return noContent();
+
+  const rows: {
+    name: string;
+    session_id: string;
+    props: Record<string, string | number | boolean>;
+  }[] = [];
+  for (const e of list) {
+    if (!e || typeof e !== "object") continue;
+    const ev = e as Record<string, unknown>;
+    const name = typeof ev.name === "string" ? ev.name : "";
+    const sessionId = typeof ev.sessionId === "string" ? ev.sessionId.slice(0, 64) : "";
+    if (!ALLOWED.has(name) || !sessionId) continue; // ignore invalid, don't break UX
+    rows.push({ name, session_id: sessionId, props: sanitizeProps(ev.props) });
+  }
+  if (!rows.length) return noContent();
+
+  const svc = getServiceSupabase();
+  if (!svc) return noContent(); // no service key / demo → drop silently
+
+  // user_id comes from the session, never the client.
+  let userId: string | null = null;
+  try {
+    const sb = await getServerSupabase();
+    if (sb) userId = (await sb.auth.getUser()).data.user?.id ?? null;
+  } catch {
+    /* anon */
+  }
 
   try {
-    const {
-      data: { user },
-    } = await sb.auth.getUser();
-    const sessionId =
-      typeof body.sessionId === "string" ? body.sessionId.slice(0, 64) : null;
-    await sb.from("events").insert({
-      user_id: user?.id ?? null,
-      session_id: sessionId,
-      name,
-      props: sanitizeProps(body.props),
-    });
+    await svc.from("product_events").insert(rows.map((r) => ({ ...r, user_id: userId })));
   } catch {
-    /* telemetry is best-effort */
+    /* best-effort telemetry */
   }
-  return new NextResponse(null, { status: 204 });
+  return noContent();
 }

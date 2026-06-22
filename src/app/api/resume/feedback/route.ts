@@ -4,6 +4,7 @@ import { parseResume } from "@/lib/apply/pipeline";
 import { docToResumeText } from "@/lib/apply/serialize";
 import { sanitizeDoc } from "@/lib/apply/sanitize-doc";
 import { feedbackHash } from "@/lib/apply/hash";
+import { withAiRun, logCachedRun } from "@/lib/apply/ai-telemetry";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { EDIT_REVIEW_RULES, rateLimitDisabled } from "@/lib/limits";
 import { consume, getClientIp, tooManyRequests } from "@/lib/rate-limit";
@@ -35,6 +36,8 @@ export async function POST(request: Request) {
     );
   }
 
+  const t0 = Date.now();
+  const sessionId = request.headers.get("x-tm-session");
   const hash = feedbackHash(doc);
   const sb = await getServerSupabase();
   const user = sb ? (await sb.auth.getUser()).data.user : null;
@@ -50,6 +53,7 @@ export async function POST(request: Request) {
     stats = (row?.stats as Record<string, unknown>) ?? {};
     // Same résumé as last time → return the cached review, no tokens spent.
     if (stats.feedbackHash === hash && Array.isArray(stats.proofPoints)) {
+      logCachedRun("feedback", { userId: user.id, sessionId }, Date.now() - t0);
       return NextResponse.json({ proofPoints: stats.proofPoints, cached: true });
     }
   }
@@ -67,7 +71,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = await parseResume(docToResumeText(doc), undefined, true);
+    const parsed = await withAiRun(
+      "feedback",
+      { userId: user?.id ?? null, sessionId },
+      () => parseResume(docToResumeText(doc), undefined, true),
+    );
     const proofPoints = parsed.proofPoints ?? [];
     // Persist with the hash so the next identical request is a free cache hit.
     if (sb && user) {

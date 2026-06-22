@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { llmConfigured } from "@/lib/config";
 import { structureResume } from "@/lib/apply/pipeline";
+import { withAiRun } from "@/lib/apply/ai-telemetry";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { EDIT_REVIEW_RULES, MAX_RESUME_CHARS, rateLimitDisabled } from "@/lib/limits";
 import { consume, getClientIp, tooManyRequests } from "@/lib/rate-limit";
@@ -30,14 +31,15 @@ export async function POST(request: Request) {
     );
   }
 
+  const sb = await getServerSupabase();
+  const userId = sb ? (await sb.auth.getUser()).data.user?.id ?? null : null;
+  const sessionId = request.headers.get("x-tm-session");
+
   if (!rateLimitDisabled) {
-    const sb = await getServerSupabase();
-    let who = getClientIp(request);
-    if (sb) {
-      const { data } = await sb.auth.getUser();
-      if (data.user?.id) who = data.user.id;
-    }
-    const res = consume(`resume-structure:${who}`, EDIT_REVIEW_RULES);
+    const res = consume(
+      `resume-structure:${userId ?? getClientIp(request)}`,
+      EDIT_REVIEW_RULES,
+    );
     if (!res.allowed) {
       return tooManyRequests(
         "You're importing very fast. Give it a minute.",
@@ -47,7 +49,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const doc = await structureResume(text);
+    const doc = await withAiRun("structure", { userId, sessionId }, () =>
+      structureResume(text),
+    );
     if (!doc) {
       return NextResponse.json(
         { error: "Couldn't read a resume from that text. Add a bit more detail." },
