@@ -8,33 +8,40 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Check, ChevronRight, Download, FileText, MoreHorizontal, PenLine, Plus, Settings, Target, X } from "lucide-react";
+import { Check, Download, FileText, PenLine, Plus, Settings, Target, X } from "lucide-react";
 import { ROUTES } from "@/components/landing/data";
 import { editHref, pdfHref } from "@/lib/apply/render";
 import { setTargetResume } from "@/lib/resume";
 import { docToResumeText } from "@/lib/apply/serialize";
 import type { ApplicationRow, TailoredDoc } from "@/lib/types";
 import type { SessionUser as AuthUser } from "@/lib/auth";
+import { ScoreBar, RowStatus, initials } from "./dashboard-bits";
 
 type View = "apps" | "docs";
 
-const STAGE_LABELS = ["Parse", "Fit", "Draft", "Review"];
-
-type Tier = "strong" | "good" | "moderate" | "weak";
-
-const RING_COLOR: Record<string, string> = {
-  strong: "var(--tm-mint-500)",
-  good: "#84cc16",
-  moderate: "#f59e0b",
-  weak: "#ef4444",
-};
-
 const STATUS_LABEL: Record<string, string> = {
   ready: "Reviewed · ready to download",
-  running: "Running",
+  running: "Tailoring in progress",
   scored: "Scored only · no credit spent",
   human_review: "Michael reviewing · returns in ~48h",
 };
+
+/** Application status → the dot tone used by RowStatus. */
+const STATUS_TONE: Record<string, string> = {
+  ready: "ready",
+  running: "scored",
+  scored: "scored",
+  human_review: "human_review",
+};
+
+type Filter = "all" | "strong" | "ready" | "michael";
+type Sort = "date" | "fit";
+const FILTERS: [Filter, string][] = [
+  ["all", "All"],
+  ["strong", "Strong fits"],
+  ["ready", "Ready"],
+  ["michael", "With Michael"],
+];
 
 /** Michael's human pass is mid-flight (requested or actively in review). */
 function michaelInReview(app: ApplicationRow) {
@@ -96,66 +103,6 @@ function MichaelPanel({
   );
 }
 
-function scoreTier(score: number | null): Tier | null {
-  if (score == null) return null;
-  if (score >= 80) return "strong";
-  if (score >= 70) return "good";
-  if (score >= 55) return "moderate";
-  return "weak";
-}
-
-function initials(name: string) {
-  return name.split(" ").map((w) => w[0] ?? "").join("").toUpperCase().slice(0, 2);
-}
-
-function ScoreRing({ fit, running }: { fit: number | null; running?: boolean }) {
-  if (running) {
-    return (
-      <div className="tmD-scoring">
-        <span>Scoring…</span>
-        <span>In progress</span>
-      </div>
-    );
-  }
-  if (fit == null) return <div className="tmD-scoring"><span>—</span></div>;
-  const tier = scoreTier(fit);
-  const color = tier ? RING_COLOR[tier] : "var(--tm-border)";
-  const r = 17, cx = 22, cy = 22;
-  const circ = 2 * Math.PI * r;
-  const dash = (fit / 100) * circ;
-  return (
-    <svg viewBox="0 0 44 44" width={44} height={44} className="tmD-ring" aria-label={`Fit score ${fit}`}>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--tm-gray)" strokeWidth={3.5} />
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={3.5}
-        strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round"
-        transform="rotate(-90 22 22)" />
-      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central"
-        fontSize="11" fontWeight="600" fill="var(--tm-ink)">
-        {fit}
-      </text>
-    </svg>
-  );
-}
-
-function StageProgress({ status }: { status: string }) {
-  const doneCount = status === "ready" || status === "human_review" ? 4 : status === "scored" ? 2 : 1;
-  const isRunning = status === "running";
-  return (
-    <div className="tmD-stages">
-      {STAGE_LABELS.map((s, i) => {
-        const isDone = i < doneCount;
-        const isActive = isRunning && i === 1;
-        return (
-          <div key={s} className="tmD-stage">
-            <div className={"tmD-stage-bar" + (isDone ? " done" : isActive ? " active" : "")} />
-            <span>{s}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 export default function DashboardLive({
   user,
   credits,
@@ -175,11 +122,22 @@ export default function DashboardLive({
     ? apps.filter((a) => a.resumeId === baseResumeId).length
     : 0;
   const [view, setView] = useState<View>("apps");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [sort, setSort] = useState<Sort>("date");
   const [openId, setOpenId] = useState<string | null>(apps[0]?.id ?? null);
   const [requesting, setRequesting] = useState(false);
   const [reviewMsg, setReviewMsg] = useState<string | null>(null);
   const open = apps.find((a) => a.id === openId) ?? null;
   const ready = apps.filter((a) => a.status === "ready" && a.result?.doc);
+
+  const shown = [...apps]
+    .filter((a) => {
+      if (filter === "strong") return (a.fitScore ?? 0) >= 70;
+      if (filter === "ready") return a.status === "ready";
+      if (filter === "michael") return michaelInReview(a);
+      return true;
+    })
+    .sort((a, b) => (sort === "fit" ? (b.fitScore ?? 0) - (a.fitScore ?? 0) : 0));
 
   // Per-application Michael review: kicks off a Stripe Checkout session; the
   // webhook flips michael_status on success. Demo/no-Stripe → friendly notice.
@@ -309,38 +267,55 @@ export default function DashboardLive({
             </Link>
           </div>
         ) : view === "apps" ? (
-          <div className="tmD-layout">
+          <>
+            <div className="tmD-filters">
+              {FILTERS.map(([k, l]) => (
+                <span
+                  key={k}
+                  className={"tmD-chip" + (filter === k ? " is-on" : "")}
+                  onClick={() => setFilter(k)}
+                >
+                  {l}
+                </span>
+              ))}
+              <span className="tmD-sort">
+                sort by
+                <span className={sort === "date" ? "is-on" : ""} onClick={() => setSort("date")}>
+                  date
+                </span>
+                <span className={sort === "fit" ? "is-on" : ""} onClick={() => setSort("fit")}>
+                  fit
+                </span>
+              </span>
+            </div>
+            <div className="tmD-layout mt-[4px]">
             <div>
-              {/* Column headers */}
-              <div className="tmD-thead">
-                <span />
-                <span>Application</span>
-                <span>Overall score</span>
-                <span>Stage progress</span>
-                <span>Added</span>
-                <span />
-              </div>
-
               <div className="tmD-list">
-                {apps.map((a) => (
-                  <div
-                    key={a.id}
-                    className={"tm-card tmD-row" + (openId === a.id ? " is-open" : "")}
-                    onClick={() => setOpenId(openId === a.id ? null : a.id)}
-                  >
-                    <ChevronRight size={15} className="tmD-chevron" />
-                    <div className="tmD-row-co">
-                      <b>{a.role}</b>
-                      <span>{a.company}</span>
+                {shown.map((a) => {
+                  const building = a.status === "running" && !michaelInReview(a);
+                  const effStatus = michaelInReview(a) ? "human_review" : a.status;
+                  return (
+                    <div
+                      key={a.id}
+                      className={"tm-card tmD-row" + (openId === a.id ? " is-open" : "")}
+                      onClick={() => setOpenId(openId === a.id ? null : a.id)}
+                    >
+                      <div className="tmD-row-co">
+                        <b>{a.role}</b>
+                        <span>{a.company}</span>
+                      </div>
+                      <ScoreBar fit={a.fitScore ?? null} building={building} />
+                      {building ? (
+                        <span />
+                      ) : (
+                        <RowStatus tone={STATUS_TONE[effStatus]} label={STATUS_LABEL[effStatus] ?? effStatus} />
+                      )}
+                      <span className="tmD-row-date">
+                        {new Date(a.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
                     </div>
-                    <ScoreRing fit={a.fitScore ?? null} running={a.status === "running"} />
-                    <StageProgress status={a.status} />
-                    <span className="tmD-row-date">
-                      {new Date(a.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </span>
-                    <MoreHorizontal size={15} className="tmD-row-menu" />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -454,6 +429,7 @@ export default function DashboardLive({
               </div>
             )}
           </div>
+          </>
         ) : (
           <div className="tmD-docs">
             {ready.length === 0 ? (

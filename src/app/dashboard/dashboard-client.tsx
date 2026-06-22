@@ -6,11 +6,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Check,
-  ChevronRight,
   Download,
   FileText,
   Lock,
-  MoreHorizontal,
   PenLine,
   Plus,
   Settings,
@@ -22,8 +20,7 @@ import { useDemoSession } from "@/lib/use-session";
 import { loadBaseResumeDoc, setTargetResume } from "@/lib/resume";
 import { docToResumeText } from "@/lib/apply/serialize";
 import type { TailoredDoc } from "@/lib/types";
-
-const STAGE_LABELS = ["Parse", "Fit", "Draft", "Review"];
+import { ScoreBar, RowStatus, initials } from "./dashboard-bits";
 
 type Tier = "strong" | "good" | "moderate" | "weak";
 type Status = "ready" | "running" | "michael" | "scored";
@@ -42,7 +39,7 @@ type App = {
 
 const APPS: App[] = [
   { id: "nordpeak", co: "Nordpeak Systems", role: "Senior Platform Engineer", fit: 84, tier: "strong", status: "ready", date: "Today", michael: "none" },
-  { id: "lumengrid", co: "Lumen Grid", role: "Staff Backend Engineer", fit: null, tier: null, status: "running", date: "Today", michael: "none" },
+  { id: "lumengrid", co: "Lumen Grid", role: "Staff Backend Engineer", fit: 81, tier: "strong", status: "ready", date: "Today", michael: "none" },
   { id: "helio", co: "Helio Analytics", role: "Senior Software Engineer", fit: 76, tier: "good", status: "michael", date: "Yesterday", michael: "reviewing" },
   { id: "brightcart", co: "Brightcart", role: "Engineering Manager", fit: 58, tier: "moderate", status: "scored", date: "Jun 8", michael: "none" },
   { id: "vantora", co: "Vantora", role: "Senior Frontend Engineer", fit: 41, tier: "weak", status: "scored", date: "Jun 6", michael: "none" },
@@ -85,70 +82,13 @@ const FILTERS: [Filter, string][] = [
   ["michael", "With Michael"],
 ];
 
-const STAGE_DONE: Record<Status, number> = {
-  ready: 4,
-  running: 1,
-  michael: 4,
-  scored: 2,
+/** Demo status → the dot tone used by RowStatus (michael ≈ human_review). */
+const STATUS_TONE: Record<Status, string> = {
+  ready: "ready",
+  running: "scored",
+  michael: "human_review",
+  scored: "scored",
 };
-
-const RING_COLOR: Record<string, string> = {
-  strong: "var(--tm-mint-500)",
-  good: "#84cc16",
-  moderate: "#f59e0b",
-  weak: "#ef4444",
-};
-
-function initials(name: string) {
-  return name.split(" ").map((w) => w[0] ?? "").join("").toUpperCase().slice(0, 2);
-}
-
-function ScoreRing({ fit, tier, running }: { fit: number | null; tier: Tier | null; running?: boolean }) {
-  if (running) {
-    return (
-      <div className="tmD-scoring">
-        <span>Scoring…</span>
-        <span>In progress</span>
-      </div>
-    );
-  }
-  if (fit == null) return <span className="tmD-scoring"><span>—</span></span>;
-  const color = tier ? RING_COLOR[tier] : "var(--tm-border)";
-  const r = 17, cx = 22, cy = 22;
-  const circ = 2 * Math.PI * r;
-  const dash = (fit / 100) * circ;
-  return (
-    <svg viewBox="0 0 44 44" width={44} height={44} className="tmD-ring" aria-label={`Fit score ${fit}`}>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--tm-gray)" strokeWidth={3.5} />
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={3.5}
-        strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round"
-        transform="rotate(-90 22 22)" />
-      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central"
-        fontSize="11" fontWeight="600" fill="var(--tm-ink)">
-        {fit}
-      </text>
-    </svg>
-  );
-}
-
-function StageProgress({ status, runStage }: { status: Status; runStage: number }) {
-  const done = status === "running" ? 0 : STAGE_DONE[status];
-  const active = status === "running" ? Math.min(runStage, 3) : -1;
-  return (
-    <div className="tmD-stages">
-      {STAGE_LABELS.map((s, i) => {
-        const isDone = i < done;
-        const isActive = i === active;
-        return (
-          <div key={s} className="tmD-stage">
-            <div className={"tmD-stage-bar" + (isDone ? " done" : isActive ? " active" : "")} />
-            <span>{s}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 function Drawer({ app, onClose, onRequestReview }: { app: App; onClose: () => void; onRequestReview: () => void }) {
   return (
@@ -285,17 +225,11 @@ export default function DashboardClient() {
   useEffect(() => {
     loadBaseResumeDoc().then(setBaseResume);
   }, []);
-  const [runStage, setRunStage] = useState(1);
   // Per-application Michael overrides — clicking "Add Michael's review" in the
   // demo optimistically flips an app to "reviewing" (the live dashboard does the
   // real Stripe round-trip instead).
   const [michael, setMichael] = useState<Record<string, MichaelState>>({});
   const session = useDemoSession();
-
-  useEffect(() => {
-    const id = setInterval(() => setRunStage((s) => (s >= 3 ? 1 : s + 1)), 2200);
-    return () => clearInterval(id);
-  }, []);
 
   if (!session) {
     return (
@@ -426,35 +360,26 @@ export default function DashboardClient() {
 
             <div className="tmD-layout mt-[4px]">
               <div>
-                {/* Column headers */}
-                <div className="tmD-thead">
-                  <span />
-                  <span>Application</span>
-                  <span>Overall score</span>
-                  <span>Stage progress</span>
-                  <span>Added</span>
-                  <span />
-                </div>
-
                 {/* Rows */}
                 <div className="tmD-list">
-                  {sorted.map((a) => (
-                    <div
-                      key={a.id}
-                      className={"tm-card tmD-row" + (openId === a.id ? " is-open" : "")}
-                      onClick={() => setOpenId(openId === a.id ? null : a.id)}
-                    >
-                      <ChevronRight size={15} className="tmD-chevron" />
-                      <div className="tmD-row-co">
-                        <b>{a.role}</b>
-                        <span>{a.co}</span>
+                  {sorted.map((a) => {
+                    const effStatus: Status = a.michael === "reviewing" ? "michael" : a.status;
+                    return (
+                      <div
+                        key={a.id}
+                        className={"tm-card tmD-row" + (openId === a.id ? " is-open" : "")}
+                        onClick={() => setOpenId(openId === a.id ? null : a.id)}
+                      >
+                        <div className="tmD-row-co">
+                          <b>{a.role}</b>
+                          <span>{a.co}</span>
+                        </div>
+                        <ScoreBar fit={a.fit} building={a.status === "running"} />
+                        <RowStatus tone={STATUS_TONE[effStatus]} label={STATUS_LABEL[effStatus]} />
+                        <span className="tmD-row-date">{a.date}</span>
                       </div>
-                      <ScoreRing fit={a.fit} tier={a.tier} running={a.status === "running"} />
-                      <StageProgress status={a.status} runStage={runStage} />
-                      <span className="tmD-row-date">{a.date}</span>
-                      <MoreHorizontal size={15} className="tmD-row-menu" />
-                    </div>
-                  ))}
+                    );
+                  })}
                   {sorted.length === 0 && (
                     <div className="tm-card tmD-empty"><p>Nothing matches this filter.</p></div>
                   )}
