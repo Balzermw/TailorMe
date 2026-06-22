@@ -283,9 +283,10 @@ funnel stats and the editor fires `resume_feedback_suggestions_surfaced` (counts
 4. **Optional: single bounded, cached LLM rule-eval pass** (config-flagged, off by default) for
    the subjective rules deterministic checks can't catch. Must respect the privacy invariant and
    the caps; cache by content hash like the existing feedback cache.
-5. **Push `ui-review-polish` (17 commits) + open a PR.** Do a final self-review of the
-   pricing/telemetry/rules/dashboard diff first. Then validate `docs/telemetry-queries.sql`
-   against real rows once events start flowing. **Do not push `main`.**
+5. **Push `ui-review-polish` (the unpushed commits) + open a PR.** The final self-review of the
+   pricing/telemetry/rules/dashboard diff is **done** — see `docs/PRE_PUSH_REVIEW_2026-06-22.md`
+   (verdict: approved, no blockers; 3 minor non-blocking follow-ups). Then validate
+   `docs/telemetry-queries.sql` against real rows once events start flowing. **Do not push `main`.**
 
 ---
 

@@ -18,8 +18,8 @@ create table if not exists public.orders (
   expert_feedback boolean not null default false, -- $79 human review pass purchased
   human_revision boolean not null default false,  -- $149 human revision purchased
   stripe_session_id text unique,                  -- idempotency: one order per session
-  -- Human add-ons need manual fulfillment. TODO: build an admin view that lists
-  -- orders where (expert_feedback or human_revision) and fulfillment_status='pending'.
+  -- Human add-ons need manual fulfillment; /admin/orders lists the pending ones
+  -- (orders where (expert_feedback or human_revision) and fulfillment_status <> 'none').
   fulfillment_status text not null default 'none' -- none | pending | done
 );
 create index if not exists orders_user_created_idx on public.orders (user_id, created_at desc);
