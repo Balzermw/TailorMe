@@ -8,7 +8,9 @@ import { MAX_BATCH } from "@/lib/telemetry-events";
 
 type Ev = {
   name: string;
-  props?: Record<string, string | number | boolean>;
+  // undefined values are allowed for ergonomic optional props — JSON.stringify
+  // drops them, and the server's sanitizeProps keeps only safe primitives.
+  props?: Record<string, string | number | boolean | undefined>;
   sessionId: string | null;
 };
 
@@ -82,7 +84,7 @@ function ensureListeners(): void {
 
 export function track(
   name: string,
-  props?: Record<string, string | number | boolean>,
+  props?: Record<string, string | number | boolean | undefined>,
 ): void {
   if (typeof window === "undefined") return;
   try {

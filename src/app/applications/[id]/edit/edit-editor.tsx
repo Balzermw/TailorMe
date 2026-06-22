@@ -1279,7 +1279,19 @@ export default function EditEditor({
                           <button
                             type="button"
                             className="tmE-fix-goto"
-                            onClick={() => setSection(target)}
+                            onClick={() => {
+                              // Per-suggestion telemetry — counts/ids/categories
+                              // only, never résumé content. rule_id is present
+                              // only for rules-engine findings; sanitizeProps
+                              // drops it when undefined (legacy LLM points).
+                              track("resume_feedback_suggestion_clicked", {
+                                rule_id: p.ruleId,
+                                category: p.category,
+                                severity: p.severity,
+                                section: target,
+                              });
+                              setSection(target);
+                            }}
                           >
                             Edit {SECTION_LABEL[target]} →
                           </button>

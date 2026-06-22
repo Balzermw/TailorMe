@@ -28,6 +28,10 @@ function findingToProofPoint(f: ResumeRuleFinding): ProofPoint {
     why: f.whyItMatters,
     fix: f.suggestedFix,
     severity: f.uiSeverityLabel.toLowerCase() as ProofPoint["severity"],
+    // Carry rule provenance so the editor can emit per-suggestion telemetry
+    // (which rules users act on). Safe ids/categories only — never content.
+    ruleId: f.ruleId,
+    category: f.category,
   };
 }
 

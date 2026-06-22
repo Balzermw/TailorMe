@@ -29,6 +29,10 @@ export interface ProofPoint {
   why: string; // deep-dive: why it matters (how ATS / recruiters read it)
   fix: string; // deep-dive: how tailoring fixes it
   severity: "high" | "medium" | "low";
+  // Rule provenance (present only for rules-engine findings, not legacy LLM
+  // points). Safe telemetry primitives — ids/categories only, never content.
+  ruleId?: string;
+  category?: string;
 }
 
 export interface FitBreakdown {
