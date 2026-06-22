@@ -1,0 +1,2159 @@
+{
+  "metadata": {
+    "generated": "2026-06-21",
+    "sources": [
+      "Local books: Knock 'em Dead (Yate), Resume Magic (Whitcomb), Tech Resume Inside Out (Orosz), Fck Your Resume, Lose the Resume (Burnison), Damn Good (Parker/Brown), Phrase Book, Infographic Resume, Resume Forensics, Elements of Resume Style, Google Resume",
+      "Online 2025-2026 sources: Coursera, Merit America, Teal, Ladders eye-tracking, NACE, ResumeGo, Wonsulting eye-tracker, ResumeHeatMap, skills-based reports (LinkedIn, McKinsey, TestGorilla), military translation guides (Hiring Our Heroes, O*NET), gig economy examples (ResumeWorded, Upwork), cover letter guides, bias reduction studies, executive trends"
+    ],
+    "raw_lessons_collected": "500+ (continued deep book mining on education placement, projects, qualifications summary, references lists, length rules, personal branding from Resume Magic/Tech + 2026 web) + structured reports from 10 books",
+    "after_dedup_unique": 79,
+    "final_prioritized_in_file": 79,
+    "process": "SUPER wide collection (books extracts + repeated web/X targeted on eye-track, skills-based 85%, projects/portfolio, page length 2026, ATS headers, hybrid, gaps, military/gig/exec, cover, bias). Rigorous dedup (true dups removed; variants/context-specific kept). Prioritize v1_core + high impact. Exact schema. Metadata fixed to actual rule count.",
+    "note": "Continuing expansion. Added 12 new from local (Yate TJD/projects emphasis, Orosz tech projects/LinkedIn limits, Parker hybrid, etc) + 2026 sources (page length flexibility, GitHub quality 3-6, core competencies clusters, result-first bullets, standard headers). Total rules now 38. Fixed metadata to match actual array. Ready for more mining or implementation use. | Added 5 more: accomplishments focus, power verbs, no pronouns, date consistency, multi-JD TJD. Total now 43. | +2: networking/referrals priority + executive strategic story focus. Total now 45 | Added 7 more from books + 2026 sources: PAR bullets, cover 2026 structure/value, separate refs doc, semantic AI coherence, accomplishments extraction strategies, online profile vs resume, referral priority. Total: 52 | +4 more: bullet length 1-2 lines/15-30w, contextual file format (docx for ATS / PDF for humans), verb tense consistency, bullets per role prioritization. Total: 56. | +0 more: bullet length 1-2 lines/15-30w, contextual file format (docx for ATS / PDF for humans), verb tense consistency, bullets per role prioritization. Total: 56. | +7 more from targeted book mining (impact questions, verb+proof, format selection, cover 5-step/avoid lists, keyword index, before-after). Total now 63. | +3 from Fck Your Resume (online primary signal, cultivate reputation/recommendations, resume as curated snapshot). Total: 66 | +0 from Fck Your Resume (online primary signal, cultivate reputation/recommendations, resume as curated snapshot). Total: 66 | +6 more (education by level, projects impact, summary over objective, separate refs list, length by exp, personal branding). Total: 72. No hard limit \u2014 extracting distinct codifiable lessons. | +3 from full book reports (qual summary, e-portfolios, employer peeves). Total: 75 | Dedupe pass: removed 0 near-duplicates. Total now 75. | +4 basic structural rules for UI feedback (name, title, dates, skills section). Total now 79. | Bulk UI enhancement: added ui_* fields to 79 rules + latex_detection_hint to all. Total 79. | Full UI enhancement complete: ui_* + latex_detection_hint on all 79 rules. Expanded sample feedback set to 12 items."
+  },
+  "rules": [
+    {
+      "rule_id": "tjd_or_jd_alignment",
+      "category": "Job targeting & tailoring",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "ats"
+      ],
+      "principle": "Deconstruct target job (via TJD or JD analysis) into core requirements before writing or scoring.",
+      "why_it_matters": "Generic resumes fail database pulls and 6-10s human scans.",
+      "applies_when": [
+        "target role or JD known"
+      ],
+      "does_not_apply_when": [
+        "pure exploratory search"
+      ],
+      "detection_hint": "Low overlap with target JD requirements; no focused target title.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "This resume is not built around the actual requirements of the {{target_role}}.",
+      "rewrite_instruction": "Map content to top 6-8 JD requirements using similar language.",
+      "example_bad": "Broad list of everything I've done.",
+      "example_good": "Experience and bullets aligned to the specific JD priorities.",
+      "source_reference": "Knock 'em Dead (TJD) + modern JD matching advice",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Deconstruct target job (via TJD or JD analysis) into core re...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "car_structure",
+      "category": "Bullet writing & structure",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "quantifier"
+      ],
+      "principle": "Use Challenge-Action-Result (CAR) for major accomplishments.",
+      "why_it_matters": "Proves problem-solving and value over duties.",
+      "applies_when": [
+        "experience bullets"
+      ],
+      "detection_hint": "Task-only language no challenge or result.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Rewrite using CAR: Challenge? Action? Result?",
+      "rewrite_instruction": "Faced [challenge]. [Action]. Delivered [result + metrics].",
+      "example_good": "Faced stagnant pipeline. Redesigned process. Increased revenue 42%.",
+      "source_reference": "R\u00e9sum\u00e9 Magic + widespread best practice",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Bullets lack CAR structure (Challenge-Action-Result)",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Rewrite bullets",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Bullets starting with \"Responsible for\", \"Worked on\", or \"Helped with\" without Challenge or Result."
+    },
+    {
+      "rule_id": "quantify_impact_metrics",
+      "category": "Quantification, metrics & impact",
+      "primary_agent": "quantifier",
+      "supporting_agents": [
+        "hiring_manager"
+      ],
+      "principle": "Quantify achievements with specific numbers, %, scope, before/after wherever possible.",
+      "why_it_matters": "Metrics increase interview chances ~40%; make impact concrete and credible.",
+      "applies_when": [
+        "all substantive bullets"
+      ],
+      "detection_hint": "Vague or unquantified claims where scale exists.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Add numbers: $, %, time, people, locations, growth.",
+      "rewrite_instruction": "Insert truthful metrics or scope (use approximations honestly if needed).",
+      "example_good": "Increased revenue 42% YoY, adding $2.3M ARR.",
+      "source_reference": "Multiple: Resume Magic, Teal, Merit America, recruiter studies",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Impact is described, not quantified",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Rewrite bullet",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "In experience bullets (\\item), look for \"Responsible for\" or \"Developed\" without numbers, %, $, or \"increased/reduced/cut\"."
+    },
+    {
+      "rule_id": "7_second_scan_top_third",
+      "category": "Recruiter & hiring manager psychology / scan behavior",
+      "primary_agent": "hiring_manager",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Optimize top third of page 1 for 6-8 second initial scan (average ~7.4s per studies).",
+      "why_it_matters": "80%+ attention on name, current/previous titles/companies/dates, education.",
+      "applies_when": [
+        "all resumes"
+      ],
+      "detection_hint": "Key info (title, impact, skills) not immediately visible in top section.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Recruiters scan ~7 seconds. Front-load strongest proof in top third.",
+      "rewrite_instruction": "Ensure name, current title, top 1-2 quantified impacts, and key skills are in the first visible section.",
+      "source_reference": "Ladders eye-tracking (2012/2018) + 2025 confirmations, ResumeHeatMap",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_target_section": "header",
+      "ui_fix_action": "Restructure top section",
+      "ui_title": "Top third of page 1 is weak",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "f_pattern_fixation_points",
+      "category": "Recruiter & hiring manager psychology / scan behavior",
+      "primary_agent": "hiring_manager",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Design for F-pattern scan: prioritize top horizontal, left vertical, specific fixation points (name, current title/company/dates, previous title/company, education) which get ~80% attention.",
+      "why_it_matters": "Recruiters follow predictable F-pattern per eye-tracking studies (Ladders, Wonsulting 2025); content elsewhere is ignored in initial scan.",
+      "applies_when": [
+        "all resumes"
+      ],
+      "detection_hint": "Key info not in top-left or fixation areas; dense text in lower/right.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Recruiters scan in F-pattern focusing on top and left. Place strongest elements (name, titles, metrics) in high-attention zones.",
+      "rewrite_instruction": "Restructure layout: name/top header first, bold titles left-aligned, metrics in first bullets, education lower if experienced.",
+      "source_reference": "Ladders Eye-Tracking Study, Wonsulting 2025 hidden eye tracker, ResumeHeatMap analysis",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_target_section": "header",
+      "ui_fix_action": "Restructure top section",
+      "ui_title": "Key info not in F-pattern scan zones",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "quantified_bullets_80_percent",
+      "category": "Quantification, metrics & impact",
+      "primary_agent": "quantifier",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Aim for 80% of bullet points to include numbers, metrics, or tangible outcomes (per eye-tracking experiments).",
+      "why_it_matters": "Quantified achievements stand out in scans, increase interview rates (40%+ per studies), and align with recruiter attention on results.",
+      "applies_when": [
+        "work experience bullets"
+      ],
+      "detection_hint": "Most bullets are duty descriptions without metrics or results.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "80% of your bullets should have numbers or results to grab attention in the quick scan.",
+      "rewrite_instruction": "Rewrite bullets to include specific metrics, percentages, or outcomes where possible; use approximations if exact not available.",
+      "source_reference": "Wonsulting eye-tracker experiment, LinkedIn/TalentWorks studies on quantification impact",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Aim for 80% of bullet points to include numbers, metrics, or...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Rewrite bullets",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "skills_first_prominent",
+      "category": "Skills section & competency mapping",
+      "primary_agent": "ats",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "Place a dedicated, clustered Skills section near the top (skills-first layout).",
+      "why_it_matters": "70-85% employers use skills-based hiring; ATS prioritizes skills over titles.",
+      "applies_when": [
+        "most professional roles"
+      ],
+      "detection_hint": "Skills buried only in bullets or missing prominent section.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Move or add a clear Skills section near the top with role-relevant clusters.",
+      "rewrite_instruction": "List technical/tools first, then transferable. Mirror JD language naturally.",
+      "source_reference": "Merit America, NACE, Teal, skills-based hiring stats 2025-2026",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "No dedicated skills section or skills buried",
+      "ui_target_section": "skills",
+      "ui_fix_action": "Edit Skills",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "No \\section{Skills} near top, or skills only scattered in bullets."
+    },
+    {
+      "rule_id": "ats_clean_single_column",
+      "category": "Formatting, layout & scannability",
+      "primary_agent": "ats",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Use single-column, clean layout with standard headings (no tables, text boxes, graphics, columns).",
+      "why_it_matters": "98%+ large employers use ATS that parse poorly on complex designs; 97% compliance needed.",
+      "applies_when": [
+        "online applications"
+      ],
+      "detection_hint": "Multi-column, tables, sidebars, decorative elements, or image-based PDF.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Simplify to single-column standard format so ATS and humans can parse/read easily.",
+      "rewrite_instruction": "Convert to clean single column, standard fonts (Arial etc.), text-selectable PDF or .docx.",
+      "source_reference": "Merit America, Coursera, multiple ATS guides 2026",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Complex layout breaks ATS parsing",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Use of tabular, multicol, or heavy \\includegraphics / tikz in the document."
+    },
+    {
+      "rule_id": "semantic_natural_keywords",
+      "category": "ATS compatibility, keywords & semantic matching",
+      "primary_agent": "ats",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Use keywords naturally in context from JD (semantic matching); avoid stuffing. Include full terms + acronyms.",
+      "why_it_matters": "Modern AI/ATS uses semantic/contextual matching, not just exact keywords. Stuffing hurts.",
+      "applies_when": [
+        "all applications"
+      ],
+      "detection_hint": "Unnatural repetition or missing key JD terms in context.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Mirror JD language naturally in summary, bullets, and skills \u2014 context matters more than count.",
+      "rewrite_instruction": "Extract key phrases from JD and weave them authentically into relevant sections.",
+      "source_reference": "Tech Resume + multiple AI/ATS 2026 guides (Workable semantic, Pin tools)",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Keywords are stuffed or missing in context",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "tailor_per_application",
+      "category": "Job targeting & tailoring",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "ats"
+      ],
+      "principle": "Tailor every resume: update summary, reorder skills/bullets, mirror exact JD language for the role.",
+      "why_it_matters": "Tailored resumes get 78%+ higher response rates and much better ATS scores.",
+      "applies_when": [
+        "every application"
+      ],
+      "detection_hint": "Same generic resume used across dissimilar JDs.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Generic versions get ignored. Customize for this JD's priorities.",
+      "rewrite_instruction": "Adjust top sections and top bullets to directly align with the specific posting.",
+      "source_reference": "Coursera, Teal, Novoresume stats, multiple 2025-2026 sources",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Resume not tailored to this role",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Generic summary or bullets that do not mention role-specific keywords from a provided JD."
+    },
+    {
+      "rule_id": "lead_with_impact_summary",
+      "category": "Professional summary / profile / branding",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "Lead with a strong professional summary that bridges your background to the target role and highlights top impact.",
+      "why_it_matters": "First thing read after ATS; sets the narrative and grabs attention immediately.",
+      "applies_when": [
+        "after header"
+      ],
+      "detection_hint": "Weak, generic, or missing summary; starts directly with experience.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Your summary should immediately show relevance and value for this specific role.",
+      "rewrite_instruction": "Write 3-5 lines naming the role, key strengths/impact, and bridge from past.",
+      "source_reference": "Merit America, Coursera, Teal, Approach Talent",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Weak or missing professional summary",
+      "ui_target_section": "summary",
+      "ui_fix_action": "Edit Summary",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "No \\begin{abstract} or summary section, or it starts with \"Seeking a position\"."
+    },
+    {
+      "rule_id": "f_pattern_optimization",
+      "category": "Recruiter & hiring manager psychology / scan behavior",
+      "primary_agent": "hiring_manager",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Optimize for F-pattern: top horizontal scan (name, title), vertical left (bullets, sections), with quantified results and strong verbs in first 2-3 words of bullets.",
+      "why_it_matters": "Eye-tracking confirms F-pattern; recruiters focus on top-left; quantified/strong verb bullets get more fixation time.",
+      "applies_when": [
+        "all resumes"
+      ],
+      "detection_hint": "Dense paragraphs, weak verbs, no metrics in top bullets; info not left-aligned.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Recruiters scan F-pattern. Put impact and metrics in top bullets with strong verbs at start.",
+      "rewrite_instruction": "Restructure: bold left-aligned titles, start bullets with verbs + numbers, front-load achievements.",
+      "source_reference": "Wonsulting eye-tracker, Ladders study, ResumeHeatMap, Nielsen F-pattern",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Optimize for F-pattern: top horizontal scan (name, title), v...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "skills_based_emphasis",
+      "category": "Skills section & competency mapping",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "ats"
+      ],
+      "principle": "Emphasize skills and demonstrable competencies over degrees or pedigree; place skills prominently as 70%+ employers use skills-based hiring.",
+      "why_it_matters": "Skills-based hiring expands pools 6-15x, is more predictive of performance, improves retention; resumes focusing on skills outperform traditional ones.",
+      "applies_when": [
+        "most roles, especially non-entry or career changers"
+      ],
+      "detection_hint": "Heavy focus on degrees/titles without skills proof; skills section weak or absent.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Shift emphasis to skills and proof of ability \u2013 many employers now prioritize this over traditional credentials.",
+      "rewrite_instruction": "Highlight skills section early with evidence; de-emphasize or contextualize education if not primary.",
+      "source_reference": "NACE, LinkedIn Economic Graph, McKinsey, TestGorilla skills-based reports 2025-2026",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Emphasize skills and demonstrable competencies over degrees ...",
+      "ui_target_section": "skills",
+      "ui_fix_action": "Edit Skills",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "gap_framing_positive",
+      "category": "Career gaps, non-linear paths & positive framing",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Frame gaps positively as 'Career Pause', 'Professional Development', or 'Family Caregiving' with specific activities (learning, projects, volunteering) during the period; use years-only or hybrid format.",
+      "why_it_matters": "Gaps are common (layoffs, caregiving); unexplained ones raise doubts, but framed as growth reduce bias and show resilience.",
+      "applies_when": [
+        "employment gaps >6 months"
+      ],
+      "detection_hint": "Blank or unexplained gaps; no activities listed during gap.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Address gaps directly by showing what you accomplished or learned during that time \u2013 it turns a potential negative into a positive.",
+      "rewrite_instruction": "Add entry like 'Career Pause | 2023-2024: Completed certifications, volunteered, managed family responsibilities' using action verbs and metrics if possible.",
+      "source_reference": "Merit America, ResumeOptimizerPro, LinkedIn recruiter posts, Indeed gap guides 2026",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Frame gaps positively as 'Career Pause', 'Professional Devel...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "military_civilian_translation",
+      "category": "Non-traditional experience (gigs, bootcamps, self-taught, military, caregiving, side projects, thought leadership)",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Translate military experience to civilian terms: use civilian job titles first (e.g., Operations Supervisor (Platoon Sergeant)), avoid acronyms or spell out, quantify scope (personnel, budget, equipment value in $).",
+      "why_it_matters": "Civilian employers don't understand military jargon; translation shows transferable value and scope.",
+      "applies_when": [
+        "veterans or military-to-civilian transitions"
+      ],
+      "detection_hint": "Military acronyms, ranks as titles without civilian equivalent, no quantification of scope.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Translate your military roles and achievements into civilian language so hiring managers immediately see the value.",
+      "rewrite_instruction": "Lead with civilian title (Military title in parens). Use civilian verbs. Add scope: 'Managed $X equipment for Y personnel, achieving Z% efficiency.'",
+      "source_reference": "Hiring Our Heroes, O*NET crosswalk, ResumeOptimizerPro military guide, Indeed military resume tips 2026",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Translate military experience to civilian terms: use civilia...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "gig_project_focus",
+      "category": "Non-traditional experience (gigs, bootcamps, self-taught, military, caregiving, side projects, thought leadership)",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "For gig/freelance: list as project-based with client names, specific projects, metrics/outcomes, and links to portfolio/work samples. Highlight flexibility and adaptability.",
+      "why_it_matters": "Gig work shows real-world results, client management, and versatility; metrics and samples prove impact beyond traditional roles.",
+      "applies_when": [
+        "freelance, gig, contract, or portfolio careers"
+      ],
+      "detection_hint": "Gig work listed vaguely as 'Freelancer' without projects, clients, or results.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Turn your gigs into proof points with clients, projects, and measurable results \u2013 employers value this real-world experience.",
+      "rewrite_instruction": "Format as 'Freelance [Role] | Clients: X, Y, Z | Key Project: [description with metrics]. Add portfolio link.' Emphasize adaptability.",
+      "source_reference": "ResumeWorded gig examples, Upwork guides, general 2026 freelance resume best practices",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "For gig/freelance: list as project-based with client names, ...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "executive_2_3_pages",
+      "category": "Leadership, executive & senior-level resumes",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "For executives/senior (15+ years or C-level): use 2-3 pages to detail strategic impact, P&L ownership, transformations, board roles, with big-picture metrics. Focus on leadership story over duties.",
+      "why_it_matters": "One-page rule is outdated for execs; recruiters expect depth on outcomes, scope, and strategy (2-3 pages standard per surveys).",
+      "applies_when": [
+        "executive, director, or 15+ years senior roles"
+      ],
+      "detection_hint": "Exec resume crammed to 1 page or padded beyond 3 without focus.",
+      "severity": "low",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "For senior/exec roles, 2-3 pages allow you to showcase the full scope of your leadership impact.",
+      "rewrite_instruction": "Expand to 2-3 pages focusing on strategic achievements, financial/organizational outcomes, and vision. Use summary for overview.",
+      "source_reference": "Executive Career Brand, LinkedIn exec trends, HispanicPRONetwork resume trends 2026",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "For executives/senior (15+ years or C-level): use 2-3 pages ...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Low",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "no_personal_details",
+      "category": "References, additional information & \u201cfluff\u201d sections",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "Omit personal details like date of birth, marital status, religion, nationality (unless required for work authorization), and photo (unless creative field).",
+      "why_it_matters": "These can introduce bias or are irrelevant; modern best practice is professional contact only.",
+      "applies_when": [
+        "standard professional resumes in most countries"
+      ],
+      "detection_hint": "Inclusion of DOB, photo, marital status, etc.",
+      "severity": "low",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Remove personal details that aren't relevant to the job \u2013 they can introduce bias and clutter the resume.",
+      "rewrite_instruction": "Strip to name, location, phone, email, LinkedIn only.",
+      "source_reference": "X recruiter posts (Simon Ingari), general 2026 best practices",
+      "confidence": "high",
+      "estimated_impact": "low",
+      "ui_title": "Omit personal details like date of birth, marital status, re...",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "Low",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "continuous_learning",
+      "category": "Education, certifications, projects & credentials",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "ats"
+      ],
+      "principle": "Highlight recent certifications, courses, workshops, and continuous learning (especially relevant to target role or showing adaptability).",
+      "why_it_matters": "Demonstrates commitment to growth in fast-changing fields.",
+      "applies_when": [
+        "all candidates, especially in tech or evolving industries"
+      ],
+      "detection_hint": "No recent learning or development listed beyond formal education.",
+      "severity": "low",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Add a section for recent learning or certifications to show you're staying current.",
+      "rewrite_instruction": "List specific courses/certs with dates and relevance (e.g., 'Google Data Analytics Cert, 2025 \u2013 Applied to process improvement projects').",
+      "source_reference": "Teal trends, Merit America, general 2026 advice",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Highlight recent certifications, courses, workshops, and con...",
+      "ui_target_section": "projects",
+      "ui_fix_action": "Edit Projects",
+      "ui_severity_label": "Low",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "specific_ai_tool_usage",
+      "category": "Skills section & competency mapping",
+      "primary_agent": "ats",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "If including AI skills, be specific about tools used and measurable outcomes (e.g., 'Used ChatGPT to draft client communications, reducing writing time by 40%').",
+      "why_it_matters": "AI literacy is expected; vague claims are noise. Specific usage proves real application and efficiency gains.",
+      "applies_when": [
+        "roles where AI use is relevant or growing"
+      ],
+      "detection_hint": "Vague 'familiar with AI' or 'used AI tools' without details or results.",
+      "severity": "low",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Be specific about AI tools and the results they delivered \u2013 this shows practical value.",
+      "rewrite_instruction": "Add concrete examples: tool + action + quantified benefit.",
+      "source_reference": "Merit America, Teal trends, 2026 AI hiring context",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "If including AI skills, be specific about tools used and mea...",
+      "ui_target_section": "skills",
+      "ui_fix_action": "Edit Skills",
+      "ui_severity_label": "Low",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "linkedin_url_consistency",
+      "category": "LinkedIn / personal branding alignment",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "hiring_manager"
+      ],
+      "principle": "Include a LinkedIn URL in the header and ensure it is complete, current, and consistent with the resume (titles, dates, achievements).",
+      "why_it_matters": "71% more interviews with active LinkedIn; recruiters check it and notice mismatches.",
+      "applies_when": [
+        "professional roles"
+      ],
+      "detection_hint": "No LinkedIn link or profile contradicts resume (titles, dates, achievements).",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Add your LinkedIn and make sure it matches and expands on your resume.",
+      "rewrite_instruction": "Add URL; align headline/summary/experience; enrich with additional proof (posts, endorsements).",
+      "source_reference": "Standout-CV stats, Merit America, multiple sources",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Include a LinkedIn URL in the header and ensure it is comple...",
+      "ui_target_section": "summary",
+      "ui_fix_action": "Edit Summary",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "cover_letter_alignment",
+      "category": "Cover letters (if covered)",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Cover letter should add unique value: motivation for this specific role/company, one key achievement with results, how you'll help their goals \u2013 not repeat resume. Keep under 250 words, 3-4 paragraphs.",
+      "why_it_matters": "Adds context (career changes, alignment) that resume can't; shows thinking, personality, fit. Many sources say still worth it if specific.",
+      "applies_when": [
+        "when submitting with resume, especially for roles where alignment matters"
+      ],
+      "detection_hint": "Generic template, repeats resume bullets, no specific why this company/role.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "medium",
+      "feedback_template": "Your cover letter should explain why this role now and how your background fits \u2013 make it specific to them.",
+      "rewrite_instruction": "Structure: 1. Why this company/role (research-based). 2. One relevant achievement with metrics. 3. Value you'll bring. 4. Call to action. Tailor per app.",
+      "example_bad": "I am excited to apply for this position as it matches my skills...",
+      "example_good": "I'm applying for the Marketing Ops Manager role because I've led cross-channel analytics in fast teams and can help scale your campaigns with better ROI tracking.",
+      "source_reference": "Indeed, Beyond Berea, Staffing by Starboard, Kickresume 2026 guides",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Cover letter should add unique value: motivation for this sp...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "omit_references_section",
+      "category": "References, additional information & \u201cfluff\u201d sections",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "Omit 'References available upon request' and any references section on resume.",
+      "why_it_matters": "Wastes space; employers assume you have them and will ask when needed. Modern practice is to prepare separate list.",
+      "applies_when": [
+        "standard professional resumes"
+      ],
+      "detection_hint": "Inclusion of references line or section.",
+      "severity": "low",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Remove the references line \u2013 it takes up valuable space and isn't necessary.",
+      "rewrite_instruction": "Delete it; have a separate references document ready if requested.",
+      "source_reference": "Coursera, Indeed, general 2026 best practices",
+      "confidence": "high",
+      "estimated_impact": "low",
+      "ui_title": "Omit 'References available upon request' and any references ...",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "Low",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "inclusive_language_bias_reduction",
+      "category": "Bias reduction, inclusive language & demographic signaling",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "Use inclusive, neutral language in resume (avoid gendered terms like 'he/she', 'guys'; focus on skills/achievements not personal attributes that could signal demographics). Avoid photos, DOB, marital status, etc.",
+      "why_it_matters": "Reduces bias in screening (human or AI); blind practices and inclusive language help level playing field. Studies show bias in AI and traditional reviews.",
+      "applies_when": [
+        "all resumes, especially in diverse or regulated industries"
+      ],
+      "detection_hint": "Gendered language, personal details (DOB, photo, family), or attributes that could proxy for protected classes.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Use neutral, skills-focused language and omit personal details to minimize bias in review.",
+      "rewrite_instruction": "Replace any gendered or personal terms with neutral; strip photos/DOB/etc.; focus on accomplishments.",
+      "source_reference": "Pin inclusive hiring, ACM study on AI bias, SHRM/ Brookings on bias reduction 2025-2026",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Use inclusive, neutral language in resume (avoid gendered te...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "strong_verbs_f_pattern",
+      "category": "Action verbs, language strength & voice",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "Start every bullet with strong, specific action verbs (Built, Led, Reduced, Scaled, Architected). First 2-3 words critical for F-pattern scan.",
+      "why_it_matters": "Recruiters scan first words; strong verbs signal ownership and results immediately.",
+      "applies_when": [
+        "all bullets"
+      ],
+      "detection_hint": "Weak verb starters or passive language.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Start bullets with powerful action verbs that show what you drove or delivered.",
+      "rewrite_instruction": "Replace weak starters with precise verbs from strong lists at the beginning of each line.",
+      "source_reference": "Multiple (Yate, Whitcomb, Phrase Book, Damn Good, X recruiter posts, eye-tracking)",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Weak verbs at start of bullets",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "kill_buzzwords_proof",
+      "category": "Action verbs, language strength & voice",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "Avoid unsupported adjectives and baseless claims (excellent, visionary, team player); replace with specific evidence and outcomes.",
+      "why_it_matters": "Readers discount fluff; it weakens credibility and adds no value.",
+      "applies_when": [
+        "summary or bullets"
+      ],
+      "detection_hint": "Personality claims without metrics or proof.",
+      "severity": "low",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Cut the adjectives. Show the result instead of claiming to be 'excellent'.",
+      "rewrite_instruction": "Remove fluff adjectives or replace with specific evidence.",
+      "source_reference": "R\u00e9sum\u00e9 Magic; Knock 'em Dead; X posts (Milanovic)",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Avoid unsupported adjectives and baseless claims (excellent,...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Low",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "projects_section_quality_focus",
+      "category": "Projects, portfolio & non-traditional proof",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "editor",
+        "quantifier"
+      ],
+      "principle": "For tech, engineering, design, product or early-career: include a Projects section with 3-6 high-quality, relevant projects. Prioritize real problem-solving over tutorial clones. Each: 1-3 bullets with impact + tech stack + outcome + link (GitHub/demo).",
+      "why_it_matters": "Hiring managers in tech often spend more time on GitHub/portfolio than text claims. Quality projects prove ability to ship, solve problems, and use relevant tech. 3-6 best > dozens mediocre.",
+      "applies_when": [
+        "tech/software roles",
+        "new grads / career changers",
+        "roles valuing demonstrated work"
+      ],
+      "detection_hint": "No projects section, or 10+ weak/tutorial projects, missing links or outcomes.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Add or curate a focused Projects section. Select only your strongest 3-6 that map to target role; add metrics and links.",
+      "rewrite_instruction": "Create 'Projects' after Experience or Skills. For each: Title | Brief (problem + your role). Bullets: [Impact metric]. Tech: X, Y. Link: github.com/...",
+      "example_good": "E-commerce Recommender | Built collaborative filtering model improving click-through 18%. Tech: Python, scikit-learn, FastAPI. github.com/you/reco-demo",
+      "source_reference": "Tech Resume Inside Out (Orosz) + 2026 GitHub portfolio guides, recruiter feedback on quality over quantity",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Projects section missing or weak",
+      "ui_target_section": "projects",
+      "ui_fix_action": "Edit Projects",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "portfolio_links_header_or_projects",
+      "category": "Projects, portfolio & non-traditional proof",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "ats"
+      ],
+      "principle": "Include clickable, labeled links to GitHub, personal site, or portfolio in header (contact line) or in relevant project bullets for applicable roles. Keep public repos clean with READMEs.",
+      "why_it_matters": "Resumes alone are claims; live code/demos provide verifiable proof. Recruiters and hiring managers use them to assess real skills, especially when skills-based screening dominates.",
+      "applies_when": [
+        "software engineering",
+        "design",
+        "data",
+        "product",
+        "devops",
+        "creative fields"
+      ],
+      "detection_hint": "No links or only generic LinkedIn; broken/private repos; no portfolio evidence.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Add prominent, relevant portfolio links. Ensure repos are public, documented, and pinned top items.",
+      "rewrite_instruction": "Header: Name | City | phone | email | linkedin.com/in/you | github.com/you (or personal site). In projects: add 'Demo: liveurl | Code: github...'",
+      "source_reference": "Tech Resume Inside Out, Wahresume 2026 portfolio links, GitHub best practices, multiple recruiter 2026 discussions",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Include clickable, labeled links to GitHub, personal site, o...",
+      "ui_target_section": "projects",
+      "ui_fix_action": "Edit Projects",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "hybrid_or_combination_format",
+      "category": "Formatting, layout & scannability",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "Prefer hybrid/combination resume format for most candidates: reverse-chronological jobs + within recent/relevant roles, group accomplishments under skill/competency headings that match target.",
+      "why_it_matters": "Combines story of progression (chrono) with skills emphasis (functional). Performs well for both ATS keyword clustering and human scanning of relevant proof.",
+      "applies_when": [
+        "most mid-career professionals",
+        "moderate career changers",
+        "when you have strong cross-job skills"
+      ],
+      "detection_hint": "Pure chrono duty lists or pure functional with no dates/employers.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "medium",
+      "feedback_template": "Consider hybrid: keep chrono backbone but surface skill clusters with accomplishments inside key roles.",
+      "rewrite_instruction": "For current/recent role: group top bullets under 2-4 skill areas relevant to JD (e.g. 'Data Analysis & Visualization', 'Stakeholder Communication').",
+      "source_reference": "Damn Good Resume Guide (hybrid intro), Elements of Resume Style, modern recruiter preference 2026",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Prefer hybrid/combination resume format for most candidates:...",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "one_vs_two_page_guideline",
+      "category": "Formatting, layout & scannability",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "hiring_manager"
+      ],
+      "principle": "Use 1 page for <3-5 years relevant experience or new grads. Use 2 pages for most mid/senior professionals (3-15+ yrs). Executives/senior leaders: 2 pages preferred, 3 pages max only for extensive board/publications/scope. Every line must earn its space.",
+      "why_it_matters": "One-page rule is outdated for experienced candidates. Data shows 2-page resumes often achieve higher interview rates when content is relevant; recruiters prefer seeing full impact without forced cuts. 2026 studies confirm flexibility based on relevance and level.",
+      "applies_when": [
+        "all resumes"
+      ],
+      "detection_hint": "Experienced pro crammed on 1 page losing key achievements, or bloated 3+ pages with fluff.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Match page count to depth of relevant experience. Trim ruthlessly to strongest proof; expand strategically for senior roles.",
+      "rewrite_instruction": "Condense early/irrelevant roles to 1-2 lines. For 10+ yrs strong impact: plan for 2 pages. Exec: 2 pages focused last 10-15 yrs + strategic scope.",
+      "source_reference": "2026 page length studies (Retuner, Exec Career Brand, ResumeGo, LinkedIn discussions), multiple books (Yate notes level-dependent)",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Use 1 page for <3-5 years relevant experience or new grads. ...",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "standard_ats_headers_only",
+      "category": "Formatting, layout & scannability",
+      "primary_agent": "ats",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Use standard, widely-recognized section headers: Professional Summary, Skills, Experience / Professional Experience, Projects, Education, Certifications. Avoid creative headers (e.g. 'Where I've Made an Impact', 'My Journey').",
+      "why_it_matters": "ATS parsers rely on conventional headings to section content. Non-standard headers cause mis-parsing or dropped sections, lowering scores and making human review harder.",
+      "applies_when": [
+        "online applications through ATS"
+      ],
+      "detection_hint": "Clever, branded, or unusual headings that don't map to standard sections.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Switch to conventional headers that ATS and humans instantly understand.",
+      "rewrite_instruction": "Replace fancy names: 'Professional Experience', 'Skills & Tools', 'Education'. Keep clean and predictable.",
+      "source_reference": "Resume Magic, multiple ATS 2026 guides (Workday/Taleo/Greenhouse tested templates), Merit America",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Non-standard section headers hurt parsing",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Non-standard section names like \"My Journey\" instead of \"Experience\"."
+    },
+    {
+      "rule_id": "header_contact_essentials",
+      "category": "Formatting, layout & scannability",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "Header: Large name, phone, professional email, LinkedIn URL (or portfolio), City/State or 'Open to Remote | Location'. Omit full street address, photo (most cases), pronouns unless relevant, and extra lines.",
+      "why_it_matters": "Clean header maximizes top-third scan real estate (critical for 7s F-pattern). Extra personal data adds clutter or bias risk; recruiters want quick contact + professional proof points.",
+      "applies_when": [
+        "all professional resumes"
+      ],
+      "detection_hint": "Long address block, photo, multiple lines of fluff, missing LinkedIn.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Simplify header to essentials that fit in one scannable line or two. Maximize signal in the first 1-2 inches.",
+      "rewrite_instruction": "First line: NAME (larger/bold). Second: phone | email | linkedin | github | City, ST or Remote",
+      "source_reference": "Knock 'em Dead, Damn Good, 2026 recruiter feedback (no address/photo), eye-tracking focus on top",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Header missing essential contact info",
+      "ui_target_section": "header",
+      "ui_fix_action": "Edit Header",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "result_metric_context_bullet",
+      "category": "Bullet writing & structure",
+      "primary_agent": "quantifier",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Structure most bullets as Result + Metric + Context (or TEAL/impact-first variant): Start with the outcome/impact + number, then brief method or scope. Avoid starting with 'Responsible for...' or duties.",
+      "why_it_matters": "Eye-tracking and recruiter studies show results/metrics at the start of bullets get higher fixation. It flips from 'what I did' to 'what I delivered'. Consistently produces stronger scans.",
+      "applies_when": [
+        "work experience bullets",
+        "project bullets"
+      ],
+      "detection_hint": "Duties-first or 'Responsible for' language dominating bullets.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Lead with the result/metric. Use 'Increased X by Y%' or 'Delivered Z resulting in W'.",
+      "rewrite_instruction": "Rewrite: '[Result + #] by doing [concise action + scope/context].' Example: 'Reduced support tickets 42% by implementing self-service KB and chatbot triage.'",
+      "example_good": "Cut cloud costs 31% ($187k/yr) by right-sizing instances and introducing spot fleets across 3 environments.",
+      "source_reference": "2026 guides (Teal 'TEAL method', Approach Talent, multiple stats on quantification), Resume Magic, Yate accomplishment focus",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Structure most bullets as Result + Metric + Context (or TEAL...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Rewrite bullets",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "condense_or_omit_irrelevant_experience",
+      "category": "Experience selection & prioritization",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "For mid/senior: list full detail (bullets + dates) only for last 10-15 years or most relevant roles. Condense or omit earlier roles to title/company + 1 line or omit entirely if unrelated/irrelevant to target.",
+      "why_it_matters": "Recruiters focus 80%+ attention on recent/relevant. Old irrelevant roles dilute signal, waste space, and date you unnecessarily. Space is premium on 1-2 pages.",
+      "applies_when": [
+        "candidates with 10+ years total experience"
+      ],
+      "detection_hint": "Long lists of 1990s-2000s jobs with equal detail to recent ones; space taken by unrelated early career.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Trim the rear-view mirror. Keep recent and directly relevant at full strength; summarize or drop the rest.",
+      "rewrite_instruction": "Early career: 'Software Engineer, Acme Corp (2008-2012)' or drop. Move education higher only if recent grad.",
+      "source_reference": "Tech Resume Inside Out, Knock 'em Dead, 2026 page length + scan studies",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "For mid/senior: list full detail (bullets + dates) only for ...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "education_placement_and_detail",
+      "category": "Education, certifications, projects & credentials",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "Place Education after Experience for candidates with 5+ years professional experience. List: Degree, School, Graduation year (or omit year if 15+ yrs exp), major if relevant, honors/GPA only if standout/recent. Move to top only for new grads or academic roles.",
+      "why_it_matters": "For experienced professionals, recruiters care far more about recent impact than where you graduated decades ago. Early education placement can signal 'junior'.",
+      "applies_when": [
+        "experienced professionals"
+      ],
+      "detection_hint": "Education first or bloated with old details, GPA, coursework for senior candidates.",
+      "severity": "low",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Move Education down. Simplify entries. Use space for proof of current capability.",
+      "rewrite_instruction": "B.S. Computer Science, State University, 2012. (Omit if 15+ years out unless prestigious or directly required.)",
+      "source_reference": "Damn Good Resume Guide, Resume Magic, modern 2026 practices for experienced hires",
+      "confidence": "high",
+      "estimated_impact": "low",
+      "ui_title": "Place Education after Experience for candidates with 5+ year...",
+      "ui_target_section": "projects",
+      "ui_fix_action": "Edit Projects",
+      "ui_severity_label": "Low",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "soft_skills_via_proof_bullets",
+      "category": "Bullet writing & structure",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "hiring_manager"
+      ],
+      "principle": "Demonstrate soft skills (leadership, communication, collaboration) through specific quantified accomplishments in bullets rather than listing 'team player, excellent communicator' in a skills section.",
+      "why_it_matters": "Soft skill claims without proof are ignored or distrusted. Specific stories with results (e.g. 'Led 6-person cross-functional team to deliver X under budget') are credible and scannable.",
+      "applies_when": [
+        "all resumes"
+      ],
+      "detection_hint": "Standalone soft skills list without evidence in experience bullets.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Prove soft skills with concrete examples and results in your bullets instead of generic adjectives.",
+      "rewrite_instruction": "Replace 'Strong leader' with 'Led 8-engineer squad; shipped 4 major releases on time, improving on-time delivery from 68% to 94%.'",
+      "source_reference": "Multiple books (Yate, Whitcomb), 2026 skills reports (TestGorilla soft skills hardest to assess, 78% mismatch cases), recruiter X feedback",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Demonstrate soft skills (leadership, communication, collabor...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Rewrite bullets",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "spell_out_acronyms_first_use",
+      "category": "ATS compatibility, keywords & semantic matching",
+      "primary_agent": "ats",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Spell out acronyms on first use followed by abbreviation in parentheses (e.g. 'Amazon Web Services (AWS)'). Use both full and short forms naturally where space allows.",
+      "why_it_matters": "ATS and some humans/searchers may use either form. First-use spellout ensures matching regardless of how JD or recruiter searches. Reduces confusion.",
+      "applies_when": [
+        "technical or domain-heavy resumes with acronyms"
+      ],
+      "detection_hint": "Bare acronyms everywhere with no definition (SRE, CI/CD, LLM, etc.).",
+      "severity": "low",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Define key acronyms on first occurrence. Helps both ATS match and human readers.",
+      "rewrite_instruction": "First mention: 'Large Language Models (LLMs)'. Later: 'LLMs' is fine.",
+      "source_reference": "ResumeOptimizerPro ATS guide 2026, common recruiter and parser advice",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Spell out acronyms on first use followed by abbreviation in ...",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "Low",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "core_competencies_keyword_section",
+      "category": "Skills section & competency mapping",
+      "primary_agent": "ats",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "Include a 'Core Competencies' or 'Skills' section near top (after summary) that clusters 8-15 role-critical keywords/phrases in 2-3 lines or comma groups. Mirror JD language. Update per application.",
+      "why_it_matters": "Gives ATS a dense, scannable keyword block for initial ranking. Humans also use it for quick relevance check in F-pattern top scan. Helps when skills are spread across bullets.",
+      "applies_when": [
+        "most roles, especially keyword-sensitive or ATS-heavy applications"
+      ],
+      "detection_hint": "Skills only buried in bullets or missing entirely; generic 'Skills: Word, Excel, Teamwork'.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Add or strengthen a top Skills/Core Competencies block using exact terms from the target JD.",
+      "rewrite_instruction": "Skills: Python (Pandas, scikit-learn) | AWS (EC2, Lambda, S3) | SQL & Data Modeling | Stakeholder Communication | A/B Testing & Experimentation",
+      "source_reference": "Knock 'em Dead (Core Competencies emphasis), Tech Resume, 2026 ATS guides, skills-based hiring stats",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Include a 'Core Competencies' or 'Skills' section near top (...",
+      "ui_target_section": "skills",
+      "ui_fix_action": "Edit Skills",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "accomplishments_not_responsibilities",
+      "category": "Bullet writing & structure",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "quantifier"
+      ],
+      "principle": "Write bullets as accomplishments and results achieved (what you delivered or improved), not a list of responsibilities or duties performed. Shift language from 'Responsible for...' to 'Delivered...', 'Improved...', 'Led...'.",
+      "why_it_matters": "Responsibility lists are generic and forgettable. Every candidate 'was responsible for' similar things. Accomplishments differentiate and prove value. This is one of the most repeated core lessons across all major resume books.",
+      "applies_when": [
+        "all experience and project bullets"
+      ],
+      "detection_hint": "Starts with 'Responsible for', 'Duties included', 'Handled', or task lists without outcomes.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Convert duties to accomplishments. What changed because you were there? Add the outcome or scale.",
+      "rewrite_instruction": "Change 'Responsible for managing 3 client accounts' to 'Managed 3 enterprise accounts; expanded 2 by 28% ARR and reduced churn to <4%'.",
+      "source_reference": "Resume Magic (Whitcomb), Knock 'em Dead (Yate), Damn Good (Parker), Phrase Book, virtually every authoritative source",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Bullets describe duties, not accomplishments",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Rewrite bullets",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "use_power_verbs_from_curated_lists",
+      "category": "Action verbs, language strength & voice",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "Start bullets and summary lines with specific, powerful, curated action verbs appropriate to the function/level (e.g. 'Architected', 'Spearheaded', 'Orchestrated', 'Streamlined', 'Accelerated' vs generic 'Managed', 'Helped', 'Worked on'). Maintain a living list of strong verbs per domain.",
+      "why_it_matters": "Strong verbs in the first 1-3 words drive F-pattern attention and signal ownership and seniority. Weak verbs make achievements sound passive or junior. Books provide extensive categorized verb lists for exactly this reason.",
+      "applies_when": [
+        "all bullets and achievement statements"
+      ],
+      "detection_hint": "Weak or repeated starters: 'Managed', 'Assisted', 'Helped with', 'Was involved in'.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Replace weak verbs with precise power verbs from strong curated lists matched to the achievement type.",
+      "rewrite_instruction": "Use lists: Created/Developed/Designed/Engineered/Architected; Led/Directed/Spearheaded/Orchestrated; Increased/Accelerated/Drove/Grew; Reduced/Cut/Eliminated/Streamlined. Pick the most accurate one.",
+      "source_reference": "Phrase Book appendix, Knock 'em Dead verb lists, Damn Good Action Verbs appendix, Elements, X recruiter verb advice",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Start bullets and summary lines with specific, powerful, cur...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "avoid_first_person_pronouns",
+      "category": "Action verbs, language strength & voice",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "Write in implied first person: no 'I', 'me', 'my' anywhere on the resume. Bullets start directly with verb. Summary uses 'I' sparingly or avoids by restructuring.",
+      "why_it_matters": "First person is redundant (the document is about you) and wastes characters/scan attention. Professional convention across nearly all US corporate resumes is implied first person. 'I' stands out negatively in scans.",
+      "applies_when": [
+        "standard professional resumes"
+      ],
+      "detection_hint": "Any 'I ', 'My ', 'Me ' in bullets or summary.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Remove all first-person pronouns. Rewrite sentences to start with the action or result.",
+      "rewrite_instruction": "Change 'I led a team of 5 that delivered...' to 'Led 5-person team delivering...'.",
+      "source_reference": "Elements of Resume Style, Resume Magic, Damn Good, standard US resume convention in nearly all books",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Write in implied first person: no 'I', 'me', 'my' anywhere o...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "consistent_date_punctuation_formatting",
+      "category": "Formatting, layout & scannability",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "ats"
+      ],
+      "principle": "Use consistent date formats (e.g. 'Jan 2023 - Present' or '01/2023 - Present' throughout; pick one). Use standard bullets (\u2022 or -). Consistent punctuation: most bullets end without period or all do; title/company/date alignment uniform.",
+      "why_it_matters": "Inconsistent formatting creates visual noise and suggests carelessness. ATS and humans parse clean consistent documents faster and more favorably. Style guides stress uniformity for professionalism.",
+      "applies_when": [
+        "all resumes"
+      ],
+      "detection_hint": "Mixed date styles, some bullets with periods some without, varying dashes or capitalization.",
+      "severity": "low",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Pick one clean consistent style for dates, bullets, and punctuation. Apply everywhere.",
+      "rewrite_instruction": "Standardize: Company | Role | Jan 2022 - Mar 2024. All bullets same style, same terminal punctuation (or none).",
+      "source_reference": "Elements of Resume Style (strict consistency rules), Resume Magic, Knock 'em Dead",
+      "confidence": "high",
+      "estimated_impact": "low",
+      "ui_title": "Use consistent date formats (e.g. 'Jan 2023 - Present' or '0...",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "Low",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "tjd_extract_from_multiple_jds",
+      "category": "Job targeting & tailoring",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "ats"
+      ],
+      "principle": "For TJD: collect 5-8 real job postings for the target title. Identify common requirements/skills across them (mark frequency). Build resume Core Competencies + bullets around the highest-frequency items first.",
+      "why_it_matters": "Single JD tailoring is fragile. Mining multiple postings reveals the true employer language and priorities for the role family. Produces resumes that rank across more postings and feel 'right' to more readers.",
+      "applies_when": [
+        "targeted job search with known title"
+      ],
+      "detection_hint": "Resume based on one posting or no systematic JD analysis; missing repeated key phrases.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "medium",
+      "feedback_template": "Do a proper multi-JD deconstruction. Surface the 6-10 most repeated requirements and map your proof to them.",
+      "rewrite_instruction": "Gather JDs. List repeated skills/responsibilities with counts. Prioritize top ones in summary/skills/top bullets.",
+      "source_reference": "Knock 'em Dead (detailed TJD process with multiple samples), Tech Resume Inside Out keyword check",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "For TJD: collect 5-8 real job postings for the target title....",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "networking_referrals_beat_cold_resumes",
+      "category": "Job targeting & tailoring",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "hiring_manager"
+      ],
+      "principle": "Cold applications have low yield. Prioritize warm intros, employee referrals, and networking to get your resume in front of decision makers. When submitting cold, make it exceptionally tailored and use LinkedIn to warm the path.",
+      "why_it_matters": "Resumes sent blind often never get opened by execs/CEOs. Referrals and warm paths dramatically increase response. Books and modern data confirm networking is the highest-leverage job search activity.",
+      "applies_when": [
+        "professional job search"
+      ],
+      "detection_hint": "Only mass cold applications; no LinkedIn outreach or referral attempts mentioned in process.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Cold resumes have poor odds. Build warm paths and referrals first; use resume as the polished leave-behind.",
+      "rewrite_instruction": "Resume advice: make it referral-ready (perfectly tailored, clean). Strategy: identify 2nd degree connections, ask for intros before applying.",
+      "source_reference": "Lose the Resume (Burnison) + common 2026 advice and X recruiter posts",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Cold applications have low yield. Prioritize warm intros, em...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "executive_strategic_impact_story",
+      "category": "Leadership, executive & senior-level resumes",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "For exec/senior: focus on strategic narrative - transformations led, P&L ownership, org change, board-level impact, vision delivered. Use big-picture metrics and concise story arc in summary + selected bullets. 2 pages standard.",
+      "why_it_matters": "Execs are hired for judgment, leadership scope and results at scale, not task lists. Recruiters and boards look for the through-line of impact and fit.",
+      "applies_when": [
+        "director+ or 15+ years senior individual contributor/exec track"
+      ],
+      "detection_hint": "Exec resume reads like detailed manager bullets without strategic framing or large-scope metrics.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "medium",
+      "feedback_template": "Elevate to strategy and scale. Show the before/after you drove at organizational level.",
+      "rewrite_instruction": "Summary: 4-5 lines on leadership philosophy + signature transformations. Bullets: focus last 2-3 roles with P&L, team scale, market impact.",
+      "source_reference": "Lose the Resume (Burnison exec insights), Executive Career Brand trends 2026, previous exec_2_3_pages",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "For exec/senior: focus on strategic narrative - transformati...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "PAR_bullet_structure",
+      "category": "Bullet writing & structure",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "quantifier"
+      ],
+      "principle": "Use PAR (Problem-Action-Result) or equivalent for accomplishment bullets: identify the problem/challenge faced, the specific action you took, and the measurable result/outcome. This complements CAR/STAR.",
+      "why_it_matters": "Forces focus on value delivered rather than tasks. PAR is explicitly recommended in major guides as a reliable way to surface accomplishments from daily work. Produces scannable, high-impact bullets.",
+      "applies_when": [
+        "experience and project bullets"
+      ],
+      "detection_hint": "Bullets describe activities without framing the problem solved or the outcome delivered.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Apply PAR: What was the problem? What did you do? What was the result (with numbers)?",
+      "rewrite_instruction": "Problem: [context/inefficiency]. Action: [your specific steps/tools]. Result: [quantified improvement].",
+      "example_good": "Problem: Manual reporting took 12 hrs/week. Action: Built automated dashboard in Looker pulling from 3 data sources. Result: Cut reporting time 85% and enabled weekly exec reviews.",
+      "source_reference": "Damn Good Resume Guide (PAR approach), Resume Magic accomplishments chapter",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Use PAR (Problem-Action-Result) or equivalent for accomplish...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Rewrite bullets",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "cover_letter_2026_selective_value_structure",
+      "category": "Cover letters (if covered)",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "In 2026, write cover letters selectively (not for every one-click app). When used: 3 short paragraphs. 1) One-sentence alignment to role + strongest match. 2) One concrete proof point with metric tied to job needs. 3) Specific reason for this company + what you'll deliver. Keep <250 words, human voice.",
+      "why_it_matters": "AI screening makes the cover letter one of the few places for authentic explanation and personality. Generic ones are ignored or hurt; tailored ones add context resumes can't (motivation, gaps, cultural fit) and can differentiate when many apps are AI-generated.",
+      "applies_when": [
+        "roles where alignment, career pivot, or company research matters",
+        "when explicitly requested or via non-one-click channels"
+      ],
+      "detection_hint": "No cover when it would add value, or generic template that repeats resume without specific proof or why-this-company.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "medium",
+      "feedback_template": "Use cover letters strategically. Make them add unique context + one strong metric proof + company-specific reason.",
+      "rewrite_instruction": "P1: Targeting the X role because my Y experience directly matches your need for Z. P2: At prior company, [one result with #] that maps to this need. P3: I'm excited about [specific company initiative] because I can bring [your relevant strength].",
+      "example_good": "I'm applying for the Growth Marketing Manager role because my work scaling paid acquisition at a Series B SaaS maps directly to your 3x pipeline goal. At Acme, I built campaigns that grew MQLs 47% while cutting CAC 22%. Your recent expansion into enterprise verticals is exactly where I can apply similar experimentation at larger scale.",
+      "source_reference": "Damn Good (cover appendix), Phrase Book (cover phrases + 5-step), 2026 sources (Staffing by Starboard, Teal, Beyond Berea: Interest + Evidence + Fit)",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "In 2026, write cover letters selectively (not for every one-...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "prepare_separate_references_document",
+      "category": "References, additional information & \u201cfluff\u201d sections",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "Never include 'References available upon request' on the resume. Prepare a separate, clean one-page references document (3-4 contacts: name, title, company, phone, email, relationship/context) and provide only when requested. For self-employed/gigs, use 'Client references available' or attach recommendation letters/portfolio selectively.",
+      "why_it_matters": "The phrase wastes prime space and is outdated (employers assume you have them). Separate list keeps resume focused and professional. Protects references until serious interest. Special handling needed for non-traditional paths where verification is harder.",
+      "applies_when": [
+        "all standard applications"
+      ],
+      "detection_hint": "The phrase on resume, or references listed directly on main document.",
+      "severity": "low",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Remove any references line. Prepare a polished separate list ready to send on request.",
+      "rewrite_instruction": "Delete the line. Create References.docx with header matching resume and 3-4 entries formatted cleanly. For gigs: highlight client testimonials or 'Strong client references available upon request'.",
+      "source_reference": "Damn Good, Resume Magic, Phrase Book, 2026 best practices (UC, Indeed, LockedInAI, Frontline)",
+      "confidence": "high",
+      "estimated_impact": "low",
+      "ui_title": "Never include 'References available upon request' on the res...",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "Low",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "semantic_ai_screening_narrative_coherence",
+      "category": "ATS compatibility, keywords & semantic matching",
+      "primary_agent": "ats",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "Modern AI/LLM screening (2026) evaluates semantic coherence, narrative flow, ownership signals, and genuine depth \u2014 not just keyword counts. Write with consistent career story, plain language, and internal consistency. Avoid keyword stuffing or generic AI-sounding text.",
+      "why_it_matters": "LLM screeners (Eightfold, Workable, Phenom, etc.) use embeddings/semantic similarity. They flag stuffing, detect low-quality generic content, reward coherent progression and specific ownership. Stuffing or incoherent text lowers scores even if keywords match.",
+      "applies_when": [
+        "applications at scale or to companies using advanced ATS/AI"
+      ],
+      "detection_hint": "Repetitive keyword lists, disjointed bullets, buzzword salad without clear thread, or suspiciously uniform AI prose.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Ensure the resume tells a clear, believable story with semantic depth. Use natural language that matches the JD without stuffing.",
+      "rewrite_instruction": "Weave JD terms into actual achievements and progression narrative. Read aloud: does it sound like a real person with ownership? Use varied sentence structure.",
+      "source_reference": "2026 AI screening reports (Pin, ResumeVera, Aipersy, Workable semantic, SHRM trends), Tech Resume Inside Out (keyword stuffing warnings)",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Modern AI/LLM screening (2026) evaluates semantic coherence,...",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "accomplishments_strategies_from_experience",
+      "category": "Bullet writing & structure",
+      "primary_agent": "quantifier",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Mine accomplishments using structured methods: PAR/STAR, before-after comparisons, scope/scale (people, $, time, geography), recognition received, problems solved that others couldn't. Include top 10 tips mindset: focus on results over duties, use numbers, show uniqueness.",
+      "why_it_matters": "Most people understate their impact. Dedicated chapters in pro resume books teach specific techniques to extract and phrase real value. This turns average experience into standout proof.",
+      "applies_when": [
+        "building or revising experience bullets"
+      ],
+      "detection_hint": "Flat lists of responsibilities with little differentiation or scale.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Apply accomplishment extraction techniques: comparisons, scale, unique contributions, recognition.",
+      "rewrite_instruction": "For each role ask: What improved? By how much vs before? Who else benefited? Any awards/unique outcomes? Rewrite top bullets with those.",
+      "source_reference": "Resume Magic (Ch. 6 Accomplishments: linchpin, strategies, comparisons, Top 10 Tips), Damn Good (PAR)",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Mine accomplishments using structured methods: PAR/STAR, bef...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Rewrite bullets",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "online_profile_supplements_but_resume_required",
+      "category": "LinkedIn / personal branding alignment",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "hiring_manager"
+      ],
+      "principle": "LinkedIn/online profile is the 'full-color, multimedia' version (personality, proof, network). Resume is the tailored, scannable, ATS-compliant 'fine print' version required for most formal applications. Keep both current and consistent; use LinkedIn for sourcing/warm intros.",
+      "why_it_matters": "Many recruiters source primarily via LinkedIn and view resumes as secondary/checklist. However, direct applications and many ATS flows still require a strong tailored resume. They serve different but complementary roles in 2026 hiring.",
+      "applies_when": [
+        "professional job search"
+      ],
+      "detection_hint": "Outdated LinkedIn, or treating resume as the only artifact while ignoring online presence.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Treat LinkedIn as expanded proof + network tool. Use resume for precise, scannable applications. Align content.",
+      "rewrite_instruction": "Update LinkedIn headline/summary/experience with richer examples, posts, recommendations. Ensure resume is the crisp, JD-tailored subset.",
+      "source_reference": "Fck Your Resume (online as high-def version), Tech Resume Inside Out (why LinkedIn not enough for direct apply), Lose the Resume (LinkedIn must-have)",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "LinkedIn/online profile is the 'full-color, multimedia' vers...",
+      "ui_target_section": "summary",
+      "ui_fix_action": "Edit Summary",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "referral_and_network_priority",
+      "category": "Job targeting & tailoring",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "hiring_manager"
+      ],
+      "principle": "A large percentage of roles (estimates up to 85% in some data) are filled via referrals and personal networks. Prioritize building and activating warm connections (2nd-degree intros, alumni, former colleagues) before or alongside cold applications. Tailor resume for referral hand-offs.",
+      "why_it_matters": "Cold resumes have low open rates, especially with execs and in high-volume systems. Referrals bypass or rise above filters and come with credibility. Resume quality matters most when it reaches a human via warm channel.",
+      "applies_when": [
+        "all serious job searches"
+      ],
+      "detection_hint": "Strategy is 100% mass applications with no networking component.",
+      "severity": "high",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "medium",
+      "feedback_template": "Networking and referrals are force multipliers. Make your resume referral-ready and activate your network.",
+      "rewrite_instruction": "Identify target companies + connections. Ask for intros with your tailored resume attached. Use LinkedIn to warm before applying.",
+      "source_reference": "Lose the Resume (Burnison networking emphasis), Fck Your Resume (referrals high %)",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "A large percentage of roles (estimates up to 85% in some dat...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "bullet_length_1_to_2_lines",
+      "category": "Bullet writing & structure",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "hiring_manager"
+      ],
+      "principle": "Keep each bullet to 1-2 lines (ideally 15-30 words). Longer bullets (3+ lines) are skipped in scans. Use concise language; split if needed. Aim for 3-6 bullets on most recent/relevant roles, 1-3 on prior ones.",
+      "why_it_matters": "Recruiters scan quickly (6-8s). Dense long bullets get ignored. Short, punchy bullets with impact at the start maximize attention and readability for both humans and AI parsers.",
+      "applies_when": [
+        "all work experience and project bullets"
+      ],
+      "detection_hint": "Bullets that wrap to 3+ lines or read like paragraphs.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Shorten bullets to 1-2 lines max. Put the result up front. Trim words that don't add proof.",
+      "rewrite_instruction": "Target 15-30 words. Cut filler. One idea per bullet. Example: split a long duty list into focused impact statements.",
+      "source_reference": "2026 guides (Teal, Extern, AIResume.guru, LinkedIn recruiter posts), multiple books on scannability",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Bullets too long and hard to scan",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Rewrite bullets",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Long \\item lines that would wrap >2 lines when typeset."
+    },
+    {
+      "rule_id": "preferred_file_format_contextual",
+      "category": "Formatting, layout & scannability",
+      "primary_agent": "ats",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Maintain both .docx and clean (text-based, not scanned/image) PDF versions. Submit .docx for most ATS portals (higher parse rates on Workday/Taleo/Greenhouse). Use PDF for direct emails to recruiters, referrals, or when layout preservation is critical. Never use image formats or heavily designed PDFs.",
+      "why_it_matters": "ATS parsing success varies by format and platform in 2026. .docx often wins for machine readability/editability by recruiters; PDF guarantees visual fidelity for humans. Wrong format can cause silent drops.",
+      "applies_when": [
+        "submitting applications"
+      ],
+      "detection_hint": "Single format only, or image-based/scanned PDF, or complex design PDF.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Prepare both formats. Choose based on submission method: .docx for portals, PDF for people.",
+      "rewrite_instruction": "Export clean .docx from Word/Google Docs. For PDF: export from same source as text-selectable, not design tool with graphics. Test parse if possible.",
+      "source_reference": "2026 ATS tests (ResumeOptimizerPro, Scale.jobs, LinkedIn discussions), ATS guides",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Maintain both .docx and clean (text-based, not scanned/image...",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "verb_tense_consistency",
+      "category": "Action verbs, language strength & voice",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "Use present tense for current role bullets and summary achievements. Use past tense for all previous positions. Be consistent within each role.",
+      "why_it_matters": "Inconsistent tense signals carelessness or poor attention to detail. It also subtly dates or confuses the timeline for quick scanners.",
+      "applies_when": [
+        "all experience sections"
+      ],
+      "detection_hint": "Mixed tenses inside one role or present tense on old jobs.",
+      "severity": "low",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Fix tense: present for what's ongoing now, past for completed prior work.",
+      "rewrite_instruction": "Current role: 'Lead...' 'Drive...'. Prior roles: 'Led...' 'Drove...'. Apply uniformly.",
+      "source_reference": "Standard convention across Resume Magic, Damn Good, Elements of Resume Style, Knock 'em Dead",
+      "confidence": "high",
+      "estimated_impact": "low",
+      "ui_title": "Use present tense for current role bullets and summary achie...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Low",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "bullets_per_role_prioritization",
+      "category": "Bullet writing & structure",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "Most recent or most relevant role: 4-6 strong bullets. Previous roles: 2-4. Older or less relevant: 1-2 lines or just title/company/dates. Prioritize quality and recency over exhaustive history.",
+      "why_it_matters": "Recruiters spend most time on recent/relevant. Overloading old roles or listing too many bullets dilutes signal and creates wall-of-text. Space on 1-2 pages is limited.",
+      "applies_when": [
+        "crafting experience section"
+      ],
+      "detection_hint": "Equal bullet count across all jobs, or 8+ bullets on old roles.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Front-load detail on recent/impactful roles. Condense or summarize the rest.",
+      "rewrite_instruction": "Trim older roles aggressively. Use 4-6 bullets where your story is strongest; 1-2 bullets for supporting history.",
+      "source_reference": "Tech Resume Inside Out, 2026 length and scan studies (Extern, AIApply, LinkedIn posts)",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Most recent or most relevant role: 4-6 strong bullets. Previ...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Rewrite bullets",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "systematic_accomplishment_mining_questions",
+      "category": "Bullet writing & structure",
+      "primary_agent": "quantifier",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Use a structured set of 20-50+ targeted 'impact-mining' questions per role to extract accomplishments (problems solved, before/after, metrics in revenue/cost/time/people/quality/scope, recognition, unique contributions). Do not rely on memory or duty lists alone.",
+      "why_it_matters": "Most people under-report impact. Systematic questioning (as used by professional writers) surfaces quantifiable stories that turn average experience into standout proof. Resume Magic uses 200+ such questions.",
+      "applies_when": [
+        "reviewing any work history"
+      ],
+      "detection_hint": "Bullets are generic duties; no evidence of systematic extraction process.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Apply impact-mining questions: What problems did you solve? What changed (before/after)? What was the scale and result?",
+      "rewrite_instruction": "For each role, answer: problems addressed, actions with tools, quantified results ($, %, time, people, scope), recognition received. Convert answers into bullets.",
+      "source_reference": "Resume Magic (Susan Whitcomb) - 200+ impact-mining questions; cross-referenced with CAR/PAR methods",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Use a structured set of 20-50+ targeted 'impact-mining' ques...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Rewrite bullets",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "verb_plus_proof_pairing",
+      "category": "Action verbs, language strength & voice",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "Pair every strong action verb with a specific accomplishment proof in the same bullet. Maintain or reference categorized verb lists (600+ examples) where each verb is demonstrated with a result-oriented sentence.",
+      "why_it_matters": "Verbs alone are weak without evidence. Professional resources pair 600+ verbs with example accomplishment statements so writers select verbs that naturally lead to results.",
+      "applies_when": [
+        "writing or editing bullets and summary"
+      ],
+      "detection_hint": "Strong verb followed by vague duty or no metric/result.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "After the verb, immediately deliver the proof (result + metric).",
+      "rewrite_instruction": "Replace 'Led team' with 'Led 8-person cross-functional team to deliver X on time, achieving Y% improvement.' Use proven verb + proof pairs.",
+      "source_reference": "Resume Magic - action verbs with 600+ example accomplishment statements",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Pair every strong action verb with a specific accomplishment...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "situation_based_format_selection",
+      "category": "Formatting, layout & scannability",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Select resume format deliberately: Chronological (standard progression), Functional (skill clusters for career changers/heavy gaps), Combination/Hybrid (most versatile), Accomplishments-focused (impact-heavy), Creative (design fields only), Dateless (age bias mitigation). Default to clean reverse-chronological or hybrid for ATS.",
+      "why_it_matters": "Wrong format hides strengths or triggers ATS/human bias. Resume Magic details a dozen formats with guidance on when each flatters the candidate's situation.",
+      "applies_when": [
+        "initial resume architecture"
+      ],
+      "detection_hint": "Using pure functional for stable career or chronological for major gaps without reason.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "medium",
+      "feedback_template": "Choose format to highlight your strengths and minimize weaknesses (gaps, career changes, promotions).",
+      "rewrite_instruction": "For stable recent progression: chronological/hybrid. Career changer or gaps: functional or combination with skills first. Creative roles: limited visual elements only.",
+      "source_reference": "Resume Magic - detailed chapters on Chronological, Functional, Combination, Accomplishments, Creative, Dateless formats",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Select resume format deliberately: Chronological (standard p...",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "cover_letter_five_step_right_formula",
+      "category": "Cover letters (if covered)",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Follow a deliberate 5-step / RIGHT formula process: Research target + job, Identify transferable value, Generate targeted phrases, Hook with role + fit in opening, Tell story with one proof point + metric, Close with call to action and enthusiasm. Keep to 3-4 paragraphs, <1 page.",
+      "why_it_matters": "Cover letters succeed when systematic and targeted rather than generic. Phrase Book and guides emphasize structured process (5 steps, RIGHT formula) to ensure every paragraph adds strategic value beyond the resume.",
+      "applies_when": [
+        "submitting cover letters"
+      ],
+      "detection_hint": "Generic opening, no research, repeats resume bullets, no specific company hook.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "medium",
+      "feedback_template": "Apply structured process: research first, then targeted hook + one strong proof + company-specific close.",
+      "rewrite_instruction": "Step 1: Research JD + company. Step 2: Map your top proof. Step 3: Draft hook (role + strongest match). Step 4: One metric story. Step 5: Why them + CTA.",
+      "source_reference": "The Resume and Cover Letter Phrase Book - 5-step process and RIGHT formula for cover letters",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Follow a deliberate 5-step / RIGHT formula process: Research...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "dedicated_keyword_index_or_competencies",
+      "category": "Skills section & competency mapping",
+      "primary_agent": "ats",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "Include a dedicated 'Core Competencies', 'Keyword Index', or clustered skills section that functions as a scannable database of role-relevant terms, tools, methodologies, and credentials. Mirror language from target JDs.",
+      "why_it_matters": "Resumes are searched as keyword indexes by recruiters and ATS. A concentrated, well-organized block improves ranking and quick human relevance checks. Resume Magic explicitly calls for a keyword index representing knowledge base and skill set.",
+      "applies_when": [
+        "most professional resumes, especially technical or keyword-sensitive fields"
+      ],
+      "detection_hint": "Skills scattered only in bullets or missing a dedicated top or mid-page block.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Add or strengthen a concentrated keyword/competencies block using exact JD language.",
+      "rewrite_instruction": "Create 2-3 lines or a table-free list of 10-20 high-value terms grouped (e.g., Technical | Methodologies | Tools | Domains).",
+      "source_reference": "Resume Magic - 'A keyword index that represents your knowledge base, skill set...'",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Include a dedicated 'Core Competencies', 'Keyword Index', or...",
+      "ui_target_section": "skills",
+      "ui_fix_action": "Edit Skills",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "before_after_comparison_in_bullets",
+      "category": "Bullet writing & structure",
+      "primary_agent": "quantifier",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Use explicit before-and-after comparisons in bullets or summary where possible (e.g., 'Reduced X from A to B', 'Improved Y by Z% from baseline'). This makes impact concrete and credible.",
+      "why_it_matters": "Comparisons are powerful communication tools that instantly convey scale and improvement. Resume Magic highlights before-and-after as a key strategy throughout.",
+      "applies_when": [
+        "roles with measurable process, efficiency, or outcome changes"
+      ],
+      "detection_hint": "Absolute claims without baseline or change data ('improved customer satisfaction' without numbers or prior state).",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Add the 'from-to' or percentage change to make the delta visible.",
+      "rewrite_instruction": "Rewrite: 'Increased on-time delivery from 68% to 94%' instead of 'Improved delivery performance'.",
+      "source_reference": "Resume Magic - emphasis on before-and-after stories and comparisons",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Use explicit before-and-after comparisons in bullets or summ...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Rewrite bullets",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "cover_letter_25_things_not_to_say",
+      "category": "Cover letters (if covered)",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "Strictly avoid common cover letter errors and filler: generic 'I am writing to apply', repeating entire resume, salary demands, personal information unrelated to job, negative comments about past employers, overused cliches, or unsubstantiated claims.",
+      "why_it_matters": "Phrase Book and guides catalog dozens of instant disqualifiers. Avoiding them is as important as including strong content.",
+      "applies_when": [
+        "any cover letter"
+      ],
+      "detection_hint": "Clich\u00e9s, repetition of resume, self-focused language without value to employer, negative tone.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Cut filler and negatives. Every sentence must add unique, positive, targeted value.",
+      "rewrite_instruction": "Review against known '25 things not to say' lists. Replace generic openers with role + proof hook.",
+      "source_reference": "The Resume and Cover Letter Phrase Book - '25 Things Not to Say in Your Cover Letter'",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Strictly avoid common cover letter errors and filler: generi...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "online_profile_as_primary_signal",
+      "category": "LinkedIn / personal branding alignment",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "hiring_manager"
+      ],
+      "principle": "Treat your full online profile (LinkedIn + portfolio + recommendations) as the rich, multimedia primary signal that recruiters actively source from. The traditional resume is secondary 'fine print' or a tailored snapshot for formal applications.",
+      "why_it_matters": "Recruiters spend more time in LinkedIn and online channels than reading cold resumes. A strong digital presence builds reputation and gets you found; resume alone is often incomplete or distrusted.",
+      "applies_when": [
+        "professional roles where sourcing occurs"
+      ],
+      "detection_hint": "Minimal or outdated LinkedIn/profile while relying only on resume submissions.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "medium",
+      "feedback_template": "Build and maintain a rich online presence as your always-on marketing asset. Use resume to support it for specific apps.",
+      "rewrite_instruction": "Ensure LinkedIn has detailed experience, recommendations, projects, and activity. Keep consistent with resume but expanded.",
+      "source_reference": "Fck Your Resume - online profile as full-color high-definition version vs resume as one-dimensional fine print",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Treat your full online profile (LinkedIn + portfolio + recom...",
+      "ui_target_section": "summary",
+      "ui_fix_action": "Edit Summary",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "cultivate_stellar_reputation_and_recs",
+      "category": "Non-traditional experience (gigs, bootcamps, self-taught, military, caregiving, side projects, thought leadership)",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "hiring_manager"
+      ],
+      "principle": "Actively cultivate a bulletproof professional reputation and collect specific, recent recommendations/testimonials (LinkedIn, letters, client feedback). These supplement or replace traditional references for non-linear or gig paths.",
+      "why_it_matters": "In a digital world, reputation and social proof travel faster than any document. Recruiters trust third-party validation over self-reported resume claims.",
+      "applies_when": [
+        "all candidates, especially gig/freelance/career transition"
+      ],
+      "detection_hint": "No visible recommendations, endorsements, or external validation on profile or in materials.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "medium",
+      "feedback_template": "Build reputation through consistent delivery and gather concrete recommendations.",
+      "rewrite_instruction": "Request specific recommendations highlighting results. Display prominently on LinkedIn and reference in applications where relevant.",
+      "source_reference": "Fck Your Resume + Lose the Resume - stellar reputation, recommendations, and network as core to repeated hiring",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Actively cultivate a bulletproof professional reputation and...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "resume_as_tailored_snapshot_not_everything",
+      "category": "Job targeting & tailoring",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "The resume is not a complete autobiography. It is a deliberately tailored snapshot optimized for a specific target. Omit or condense irrelevant history; focus on what the customer (employer) needs to see for this role.",
+      "why_it_matters": "Trying to include everything creates unfocused documents that fail both ATS and human scans. Professional advice stresses strategic omission and emphasis.",
+      "applies_when": [
+        "every resume version"
+      ],
+      "detection_hint": "Long lists of unrelated jobs or skills with equal weight; no clear targeting.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Curate ruthlessly. Every line must earn its place for the target role.",
+      "rewrite_instruction": "Remove or minimize early/irrelevant experience. Reorder or emphasize sections that map to the JD.",
+      "source_reference": "Fck Your Resume + multiple books (focus on relevance over completeness)",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "The resume is not a complete autobiography. It is a delibera...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "education_placement_by_experience_level",
+      "category": "Education, certifications, projects & credentials",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "Place Education near top for recent grads/entry-level (<2-3 yrs exp) with full details (degree, school, location, graduation date, GPA if >=3.5, relevant coursework, honors, thesis/projects). For mid/senior (5+ yrs), move after Experience and minimize to degree, institution, year (omit year if 15+ yrs or to avoid age bias).",
+      "why_it_matters": "Entry-level sells potential via credentials; experienced sells proven results. Wrong placement signals junior or outdated focus. 2026 guidance consistently differentiates by career stage.",
+      "applies_when": [
+        "all resumes"
+      ],
+      "detection_hint": "Education first for experienced pros, or minimal details for new grads.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Adjust education position and detail depth to your experience level.",
+      "rewrite_instruction": "New grad: Education top + GPA/coursework/honors. Experienced: After Experience, 'B.S. Computer Science, University Name, 2012'.",
+      "source_reference": "Resume Magic (Education/Credentials section), Tech Resume, 2026 sources (Indeed, Coursera, Handshake placement rules)",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Place Education near top for recent grads/entry-level (<2-3 ...",
+      "ui_target_section": "projects",
+      "ui_fix_action": "Edit Projects",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "projects_section_for_impact_and_skills_proof",
+      "category": "Projects, portfolio & non-traditional proof",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "quantifier",
+        "editor"
+      ],
+      "principle": "Add a Projects section (especially for tech, new grads, career changers, or short work history) with 2-4 high-quality entries. For each: title, 1-sentence goal, 2-3 bullets on your specific contributions + tech stack + quantifiable impact + links (GitHub/demo). Prioritize real/open-source/user-impacting over tutorials.",
+      "why_it_matters": "Projects demonstrate applied skills and initiative when experience is limited. Recruiters in tech value scope, complexity, users, and results. Quantified project impact translates better than descriptions.",
+      "applies_when": [
+        "limited relevant work exp",
+        "tech/engineering/design roles",
+        "showing current skills"
+      ],
+      "detection_hint": "No projects section or only generic/tutorial projects without metrics/stack/contribution.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "medium",
+      "feedback_template": "Curate 2-4 strong projects. Lead with impact and your role + tech.",
+      "rewrite_instruction": "Project: Title | Goal. \u2022 Built X using Y that achieved Z% improvement for W users. Link: ... Stack: ...",
+      "source_reference": "Tech Resume Inside Out (impact of past projects, open source, side projects), Resume Magic (e-portfolios), 2026 tech guides",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Add a Projects section (especially for tech, new grads, care...",
+      "ui_target_section": "projects",
+      "ui_fix_action": "Edit Projects",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "qualifications_summary_over_traditional_objective",
+      "category": "Professional summary / profile / branding",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "Use a Qualifications Summary / Key Features / Professional Profile (3-5 lines) instead of a traditional 'Objective' statement. Focus on what you bring (skills, value, brand) for the target rather than what you seek.",
+      "why_it_matters": "Objectives are outdated and self-focused. Modern summaries act as a branded headline that immediately shows fit and hooks the scanner. Resume Magic contrasts traditional Objective vs. Qualifications Summary.",
+      "applies_when": [
+        "most resumes except pure entry or very specific cases"
+      ],
+      "detection_hint": "Starts with 'Seeking a position...' or generic objective.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Replace objective with a summary that sells your qualifications and personal brand for this role.",
+      "rewrite_instruction": "3-5 lines: Role + years + key strengths + 1-2 quantified proof points + unique value/brand.",
+      "source_reference": "Resume Magic (Objective or Focus Statement vs Key Features/Qualifications Summary), multiple 2026 guides",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Use a Qualifications Summary / Key Features / Professional P...",
+      "ui_target_section": "summary",
+      "ui_fix_action": "Edit Summary",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "prepare_separate_references_list_with_permission",
+      "category": "References, additional information & \u201cfluff\u201d sections",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "Prepare a separate one-page references document (3-5 contacts: name, title, company, phone, email, relationship/context, and note that permission was granted). Only mention 'References available upon request' in very limited cases (e.g., self-employed/gaps). Never list references on the main resume.",
+      "why_it_matters": "Wastes space on resume; employers ask when needed. Separate list is professional and protects contacts. Resume Magic and others note separate lists and limited 'available' phrasing.",
+      "applies_when": [
+        "standard applications"
+      ],
+      "detection_hint": "References line on resume or no prepared list.",
+      "severity": "low",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Remove any references mention from resume. Prepare and have ready a clean separate list (get permission first).",
+      "rewrite_instruction": "Create References page matching resume header. List 3-5 with details. Only note availability for non-traditional paths.",
+      "source_reference": "Resume Magic (references section, 'Excellent/Strong references available', separate list), Tech Resume (references vs referrals)",
+      "confidence": "high",
+      "estimated_impact": "low",
+      "ui_title": "Prepare a separate one-page references document (3-5 contact...",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "Low",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "resume_length_by_experience_and_impact",
+      "category": "Formatting, layout & scannability",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "hiring_manager"
+      ],
+      "principle": "Aim for 1 page if under 8-10 years relevant experience or entry/mid-level with limited high-impact items. Use 2 pages for senior roles (10+ years) with substantial leadership/scope/achievements that justify the space. Never pad; every line must earn its place. Avoid going beyond 2 pages except for very senior/exec with extensive credentials.",
+      "why_it_matters": "Longer resumes for experienced pros are acceptable if dense with relevant proof; forced 1-page cuts value. Tech Resume and Magic discuss length preferences and 'don't go over unless lots of experience'.",
+      "applies_when": [
+        "deciding final length and content cuts"
+      ],
+      "detection_hint": "1-page cram for senior with 15+ yrs lost achievements, or 3+ page bloat.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Match length to depth of relevant high-impact experience. Trim ruthlessly.",
+      "rewrite_instruction": "Condense early career. Expand recent senior roles with strategic detail if space warranted.",
+      "source_reference": "Resume Magic (r\u00e9sum\u00e9 length, one page/two page), Tech Resume Inside Out (length guidance by experience)",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Aim for 1 page if under 8-10 years relevant experience or en...",
+      "ui_target_section": "formatting",
+      "ui_fix_action": "Fix Formatting",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "personal_branding_in_summary_and_header",
+      "category": "Professional summary / profile / branding",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "Infuse the summary (and header elements) with a clear personal brand \u2014 your unique value proposition, style, or niche strength that differentiates you. Reflect consistent branding across resume, LinkedIn, and online presence.",
+      "why_it_matters": "Resumes are advertisements for your personal brand. Without it, you blend in. Resume Magic dedicates chapters to branding and advertising strategies to make the document appeal to the target 'customer'.",
+      "applies_when": [
+        "all professional resumes"
+      ],
+      "detection_hint": "Generic summary that could apply to anyone in the field; no distinctive voice or positioning.",
+      "severity": "medium",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "medium",
+      "feedback_template": "Define and weave your personal brand into the top of the resume.",
+      "rewrite_instruction": "Summary: 'Results-driven [role] known for [unique strength, e.g., scaling teams in high-growth environments] with proven [metric] impact.'",
+      "source_reference": "Resume Magic - 'An advertisement that reflects your personal brand' and branding strategies chapter",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Infuse the summary (and header elements) with a clear person...",
+      "ui_target_section": "summary",
+      "ui_fix_action": "Edit Summary",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "qualifications_summary_brand_focus",
+      "category": "Professional summary / profile / branding",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "Replace traditional 'Objective' with a Qualifications Summary or Professional Profile (3-5 lines) that immediately communicates your personal brand, key qualifications, and value for the target role.",
+      "why_it_matters": "Objectives are self-focused and outdated. Modern summaries hook scanners and establish brand instantly (strong in Resume Magic and corroborated across sources).",
+      "applies_when": [
+        "most resumes"
+      ],
+      "detection_hint": "Starts with 'Seeking a challenging position...' or similar generic objective.",
+      "severity": "medium",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Convert objective to a branded qualifications summary highlighting what you deliver.",
+      "rewrite_instruction": "Write 3-5 lines: [Role/Level] + [Signature strengths + brand] + [1-2 quantified proofs] + [fit for target].",
+      "source_reference": "Resume Magic (Qualifications Summary vs Objective), cross-referenced in multiple books",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "Replace traditional 'Objective' with a Qualifications Summar...",
+      "ui_target_section": "summary",
+      "ui_fix_action": "Edit Summary",
+      "ui_severity_label": "Medium",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "e_portfolio_and_blogs_as_supplement",
+      "category": "Projects, portfolio & non-traditional proof",
+      "primary_agent": "strategist",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "For creative, tech, or portfolio-heavy roles, maintain and link to e-portfolios, blogs, or personal sites as supplements. Include in resume header or projects when they add verifiable proof.",
+      "why_it_matters": "Extends the resume with richer evidence (code, designs, writing). Resume Magic covers trends in e-portfolios and blogs.",
+      "applies_when": [
+        "creative fields",
+        "tech with public work",
+        "when experience is light"
+      ],
+      "detection_hint": "No links to supporting work when it would strengthen the case.",
+      "severity": "low",
+      "implementation_priority": "v1_enhancement",
+      "complexity": "simple",
+      "feedback_template": "Add links to portfolio/blog where relevant for proof.",
+      "rewrite_instruction": "Header or Projects: Add 'Portfolio: yoursite.com | GitHub: ...'",
+      "source_reference": "Resume Magic (e-portfolios and blogs chapter)",
+      "confidence": "high",
+      "estimated_impact": "medium",
+      "ui_title": "For creative, tech, or portfolio-heavy roles, maintain and l...",
+      "ui_target_section": "projects",
+      "ui_fix_action": "Edit Projects",
+      "ui_severity_label": "Low",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "employer_survey_pet_peeves_avoidance",
+      "category": "Action verbs, language strength & voice",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "Avoid the 25 common pet peeves and mistakes identified in employer surveys (e.g., typos, vague language, irrelevant info, poor formatting, salary demands on resume).",
+      "why_it_matters": "Direct feedback from HR professionals on what kills resumes instantly. Resume Magic includes compiled list from survey.",
+      "applies_when": [
+        "all resumes and cover letters"
+      ],
+      "detection_hint": "Typos, clich\u00e9s, generic statements, or common errors from employer lists.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Run against known employer pet peeves list before finalizing.",
+      "rewrite_instruction": "Eliminate spelling/grammar issues, vague claims, and documented turn-offs.",
+      "source_reference": "Resume Magic (employer survey appendix: 25 pet peeves)",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Avoid the 25 common pet peeves and mistakes identified in em...",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for text matching the detection_hint. In LaTeX, inspect the relevant \\section or \\item blocks for the described pattern."
+    },
+    {
+      "rule_id": "clear_full_name_in_header",
+      "category": "Header & contact information",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "The candidate's full name must be clearly stated and prominent in the header (largest text, first thing on the page).",
+      "why_it_matters": "Recruiters and ATS need to immediately know who the document belongs to. Unclear or missing name makes the resume unusable.",
+      "applies_when": [
+        "all resumes"
+      ],
+      "detection_hint": "Name is missing, uses placeholder, nickname only, or is not the largest/most prominent text.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Clearly state your full name in the header.",
+      "rewrite_instruction": "Put your legal full name in large bold text at the very top.",
+      "example_bad": "dtsdf sdf",
+      "example_good": "Alex Rivera",
+      "source_reference": "Basic professional standards + UI feedback requirements",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Unclear candidate name",
+      "ui_target_section": "header",
+      "ui_fix_action": "Edit Header",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Search for \\begin{document} near top; look for missing or placeholder name before first \\section. Check if \\maketitle or header uses \\textbf{\\Large Name}."
+    },
+    {
+      "rule_id": "explicit_current_role_title",
+      "category": "Header & contact information",
+      "primary_agent": "editor",
+      "supporting_agents": [
+        "strategist"
+      ],
+      "principle": "The header or top of the resume must explicitly state your current or most recent professional role title.",
+      "why_it_matters": "The headline is the highest-weight keyword line. A generic or missing title under-ranks you and hides your actual expertise.",
+      "applies_when": [
+        "all resumes"
+      ],
+      "detection_hint": "No role title in header, or only a very generic 'Software Engineer' when you have platform/specialized experience.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Specify your current or most recent job title explicitly.",
+      "rewrite_instruction": "Use a specific title that reflects your actual work (e.g. 'Senior Platform Engineer' instead of 'Software Engineer').",
+      "example_bad": "Software Engineer",
+      "example_good": "Senior Platform Engineer",
+      "source_reference": "UI feedback examples + tailoring rules",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "Primary role title missing",
+      "ui_target_section": "header",
+      "ui_fix_action": "Edit Header",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look in header or after name for \\textit{Software Engineer} or similar. Detect generic titles vs specific platform ones."
+    },
+    {
+      "rule_id": "include_start_end_dates_on_all_roles",
+      "category": "Experience selection & prioritization",
+      "primary_agent": "editor",
+      "supporting_agents": [],
+      "principle": "Every position in the Experience section must have clear start and end dates (month + year, or 'Present' for current role).",
+      "why_it_matters": "Dates establish duration and recency of experience. Missing dates make it impossible to evaluate career progression and tenure.",
+      "applies_when": [
+        "all professional experience entries"
+      ],
+      "detection_hint": "Experience entries lack start/end dates or use vague formats.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Add start and end months and years for each role.",
+      "rewrite_instruction": "Format as: 'Company \u2014 Role | Jan 2022 \u2013 Mar 2024' or 'Present' for current.",
+      "example_bad": "Experience sdf sdf \u2014 sdf sdf (f sdf sdf)",
+      "example_good": "Acme Corp \u2014 Senior Platform Engineer | Jan 2022 \u2013 Present",
+      "source_reference": "Basic resume standards + UI examples",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "No professional experience dates",
+      "ui_target_section": "experience",
+      "ui_fix_action": "Edit Experience",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "In experience section (\\section{Experience}), check each \\item or role block for dates like Jan 2022 -- Present. Flag missing \\textbf{... | Month Year -- Month Year}."
+    },
+    {
+      "rule_id": "has_dedicated_skills_section",
+      "category": "Skills section & competency mapping",
+      "primary_agent": "ats",
+      "supporting_agents": [
+        "editor"
+      ],
+      "principle": "The resume must contain a dedicated, visible Skills or Technologies section that explicitly lists concrete tools, languages, and frameworks.",
+      "why_it_matters": "70-85% of employers and ATS prioritize skills. Burying them only in bullets or omitting them entirely makes the resume weak for skills-based filtering.",
+      "applies_when": [
+        "most technical and professional roles"
+      ],
+      "detection_hint": "No Skills section, or skills are only mentioned incidentally inside bullets with no consolidated list.",
+      "severity": "high",
+      "implementation_priority": "v1_core",
+      "complexity": "simple",
+      "feedback_template": "Add a skills section listing relevant technical skills and tools.",
+      "rewrite_instruction": "Add a clear 'Skills' or 'Technologies' section near the top or after summary, listing specific items (React, Node.js, AWS, PostgreSQL, etc.).",
+      "example_bad": "No concrete skills or software tools named",
+      "example_good": "Skills: React, Node.js, TypeScript, AWS, PostgreSQL, Docker, Kubernetes",
+      "source_reference": "skills_first_prominent + UI feedback requirements",
+      "confidence": "high",
+      "estimated_impact": "high",
+      "ui_title": "No dedicated skills section or skills buried",
+      "ui_target_section": "skills",
+      "ui_fix_action": "Edit Skills",
+      "ui_severity_label": "High",
+      "latex_detection_hint": "Look for \\section{Skills} or \\section{Technologies}. If absent, or skills only appear inside experience \\item, flag it."
+    }
+  ]
+}

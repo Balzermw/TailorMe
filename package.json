@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "rules:validate": "vitest run src/lib/resume-rules/rulesValidate.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
