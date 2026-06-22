@@ -20,7 +20,7 @@ import { useDemoSession } from "@/lib/use-session";
 import { loadBaseResumeDoc, setTargetResume } from "@/lib/resume";
 import { docToResumeText } from "@/lib/apply/serialize";
 import type { TailoredDoc } from "@/lib/types";
-import { ScoreBar, RowStatus, initials } from "./dashboard-bits";
+import { ScoreBar, RowStatus } from "./dashboard-bits";
 
 type Tier = "strong" | "good" | "moderate" | "weak";
 type Status = "ready" | "running" | "michael" | "scored";
@@ -262,7 +262,12 @@ export default function DashboardClient() {
       <div className="tm-wrap">
         {/* Header */}
         <div className="tmD-head">
-          <h1>Your applications</h1>
+          <div>
+            <h1>Your applications</h1>
+            <p className="tmD-sub">
+              Signed in as {session.name} · {session.email}
+            </p>
+          </div>
           <div className="tmD-head-right">
             <span className="tmD-credits">
               <b>7 credits</b> · <Link href={ROUTES.buyCredits}>buy more</Link>
@@ -277,58 +282,40 @@ export default function DashboardClient() {
         </div>
 
         {/* Base resume hub: one reusable resume → tailor to any job */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            padding: "14px 18px",
-            border: "0.5px solid var(--tm-border)",
-            borderRadius: 14,
-            background: "var(--tm-blue-50)",
-            marginBottom: 22,
-          }}
-        >
-          <FileText size={18} style={{ color: "var(--tm-blue-800)", flex: "none" }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <b style={{ display: "block", fontSize: 14, color: "var(--tm-ink)" }}>
-              {baseResume ? "Your base resume" : "Build a base resume"}
-            </b>
-            <span className="tm-small" style={{ display: "block", color: "var(--tm-zinc)" }}>
+        <div className="tm-card tmD-base-resume">
+          <span className="tmD-base-thumb">
+            <FileText size={18} />
+          </span>
+          <div className="tmD-base-body">
+            <b>{baseResume ? "Your base resume" : "Build a base resume"}</b>
+            <span>
               {baseResume
                 ? baseResume.headline || baseResume.name || "Edit it, then tailor it to any job."
                 : "Create one resume you can reuse and tailor to every job."}
             </span>
           </div>
-          {baseResume ? (
-            <>
-              <Link className="tm-btn tm-btn--outline tm-btn--sm" href={ROUTES.resumeEdit}>
-                <PenLine size={14} /> Edit
+          <div className="tmD-base-actions">
+            {baseResume ? (
+              <>
+                <Link className="tm-btn tm-btn--outline tm-btn--sm" href={ROUTES.resumeEdit}>
+                  <PenLine size={14} /> Edit
+                </Link>
+                <button
+                  type="button"
+                  className="tm-btn tm-btn--primary tm-btn--sm"
+                  onClick={() => {
+                    setTargetResume(docToResumeText(baseResume));
+                    router.push(`${ROUTES.audit}?from=base`);
+                  }}
+                >
+                  <Target size={14} /> Target a job
+                </button>
+              </>
+            ) : (
+              <Link className="tm-btn tm-btn--primary tm-btn--sm" href={ROUTES.resumeNew}>
+                Build from scratch
               </Link>
-              <button
-                type="button"
-                className="tm-btn tm-btn--primary tm-btn--sm"
-                onClick={() => {
-                  setTargetResume(docToResumeText(baseResume));
-                  router.push(`${ROUTES.audit}?from=base`);
-                }}
-              >
-                <Target size={14} /> Target a job
-              </button>
-            </>
-          ) : (
-            <Link className="tm-btn tm-btn--primary tm-btn--sm" href={ROUTES.resumeNew}>
-              Build from scratch
-            </Link>
-          )}
-        </div>
-
-        {/* User identity row */}
-        <div className="tmD-user">
-          <span className="tmD-user-avatar">{initials(session.name)}</span>
-          <div>
-            <b>{session.name}</b>
-            <span>{session.email}</span>
+            )}
           </div>
         </div>
 
@@ -358,7 +345,7 @@ export default function DashboardClient() {
               </span>
             </div>
 
-            <div className="tmD-layout mt-[4px]">
+            <div className={"tmD-layout mt-[4px]" + (openApp ? " has-drawer" : "")}>
               <div>
                 {/* Rows */}
                 <div className="tmD-list">
@@ -386,17 +373,12 @@ export default function DashboardClient() {
                 </div>
               </div>
 
-              {openApp ? (
+              {openApp && (
                 <Drawer
                   app={openApp}
                   onClose={() => setOpenId(null)}
                   onRequestReview={() => setMichael((m) => ({ ...m, [openApp.id]: "reviewing" }))}
                 />
-              ) : (
-                <div className="tmD-drawer-empty">
-                  <FileText size={26} strokeWidth={1.5} />
-                  <p>Select an application to see its fit breakdown and files.</p>
-                </div>
               )}
             </div>
           </>

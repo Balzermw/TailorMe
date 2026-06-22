@@ -15,7 +15,7 @@ import { setTargetResume } from "@/lib/resume";
 import { docToResumeText } from "@/lib/apply/serialize";
 import type { ApplicationRow, TailoredDoc } from "@/lib/types";
 import type { SessionUser as AuthUser } from "@/lib/auth";
-import { ScoreBar, RowStatus, initials } from "./dashboard-bits";
+import { ScoreBar, RowStatus } from "./dashboard-bits";
 
 type View = "apps" | "docs";
 
@@ -170,7 +170,12 @@ export default function DashboardLive({
       <div className="tm-wrap">
         {/* Header */}
         <div className="tmD-head">
-          <h1>Your applications</h1>
+          <div>
+            <h1>Your applications</h1>
+            <p className="tmD-sub">
+              Signed in as {user.name} · {user.email}
+            </p>
+          </div>
           <div className="tmD-head-right">
             <span className="tmD-credits">
               <b>{credits} credit{credits === 1 ? "" : "s"}</b> ·{" "}
@@ -186,61 +191,45 @@ export default function DashboardLive({
         </div>
 
         {/* Base resume hub: one reusable resume → tailor to any job */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            padding: "14px 18px",
-            border: "0.5px solid var(--tm-border)",
-            borderRadius: 14,
-            background: "var(--tm-blue-50)",
-            marginBottom: 22,
-          }}
-        >
-          <FileText size={18} style={{ color: "var(--tm-blue-800)", flex: "none" }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <b style={{ display: "block", fontSize: 14, color: "var(--tm-ink)" }}>
-              {baseResume ? "Your base resume" : "Build a base resume"}
-            </b>
-            <span className="tm-small" style={{ display: "block", color: "var(--tm-zinc)" }}>
+        <div className="tm-card tmD-base-resume">
+          <span className="tmD-base-thumb">
+            <FileText size={18} />
+          </span>
+          <div className="tmD-base-body">
+            <b>{baseResume ? "Your base resume" : "Build a base resume"}</b>
+            <span>
               {baseResume
-                ? baseResume.headline || baseResume.name || "Edit it, then tailor it to any job."
+                ? (baseResume.headline ||
+                    baseResume.name ||
+                    "Edit it, then tailor it to any job.") +
+                  (baseVersions > 0
+                    ? ` · ${baseVersions} tailored ${baseVersions === 1 ? "version" : "versions"}`
+                    : "")
                 : "Create one resume you can reuse and tailor to every job."}
-              {baseResume && baseVersions > 0
-                ? ` · ${baseVersions} tailored ${baseVersions === 1 ? "version" : "versions"}`
-                : ""}
             </span>
           </div>
-          {baseResume ? (
-            <>
-              <Link className="tm-btn tm-btn--outline tm-btn--sm" href={ROUTES.resumeEdit}>
-                <PenLine size={14} /> Edit
+          <div className="tmD-base-actions">
+            {baseResume ? (
+              <>
+                <Link className="tm-btn tm-btn--outline tm-btn--sm" href={ROUTES.resumeEdit}>
+                  <PenLine size={14} /> Edit
+                </Link>
+                <button
+                  type="button"
+                  className="tm-btn tm-btn--primary tm-btn--sm"
+                  onClick={() => {
+                    setTargetResume(docToResumeText(baseResume), baseResumeId ?? undefined);
+                    router.push(`${ROUTES.audit}?from=base`);
+                  }}
+                >
+                  <Target size={14} /> Target a job
+                </button>
+              </>
+            ) : (
+              <Link className="tm-btn tm-btn--primary tm-btn--sm" href={ROUTES.resumeNew}>
+                Build from scratch
               </Link>
-              <button
-                type="button"
-                className="tm-btn tm-btn--primary tm-btn--sm"
-                onClick={() => {
-                  setTargetResume(docToResumeText(baseResume), baseResumeId ?? undefined);
-                  router.push(`${ROUTES.audit}?from=base`);
-                }}
-              >
-                <Target size={14} /> Target a job
-              </button>
-            </>
-          ) : (
-            <Link className="tm-btn tm-btn--primary tm-btn--sm" href={ROUTES.resumeNew}>
-              Build from scratch
-            </Link>
-          )}
-        </div>
-
-        {/* User identity row */}
-        <div className="tmD-user">
-          <span className="tmD-user-avatar">{initials(user.name)}</span>
-          <div>
-            <b>{user.name}</b>
-            <span>{user.email}</span>
+            )}
           </div>
         </div>
 
@@ -288,7 +277,7 @@ export default function DashboardLive({
                 </span>
               </span>
             </div>
-            <div className="tmD-layout mt-[4px]">
+            <div className={"tmD-layout mt-[4px]" + (open ? " has-drawer" : "")}>
             <div>
               <div className="tmD-list">
                 {shown.map((a) => {
@@ -319,7 +308,7 @@ export default function DashboardLive({
               </div>
             </div>
 
-            {open ? (
+            {open && (
               <div className="tm-card tmD-drawer">
                 <div className="tmD-drawer-head">
                   <div>
@@ -421,11 +410,6 @@ export default function DashboardLive({
                     {reviewMsg}
                   </p>
                 )}
-              </div>
-            ) : (
-              <div className="tmD-drawer-empty">
-                <FileText size={26} strokeWidth={1.5} />
-                <p>Select an application to see its fit breakdown and files.</p>
               </div>
             )}
           </div>

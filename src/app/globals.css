@@ -3395,6 +3395,52 @@ body {
   text-decoration: none;
   font-weight: 500;
 }
+.tmD-sub {
+  font-size: 13px;
+  color: var(--tm-zinc);
+  margin-top: 4px;
+}
+/* base resume banner */
+.tmD-base-resume {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 16px;
+  margin-top: 18px;
+}
+.tmD-base-thumb {
+  width: 34px;
+  height: 42px;
+  border: 0.5px solid var(--tm-border);
+  border-radius: 6px;
+  background: var(--tm-blue-50);
+  color: var(--tm-blue-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.tmD-base-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tmD-base-body b {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.tmD-base-body span {
+  font-size: 12px;
+  color: var(--tm-zinc);
+}
+.tmD-base-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
 
 .tmD-filters {
   display: flex;
@@ -3553,11 +3599,18 @@ body {
 
 .tmD-layout {
   display: grid;
-  /* Stable two-column grid so opening/closing the drawer never reflows the
-     list (the right column is always reserved — a panel or a placeholder). */
-  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr);
+  /* Full-width list until a row is open; then list 1.45fr / drawer 1fr. */
+  grid-template-columns: 1fr;
   gap: var(--g);
   align-items: start;
+}
+.tmD-layout.has-drawer {
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+}
+@media (max-width: 1080px) {
+  .tmD-layout.has-drawer {
+    grid-template-columns: 1fr;
+  }
 }
 .tmD-drawer {
   position: sticky;
@@ -3843,7 +3896,7 @@ body {
 }
 .tmD-row.is-open {
   background: var(--tm-blue-50);
-  border-color: var(--tm-blue-400);
+  border-color: var(--tm-blue-600);
 }
 .tmD-row-menu {
   color: var(--tm-zinc);
@@ -3986,6 +4039,10 @@ body {
   font-weight: 500;
   color: var(--tm-slate);
   min-width: 0;
+  white-space: nowrap;
+}
+.tmD-row-status .tmD-status-dot {
+  flex: none;
 }
 .tmD-row-status[data-status="ready"] .tmD-status-dot {
   background: var(--tm-mint-500);
