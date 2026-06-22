@@ -44,3 +44,6 @@ reextract_one.mjs
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Rule Lab generated debug output
+/debug/
