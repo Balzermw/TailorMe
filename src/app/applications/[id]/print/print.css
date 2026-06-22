@@ -177,6 +177,62 @@
   margin-top: 6px;
 }
 
+/* ---- Template skins: approximate each compiled style so switching templates
+   visibly changes the live preview. The downloaded PDF is the exact output;
+   default (moderncv-banking) keeps the colored-accent look above. ---- */
+
+/* Classic — serif, centered header, ruled small-caps section titles, no accent. */
+.print-tpl--classic {
+  font-family: Georgia, "Times New Roman", serif;
+}
+.print-tpl--classic .mcv-head {
+  text-align: center;
+  border-bottom: none;
+  padding-bottom: 8px;
+}
+.print-tpl--classic .mcv-name span {
+  color: inherit;
+}
+.print-tpl--classic .mcv-title {
+  color: var(--mcv-ink);
+  font-style: italic;
+}
+.print-tpl--classic .mcv-contact a {
+  color: inherit;
+}
+.print-tpl--classic .mcv-sec {
+  color: var(--mcv-ink);
+  text-transform: none;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--mcv-ink);
+}
+
+/* Modern — clean sans, larger bold name, ruled ink section titles. */
+.print-tpl--modern {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+.print-tpl--modern .mcv-head {
+  border-bottom: none;
+  padding-bottom: 10px;
+}
+.print-tpl--modern .mcv-name {
+  font-size: 32px;
+}
+.print-tpl--modern .mcv-name span {
+  color: inherit;
+}
+.print-tpl--modern .mcv-title {
+  color: var(--mcv-ink);
+}
+.print-tpl--modern .mcv-contact a {
+  color: var(--mcv-ink);
+}
+.print-tpl--modern .mcv-sec {
+  color: var(--mcv-ink);
+  border-bottom: 1.5px solid var(--mcv-ink);
+}
+
 @media print {
   .print-toolbar {
     display: none;

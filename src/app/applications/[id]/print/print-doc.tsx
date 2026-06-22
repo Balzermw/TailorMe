@@ -87,8 +87,14 @@ export default function PrintDoc({
         </div>
       )}
 
-      {/* Résumé */}
-      <article className="print-page">
+      {/* Résumé — the template skins the preview (the compiled PDF is exact). */}
+      <article
+        className={`print-page${
+          doc.template === "classic" || doc.template === "modern"
+            ? ` print-tpl--${doc.template}`
+            : ""
+        }`}
+      >
         <header className="mcv-head">
           <div className="mcv-name">
             {first} {last && <span>{last}</span>}
