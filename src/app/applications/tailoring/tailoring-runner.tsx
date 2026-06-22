@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ROUTES } from "@/components/landing/data";
 import { editHref } from "@/lib/apply/render";
+import { track, getSessionId } from "@/lib/track";
 
 // The audit step stashes the run inputs in sessionStorage and navigates here
 // immediately, so the user never waits out the ~1-minute run on the results
@@ -53,7 +54,10 @@ export default function TailoringRunner() {
       try {
         const res = await fetch("/api/apply", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-tm-session": getSessionId() ?? "",
+          },
           body: JSON.stringify({ mode: "full", ...inputs }),
         });
         if (res.status === 401) {
@@ -61,7 +65,13 @@ export default function TailoringRunner() {
           return;
         }
         const data = await res.json();
+        if (res.status === 429) {
+          track("limit_hit", { feature: "tailor" });
+          setError(data.error || "You’ve hit today’s limit. Please try again later.");
+          return;
+        }
         if (res.status === 402 || data.needCredits) {
+          track("credit_gate_shown", { source: "tailor" });
           setError(data.error || "You’re out of credits.");
           return;
         }

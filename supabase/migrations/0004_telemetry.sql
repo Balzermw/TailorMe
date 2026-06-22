@@ -44,7 +44,7 @@ create table if not exists public.ai_runs (
   created_at timestamptz not null default now(),
   user_id uuid references auth.users (id) on delete set null,
   session_id text,
-  feature text not null,                 -- feedback | group_skills | structure | tailor | score
+  feature text not null,                 -- feedback | group_skills | structure | score | audit | tailor
   provider text,                         -- openai | anthropic
   model text,
   status text not null,                  -- completed | cached | failed

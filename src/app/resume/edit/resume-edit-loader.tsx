@@ -12,6 +12,7 @@ import {
   setTargetResume,
 } from "@/lib/resume";
 import { docToResumeText } from "@/lib/apply/serialize";
+import { getSessionId } from "@/lib/track";
 import { supabaseConfigured } from "@/lib/config";
 import { ROUTES } from "@/components/landing/data";
 import EditEditor from "../../applications/[id]/edit/edit-editor";
@@ -93,7 +94,7 @@ export default function ResumeEditLoader({
       onGetFeedback={async (current) => {
         const res = await fetch("/api/resume/feedback", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-tm-session": getSessionId() ?? "" },
           body: JSON.stringify({ doc: current }),
         });
         const data = await res.json().catch(() => ({}));

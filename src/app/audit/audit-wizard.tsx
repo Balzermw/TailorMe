@@ -38,6 +38,7 @@ import type {
   RoleContext,
 } from "@/lib/types";
 import { useSession } from "@/lib/auth";
+import { track, getSessionId } from "@/lib/track";
 import {
   clearSavedResume,
   loadSavedResume,
@@ -1517,7 +1518,10 @@ function StepJob({
     try {
       const res = await fetch("/api/apply", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-tm-session": getSessionId() ?? "",
+        },
         body: JSON.stringify({
           mode: "score",
           useSample,
@@ -1530,6 +1534,7 @@ function StepJob({
         v = toView(data.result as ApplyResult);
       } else if (res.status === 429 || res.status === 413) {
         // Free limit reached or input too large → show the sample, nudge signup.
+        if (res.status === 429) track("limit_hit", { feature: "audit" });
         msg = data.error as string;
       } else if (data.demo) {
         // No provider configured → DEMO_VIEW is shown; flag it as a sample.
@@ -2666,7 +2671,10 @@ function StepResults({
     let active = true;
     fetch("/api/apply", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-tm-session": getSessionId() ?? "",
+      },
       body: JSON.stringify({ mode: "audit", useSample, resumeText, postingText: posting }),
     })
       .then((r) => r.json())
@@ -2757,7 +2765,10 @@ function StepResults({
                 <button
                   type="button"
                   className="tm-btn tm-btn--primary tm-btn--lg"
-                  onClick={() => void runFull()}
+                  onClick={() => {
+                    track("tailor_click");
+                    void runFull();
+                  }}
                 >
                   Tailor my application · 1 credit
                 </button>
@@ -2841,9 +2852,12 @@ function StartChooser({ onUpload }: { onUpload: () => void }) {
                 key={o.id}
                 type="button"
                 className="tmF-start-card"
-                onClick={() =>
-                  o.id === "upload" ? onUpload() : router.push(o.route)
-                }
+                onClick={() => {
+                  track("chooser_select", { choice: o.id });
+                  if (o.id === "scratch") track("start_from_scratch");
+                  if (o.id === "upload") onUpload();
+                  else router.push(o.route);
+                }}
               >
                 <span className="tmF-start-ic">
                   <Icon size={22} />

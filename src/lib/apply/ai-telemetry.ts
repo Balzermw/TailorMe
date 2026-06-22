@@ -7,7 +7,13 @@ import { getUsage, resetUsage } from "./llm";
 // responses, or PII — only counts, tokens, cost, latency, and the feature.
 // Written with the service role; no-ops when telemetry isn't configured.
 
-export type AiFeature = "feedback" | "group_skills" | "structure" | "tailor" | "score";
+export type AiFeature =
+  | "feedback"
+  | "group_skills"
+  | "structure"
+  | "tailor"
+  | "score"
+  | "audit";
 
 export interface AiRunCtx {
   userId?: string | null;

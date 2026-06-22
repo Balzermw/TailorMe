@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { setResumeDraft } from "@/lib/resume";
 import { ROUTES } from "@/components/landing/data";
+import { track, getSessionId } from "@/lib/track";
 
 // Paste-import: drop in LinkedIn/old-resume/notes text → structure into a base
 // resume → hand off to the editor (same draft handoff the builder uses).
@@ -22,10 +23,11 @@ export default function PasteImport() {
     }
     setErr(null);
     setBusy(true);
+    track("resume_import_start", { chars: text.trim().length });
     try {
       const res = await fetch("/api/resume/structure", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-tm-session": getSessionId() ?? "" },
         body: JSON.stringify({ text }),
       });
       const data = await res.json().catch(() => ({}));
@@ -35,13 +37,16 @@ export default function PasteImport() {
         return;
       }
       if (!res.ok || !data.doc) {
+        track("resume_import_failed");
         setErr(data.error || "Couldn't import that. Try again.");
         setBusy(false);
         return;
       }
+      track("resume_import_success");
       setResumeDraft(data.doc); // hand the structured doc to the editor
       router.push(ROUTES.resumeEdit);
     } catch {
+      track("resume_import_failed");
       setErr("Couldn't import that. Try again.");
       setBusy(false);
     }

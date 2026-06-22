@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Lock, ShieldCheck } from "lucide-react";
 import { PRICING, ROUTES } from "@/components/landing/data";
 import { packIdByName } from "@/lib/packs";
+import { track } from "@/lib/track";
 
 const PACKS = PRICING.map((p) => ({
   ...p,
@@ -27,10 +28,23 @@ export default function CreditsPurchase() {
   // Returning from Stripe Checkout (?success=1) or the demo "Pay" both show success.
   const showSuccess = paid || searchParams.get("success") === "1";
 
+  useEffect(() => {
+    track("pricing_view");
+  }, []);
+
+  const successTracked = useRef(false);
+  useEffect(() => {
+    if (showSuccess && !successTracked.current) {
+      successTracked.current = true;
+      track("checkout_success");
+    }
+  }, [showSuccess]);
+
   const pay = async () => {
     if (busy) return;
     setBusy(true);
     setError(null);
+    track("checkout_start", { pack: pack.name });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",

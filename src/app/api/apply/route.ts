@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { creditsDisabled, llmConfigured } from "@/lib/config";
 import { runAudit, runFull, runScore } from "@/lib/apply/pipeline";
+import { withAiRun } from "@/lib/apply/ai-telemetry";
 import { SAMPLE_RESUME } from "@/lib/apply/sample";
 import { getServerSupabase } from "@/lib/supabase/server";
 import {
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
   // (2 calls, still free + no auth); "full" = tailored documents (auth + credit).
   const mode =
     body.mode === "full" ? "full" : body.mode === "audit" ? "audit" : "score";
+  const sessionId = request.headers.get("x-tm-session");
   const resumeText = body.useSample
     ? SAMPLE_RESUME
     : (body.resumeText ?? "").trim();
@@ -103,8 +105,12 @@ export async function POST(request: Request) {
       }
       const result =
         mode === "audit"
-          ? await runAudit(resumeText, postingText)
-          : await runScore(resumeText, postingText);
+          ? await withAiRun("audit", { sessionId }, () =>
+              runAudit(resumeText, postingText),
+            )
+          : await withAiRun("score", { sessionId }, () =>
+              runScore(resumeText, postingText),
+            );
       return NextResponse.json({ result });
     }
 
@@ -147,7 +153,9 @@ export async function POST(request: Request) {
       }
     }
 
-    const result = await runFull(resumeText, postingText);
+    const result = await withAiRun("tailor", { userId: user.id, sessionId }, () =>
+      runFull(resumeText, postingText),
+    );
     // Carry the step-1 audit findings into the stored result so the editor can
     // show "what the tailoring addressed."
     result.proofPoints = sanitizeProofPoints(body.proofPoints);
