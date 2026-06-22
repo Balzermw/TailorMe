@@ -28,6 +28,7 @@ import type {
 } from "@/lib/types";
 import { pdfHref } from "@/lib/apply/render";
 import { RESUME_TEMPLATES, DEFAULT_TEMPLATE, templateName } from "@/lib/apply/templates";
+import { feedbackHash } from "@/lib/apply/hash";
 import { ROUTES } from "@/components/landing/data";
 import { bulletKey, diffMap } from "@/lib/apply/redline";
 import { highlight, highlightHits } from "@/lib/highlight";
@@ -228,6 +229,9 @@ export default function EditEditor({
   const [proofPoints, setProofPoints] = useState<ProofPoint[]>(initialProofPoints);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  // Hash of the résumé when feedback was last fetched — lets us show "up to date"
+  // and skip a redundant (token-spending) re-review when nothing changed.
+  const [lastFeedbackHash, setLastFeedbackHash] = useState<string | null>(null);
   // The live-preview container — feedback findings spotlight their line in it on hover.
   const previewRef = useRef<HTMLDivElement>(null);
   // Experience entries collapse to a one-line header; open entries that still
@@ -502,6 +506,11 @@ export default function EditEditor({
   }
   async function getFeedback() {
     if (!onGetFeedback || feedbackLoading) return;
+    // Don't spend tokens re-reviewing an unchanged résumé.
+    if (proofPoints.length > 0 && lastFeedbackHash === feedbackHash(doc)) {
+      setFeedbackError("Your feedback is up to date. Edit your résumé to refresh it.");
+      return;
+    }
     const hasContent =
       doc.summary.trim().length > 0 ||
       doc.experience.some((e) => e.bullets.some((b) => b.trim()));
@@ -514,6 +523,7 @@ export default function EditEditor({
     try {
       const pts = await onGetFeedback(doc);
       setProofPoints(pts);
+      setLastFeedbackHash(feedbackHash(doc));
       if (!pts.length) setFeedbackError("Looks solid. No major issues found.");
     } catch {
       setFeedbackError("Couldn't get feedback. Try again.");
@@ -607,6 +617,8 @@ export default function EditEditor({
   // header, and education are rendered without highlighting, so they don't count.
   const previewText = [doc.summary, ...doc.experience.flatMap((e) => e.bullets)].join("  ");
   const previewHits = highlightHits(previewText, keywords);
+  // True when the saved feedback already matches the current résumé (no re-run needed).
+  const feedbackUpToDate = proofPoints.length > 0 && lastFeedbackHash === feedbackHash(doc);
 
   // Spotlight the line a feedback finding references in the live preview. Match
   // the finding's verbatim quote to a rendered element (bullet, skill, role,
@@ -1202,14 +1214,17 @@ export default function EditEditor({
                     type="button"
                     className="tm-btn tm-btn--outline tm-btn--sm"
                     onClick={() => void getFeedback()}
-                    disabled={feedbackLoading}
+                    disabled={feedbackLoading || feedbackUpToDate}
+                    title={feedbackUpToDate ? "Your résumé hasn't changed since the last review." : undefined}
                   >
-                    <ListChecks size={13} />{" "}
+                    {feedbackUpToDate ? <Check size={13} /> : <ListChecks size={13} />}{" "}
                     {feedbackLoading
                       ? "Reviewing…"
-                      : proofPoints.length
-                        ? "Refresh"
-                        : "Get feedback"}
+                      : !proofPoints.length
+                        ? "Get feedback"
+                        : feedbackUpToDate
+                          ? "Up to date"
+                          : "Refresh"}
                   </button>
                 )}
               </div>
