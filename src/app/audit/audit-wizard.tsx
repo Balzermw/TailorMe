@@ -608,6 +608,12 @@ const PARSE_STEPS = [
   "Building your profile…",
 ];
 
+// When the final "Building your profile…" spinner appears, and the floor that
+// lets the staged steps fully play even on a fast/cached parse. Tuned so the
+// earlier steps carry more of the wait and the last step doesn't dominate.
+const PARSE_LAST_STEP_MS = 3300;
+const PARSE_MIN_MS = 3600;
+
 // ---------- Step 1: upload (real parsing) ----------
 function StepUpload({
   onNext,
@@ -649,10 +655,14 @@ function StepUpload({
     if (phase !== "parsing") return;
     // parseStep is reset to 0 by whoever starts parsing; here we only schedule
     // the advance (deferred setState in timers is fine).
+    // Pace the early steps over a longer, slightly randomized schedule so the
+    // progress feels organic and the final spinner doesn't hog the wait. The
+    // last step holds until the real parse resolves (phase flips to "done").
+    const jitter = (ms: number) => Math.round(ms + (Math.random() - 0.5) * ms * 0.2);
     const t = [
-      setTimeout(() => setParseStep(1), 700),
-      setTimeout(() => setParseStep(2), 1500),
-      setTimeout(() => setParseStep(PARSE_STEPS.length - 1), 2300),
+      setTimeout(() => setParseStep(1), jitter(850)),
+      setTimeout(() => setParseStep(2), jitter(2100)),
+      setTimeout(() => setParseStep(PARSE_STEPS.length - 1), PARSE_LAST_STEP_MS),
     ];
     return () => t.forEach(clearTimeout);
   }, [phase]);
@@ -708,7 +718,8 @@ function StepUpload({
       // Let the progress steps breathe even on a fast parse, so they read as
       // real progress rather than a flash of all-done.
       const elapsed = performance.now() - startedAt;
-      if (elapsed < 2300) await new Promise((r) => setTimeout(r, 2300 - elapsed));
+      if (elapsed < PARSE_MIN_MS)
+        await new Promise((r) => setTimeout(r, PARSE_MIN_MS - elapsed));
       onUploaded(data.text, s);
       setPhase("done");
       // Persist for next time — no-op if signed out in live mode.
@@ -747,7 +758,7 @@ function StepUpload({
     onSample();
     setParseStep(0);
     setPhase("parsing");
-    setTimeout(() => setPhase("done"), 2400);
+    setTimeout(() => setPhase("done"), PARSE_MIN_MS);
   };
 
   // Metadata for the saved-resume card, derived from what we stored (resume text
