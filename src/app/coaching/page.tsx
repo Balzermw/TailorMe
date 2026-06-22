@@ -237,7 +237,7 @@ function Packages() {
                 }
                 href={ROUTES.bookSession}
               >
-                Choose {p.name.toLowerCase()}
+                Choose <strong style={{ fontWeight: 600 }}>{p.name}</strong>
               </Link>
             </div>
           ))}
