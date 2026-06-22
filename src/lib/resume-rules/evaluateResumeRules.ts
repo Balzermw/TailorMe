@@ -21,7 +21,16 @@ export interface EvaluateResumeInput {
   /** Legacy LLM feedback (parseResume output) to fold in + dedupe against. */
   legacyProofPoints?: ProofPoint[];
   tier?: "free" | "paid";
+  /**
+   * The résumé renders in OUR template (build-from-scratch / base resume), so
+   * the template owns layout/ATS/spacing — suppress those findings (they're
+   * genuine only on uploaded files). Mirrors parseResume's `templated` flag.
+   */
+  templated?: boolean;
 }
+
+// Categories the template controls; suppressed when `templated` is set.
+const TEMPLATE_OWNED = new Set(["formatting", "ats", "readability"]);
 
 export interface EvaluateResumeResult {
   ui: ResumeUiFeedback;
@@ -56,7 +65,11 @@ export function evaluateResumeRules(input: EvaluateResumeInput): EvaluateResumeR
       ? legacyProofPointsToFindings(input.legacyProofPoints, rules)
       : [];
 
-  const candidates = [...grokFindings, ...legacyFindings];
+  const all = [...grokFindings, ...legacyFindings];
+  // On our own template, drop layout/ATS/readability findings the template owns.
+  const candidates = input.templated
+    ? all.filter((f) => !TEMPLATE_OWNED.has(f.category))
+    : all;
 
   const { kept: deduped, suppressed: dedupeSuppressed } = resumeFeedbackConfig.enableDedupe
     ? dedupeResumeFindings(candidates)

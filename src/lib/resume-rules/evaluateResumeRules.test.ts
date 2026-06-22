@@ -100,6 +100,19 @@ describe("evaluateResumeRules (deterministic, weak résumé)", () => {
     if (r.ui.groups.length > 1) expect(r.ui.groups[0].label).toBe("HIGH PRIORITY");
   });
 
+  it("templated mode suppresses layout/ATS findings the template owns", () => {
+    const multiCol = weakResume.replace(
+      "\\begin{itemize}",
+      "\\begin{tabular}{ll}\\begin{itemize}",
+    );
+    const normal = evaluateResumeRules({ latexSource: multiCol });
+    const templated = evaluateResumeRules({ latexSource: multiCol, templated: true });
+    expect(normal.candidates.some((f) => f.canonicalIssueId === "ats_clean_single_column")).toBe(true);
+    expect(templated.candidates.some((f) => f.category === "formatting")).toBe(false);
+    // content findings (metrics, skills) still come through
+    expect(templated.candidates.some((f) => f.canonicalIssueId === "quantify_impact_metrics")).toBe(true);
+  });
+
   it("a strong résumé produces few/no findings", () => {
     const strong = String.raw`
 \name{Dana Lee} \\ Senior Software Engineer

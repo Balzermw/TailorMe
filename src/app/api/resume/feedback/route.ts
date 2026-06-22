@@ -2,17 +2,52 @@ import { NextResponse } from "next/server";
 import { llmConfigured } from "@/lib/config";
 import { parseResume } from "@/lib/apply/pipeline";
 import { docToResumeText } from "@/lib/apply/serialize";
+import { renderResumeTex } from "@/lib/apply/latex";
 import { sanitizeDoc } from "@/lib/apply/sanitize-doc";
 import { feedbackHash } from "@/lib/apply/hash";
 import { withAiRun, logCachedRun } from "@/lib/apply/ai-telemetry";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { EDIT_REVIEW_RULES, rateLimitDisabled } from "@/lib/limits";
 import { consume, getClientIp, tooManyRequests } from "@/lib/rate-limit";
+import { evaluateResumeRules } from "@/lib/resume-rules/evaluateResumeRules";
+import type { ResumeRuleFinding } from "@/lib/resume-rules/resumeAdviceRule.types";
+import type { ProofPoint } from "@/lib/types";
 
-// First-pass feedback on a structured (built/edited) base resume. Serializes the
-// doc to text and runs the same parse the upload path uses, but template-aware
-// (it won't flag formatting/ATS-layout, since the doc renders in our template).
-// Returns proof points for the editor's Suggestions section.
+// First-pass feedback on a structured (built/edited) base resume. Runs the LLM
+// parse (template-aware) AND the deterministic rules engine over the same doc,
+// then dedupes + caps so the editor's Suggestions section shows a focused set
+// (no duplicate "add metrics" from both the rule and the LLM). Returns proof
+// points for the editor's Suggestions section.
+
+// Map a surfaced rules-engine finding back to the editor's ProofPoint shape.
+function findingToProofPoint(f: ResumeRuleFinding): ProofPoint {
+  return {
+    title: f.title,
+    summary: f.message,
+    quote: f.evidenceSnippet || undefined,
+    why: f.whyItMatters,
+    fix: f.suggestedFix,
+    severity: f.uiSeverityLabel.toLowerCase() as ProofPoint["severity"],
+  };
+}
+
+// Fold the LLM proof points + deterministic rule findings into one deduped,
+// ranked, capped set. Falls back to the raw proof points if the doc can't be
+// rendered to LaTeX (the engine's detectors read LaTeX structure).
+function refineFeedback(doc: Parameters<typeof renderResumeTex>[0], proofPoints: ProofPoint[]): ProofPoint[] {
+  try {
+    const latexSource = renderResumeTex(doc);
+    const result = evaluateResumeRules({
+      latexSource,
+      legacyProofPoints: proofPoints,
+      tier: "paid", // the editor is an engaged workspace → allow up to 10
+      templated: true, // base resume renders in our template (it owns layout/ATS)
+    });
+    return result.surfaced.map(findingToProofPoint);
+  } catch {
+    return proofPoints;
+  }
+}
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -76,7 +111,8 @@ export async function POST(request: Request) {
       { userId: user?.id ?? null, sessionId },
       () => parseResume(docToResumeText(doc), undefined, true),
     );
-    const proofPoints = parsed.proofPoints ?? [];
+    // Fold the LLM findings + deterministic rules → deduped, capped suggestions.
+    const proofPoints = refineFeedback(doc, parsed.proofPoints ?? []);
     // Persist with the hash so the next identical request is a free cache hit.
     if (sb && user) {
       const merged = { ...stats, proofPoints, feedbackHash: hash };
