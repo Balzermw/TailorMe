@@ -3956,7 +3956,9 @@ body {
   overflow: hidden;
 }
 .tmD-score-fill {
+  display: block; /* inline spans ignore width/height — the fill needs a box */
   height: 100%;
+  min-width: 3px; /* a sliver always shows even at very low scores */
   border-radius: 999px;
   transition: width 320ms ease;
 }

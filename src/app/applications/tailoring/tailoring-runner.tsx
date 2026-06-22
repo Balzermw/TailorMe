@@ -12,14 +12,18 @@ import { track, getSessionId } from "@/lib/track";
 // page. We run /api/apply (full) here, show staged progress, then drop straight
 // into the editor when the document is ready.
 const STAGES = [
+  "Reading your resume and the job posting",
   "Rewriting your bullets for this posting",
   "Compiling your resume and cover letter",
   "Running the final faithfulness check",
+  "Polishing formatting and layout",
+  "Almost there — longer resumes take a little more time",
 ];
 
 export default function TailoringRunner() {
   const router = useRouter();
   const [stage, setStage] = useState(0);
+  const [pct, setPct] = useState(6);
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
 
@@ -45,10 +49,16 @@ export default function TailoringRunner() {
       return;
     }
 
-    const timers = [
-      window.setTimeout(() => setStage(1), 9000),
-      window.setTimeout(() => setStage(2), 22000),
-    ];
+    const start = Date.now();
+    const ticker = window.setInterval(() => {
+      const t = Date.now() - start;
+      // Crawl toward ~92% and never hit 100% until the doc is actually ready,
+      // so larger/slower runs keep visibly progressing instead of freezing at
+      // the last step. (6 + 86·(1−e^−t/20s) → 92% asymptotically.)
+      setPct((p) => Math.max(p, Math.round(6 + 86 * (1 - Math.exp(-t / 20000)))));
+      // Advance the reassurance message every ~8s, holding on the last one.
+      setStage(Math.min(Math.floor(t / 8000), STAGES.length - 1));
+    }, 600);
 
     void (async () => {
       try {
@@ -89,11 +99,11 @@ export default function TailoringRunner() {
       } catch {
         setError("Something went wrong. Please try again.");
       } finally {
-        timers.forEach((t) => window.clearTimeout(t));
+        window.clearInterval(ticker);
       }
     })();
 
-    return () => timers.forEach((t) => window.clearTimeout(t));
+    return () => window.clearInterval(ticker);
   }, [router]);
 
   return (
@@ -141,9 +151,34 @@ export default function TailoringRunner() {
               }}
             />
             <h3>Tailoring your application…</h3>
-            <p>
-              {STAGES[stage]}. This takes about a minute; hang tight and we’ll open the editor
-              for you automatically.
+            <p style={{ minHeight: "1.4em" }}>{STAGES[stage]}…</p>
+            <div
+              role="progressbar"
+              aria-valuenow={pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              style={{
+                width: "100%",
+                maxWidth: 320,
+                height: 6,
+                borderRadius: 999,
+                background: "var(--tm-blue-50)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${pct}%`,
+                  height: "100%",
+                  borderRadius: 999,
+                  background: "var(--tm-blue-600)",
+                  transition: "width 600ms ease",
+                }}
+              />
+            </div>
+            <p className="tm-small" style={{ color: "var(--tm-zinc)" }}>
+              We build your resume and cover letter while you wait, then open the editor
+              automatically.
             </p>
           </>
         )}
