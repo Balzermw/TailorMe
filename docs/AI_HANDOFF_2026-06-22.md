@@ -191,10 +191,11 @@ Keys present in dev: Supabase URL/anon/service-role, Stripe secret/webhook, Open
 **Absent in dev:** `LATEX_COMPILE_URL` (so PDFs fall back to the in-app print view),
 `ADMIN_EMAILS`, `STRIPE_PRICE_*`, `NEXT_PUBLIC_CALENDLY_URL`.
 
-**Pending env actions (user):**
-- Set `ADMIN_EMAILS` so `/admin/orders` + Rule Lab are gated in prod.
-- Optionally create Stripe Price IDs and set `STRIPE_PRICE_*` (else checkout uses inline `price_data`).
-- Toggle **leaked-password protection** ON in the Supabase Auth dashboard (linter warning, dashboard-only).
+**Env actions — see `docs/DEPLOY_SETUP.md` for the full walkthrough + status:**
+- ✅ `0006` + `0007` applied & verified (dev project, 2026-06-22).
+- ✅ `ADMIN_EMAILS` set in `.env.local` (must also be set in the prod host at deploy).
+- ⏸️ Leaked-password protection — deferred (Supabase **Pro-only**); advisory, not a real hole.
+- ⏭️ Stripe Price IDs — optional/skipped; inline `price_data` from `packs.ts` already works.
 
 ---
 
