@@ -92,5 +92,7 @@ order by purchases desc;
   - `STRIPE_PRICE_CAMPAIGN_129`
   - `STRIPE_PRICE_EXPERT_FEEDBACK_79`
   - `STRIPE_PRICE_HUMAN_REVISION_149`
-- TODO: admin fulfillment view for orders where `fulfillment_status = 'pending'`
-  (human add-ons bought at checkout need a manual review/revision pass).
+- Admin fulfillment view: `/admin/orders` lists orders (pending human add-ons
+  highlighted, one click to mark fulfilled). Gated by the `ADMIN_EMAILS` env var
+  (comma-separated allowlist) — set it or nobody can access. Reads/writes via the
+  service role, re-checks admin on the mutation route.

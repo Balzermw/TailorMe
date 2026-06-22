@@ -32,6 +32,10 @@ export const STRIPE_PRICE_JOB_HUNT = process.env.STRIPE_PRICE_JOB_HUNT_69;
 export const STRIPE_PRICE_CAMPAIGN = process.env.STRIPE_PRICE_CAMPAIGN_129;
 export const STRIPE_PRICE_EXPERT_FEEDBACK = process.env.STRIPE_PRICE_EXPERT_FEEDBACK_79;
 export const STRIPE_PRICE_HUMAN_REVISION = process.env.STRIPE_PRICE_HUMAN_REVISION_149;
+
+// Comma-separated emails allowed into the internal admin views (e.g. the order
+// fulfillment queue). Server-only. Empty = nobody (safe default).
+export const ADMIN_EMAILS = process.env.ADMIN_EMAILS;
 export const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 export const ANTHROPIC_MODEL =
   process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
