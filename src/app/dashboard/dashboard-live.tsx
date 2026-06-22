@@ -181,10 +181,10 @@ export default function DashboardLive({
               <b>{credits} credit{credits === 1 ? "" : "s"}</b> ·{" "}
               <Link href={ROUTES.buyCredits}>buy more</Link>
             </span>
-            <Link className="tm-btn tm-btn--primary" href={ROUTES.audit}>
+            <Link className="tm-btn tm-btn--primary tm-btn--sm" href={ROUTES.audit}>
               <Plus size={15} /> New application
             </Link>
-            <Link className="tm-btn tm-btn--outline" href={ROUTES.settings}>
+            <Link className="tm-btn tm-btn--outline tm-btn--sm" href={ROUTES.settings}>
               <Settings size={14} /> Settings
             </Link>
           </div>
