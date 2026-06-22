@@ -170,7 +170,7 @@ function PackCards() {
               perApp={p.per}
               className={"tm-btn " + (em ? "tm-btn--primary" : "tm-btn--outline")}
             >
-              Buy {p.name.toLowerCase()}
+              Buy <strong style={{ fontWeight: 600 }}>{p.name}</strong>
             </PlanCta>
           </div>
         );
