@@ -245,7 +245,7 @@ function Drawer({ app, onClose, onRequestReview }: { app: App; onClose: () => vo
               <b>Add Michael&apos;s expert review</b>
               <span>Line-by-line pass · 48h turnaround</span>
             </div>
-            <span className="tm-pill tm-pill--mint">+$49</span>
+            <span className="tm-pill tm-pill--mint">+$79</span>
           </button>
         ))}
     </div>

@@ -21,6 +21,17 @@ export const APP_URL =
 export const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+
+// Optional pre-created Stripe Price IDs (recurring or one-time). When set, the
+// checkout route uses the Price ID; when absent it falls back to inline
+// price_data computed from the amounts in lib/packs.ts (so dev/demo works with
+// no Stripe products). Create these in the Stripe dashboard and set the env
+// vars — never hardcode live price IDs in business logic.
+export const STRIPE_PRICE_STARTER = process.env.STRIPE_PRICE_STARTER_29;
+export const STRIPE_PRICE_JOB_HUNT = process.env.STRIPE_PRICE_JOB_HUNT_69;
+export const STRIPE_PRICE_CAMPAIGN = process.env.STRIPE_PRICE_CAMPAIGN_129;
+export const STRIPE_PRICE_EXPERT_FEEDBACK = process.env.STRIPE_PRICE_EXPERT_FEEDBACK_79;
+export const STRIPE_PRICE_HUMAN_REVISION = process.env.STRIPE_PRICE_HUMAN_REVISION_149;
 export const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 export const ANTHROPIC_MODEL =
   process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";

@@ -2,27 +2,33 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { track } from "@/lib/track";
 
 const PRICING_FAQS = [
   {
+    id: "credits_expire",
     q: "Do credits expire?",
     a: "Never. Buy a pack, use it across your whole search - this month or next year. No subscription to cancel, no API keys to manage.",
   },
   {
+    id: "one_application",
     q: "What counts as one application?",
     a: "One job posting: fit score, tailored resume + cover letter, the full three-agent review, and the compiled PDFs. Re-runs against the same posting do not cost extra credits.",
   },
   {
+    id: "preview",
     q: "Can I see the result before spending a credit?",
     a: "Yes. Every run shows a watermarked preview free. The credit unlocks the clean download.",
   },
   {
+    id: "refund_policy",
     q: "What is the refund policy?",
     a: "If you are not happy, email balzermw@gmail.com within 30 days of purchase and we will refund any unused credits in full. Credits already spent on a tailored application, and completed human reviews, are not refundable.",
   },
   {
-    q: "What does Michael's review add?",
-    a: "A line-by-line pass from the head of Res.Me, a Certified Professional Resume Writer with 650+ resumes written, with positioning notes for your target role within 48 hours. +$49 on any application.",
+    id: "expert_feedback",
+    q: "What does Expert Feedback add?",
+    a: "A human review pass from a Certified Professional Resume Writer: prioritized notes, risks, and what to improve on one selected application, within 48 hours. It is feedback only — a review pass, not a rewrite. +$79 per application. Want hands-on changes? Human Revision is +$149.",
   },
 ];
 
@@ -45,7 +51,10 @@ export default function PricingFaq() {
               className="tm-faq-button"
               aria-expanded={isOpen}
               aria-controls={panelId}
-              onClick={() => setOpenIndex(isOpen ? -1 : i)}
+              onClick={() => {
+                if (!isOpen) track("faq_opened", { question_id: f.id });
+                setOpenIndex(isOpen ? -1 : i);
+              }}
             >
               <span>{f.q}</span>
               <Plus className="tm-faq-icon" size={16} />

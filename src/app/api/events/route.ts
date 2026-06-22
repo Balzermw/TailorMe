@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { getServerSupabase, getServiceSupabase } from "@/lib/supabase/server";
+import {
+  isAllowedEvent,
+  sanitizeProps,
+  MAX_BATCH,
+  MAX_EVENT_BODY,
+} from "@/lib/telemetry-events";
 
 // Product telemetry sink. The browser may ONLY reach product_events through
 // here — the table denies direct public access (RLS, no policies), and this
@@ -9,53 +15,18 @@ import { getServerSupabase, getServiceSupabase } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-const ALLOWED = new Set([
-  "chooser_select",
-  "resume_import_start",
-  "resume_import_success",
-  "resume_import_failed",
-  "start_from_scratch",
-  "template_select",
-  "feedback_click",
-  "target_job_click",
-  "tailor_click",
-  "pdf_click",
-  "pricing_view",
-  "checkout_start",
-  "checkout_success",
-  "credit_gate_shown",
-  "limit_hit",
-]);
-
-const MAX_BATCH = 10;
-const MAX_BODY = 8_000; // reject oversized payloads (chars ≈ bytes for this JSON)
-
-// Props may only contain small, safe primitives — drop everything else.
-function sanitizeProps(input: unknown): Record<string, string | number | boolean> {
-  if (!input || typeof input !== "object") return {};
-  const out: Record<string, string | number | boolean> = {};
-  let i = 0;
-  for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
-    if (i++ >= 12) break;
-    const key = k.slice(0, 40);
-    if (typeof v === "string") out[key] = v.slice(0, 80);
-    else if (typeof v === "number" && Number.isFinite(v)) out[key] = v;
-    else if (typeof v === "boolean") out[key] = v;
-  }
-  return out;
-}
-
 const noContent = () => new NextResponse(null, { status: 204 });
 
 export async function POST(request: Request) {
-  if (Number(request.headers.get("content-length") || 0) > MAX_BODY) return noContent();
+  if (Number(request.headers.get("content-length") || 0) > MAX_EVENT_BODY)
+    return noContent();
   let raw: string;
   try {
     raw = await request.text();
   } catch {
     return noContent();
   }
-  if (raw.length > MAX_BODY) return noContent();
+  if (raw.length > MAX_EVENT_BODY) return noContent();
 
   let body: unknown;
   try {
@@ -76,10 +47,9 @@ export async function POST(request: Request) {
   for (const e of list) {
     if (!e || typeof e !== "object") continue;
     const ev = e as Record<string, unknown>;
-    const name = typeof ev.name === "string" ? ev.name : "";
     const sessionId = typeof ev.sessionId === "string" ? ev.sessionId.slice(0, 64) : "";
-    if (!ALLOWED.has(name) || !sessionId) continue; // ignore invalid, don't break UX
-    rows.push({ name, session_id: sessionId, props: sanitizeProps(ev.props) });
+    if (!isAllowedEvent(ev.name) || !sessionId) continue; // ignore invalid, don't break UX
+    rows.push({ name: ev.name, session_id: sessionId, props: sanitizeProps(ev.props) });
   }
   if (!rows.length) return noContent();
 

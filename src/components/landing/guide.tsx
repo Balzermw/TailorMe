@@ -126,7 +126,7 @@ export default function Guide() {
               </div>
             </div>
             <p className="tm-small">
-              Want a person in the loop? For +$49, Michael reads your final draft
+              Want a person in the loop? For +$79, Michael reads your final draft
               line by line and sends back notes:
             </p>
             <div className="tmB-creds">

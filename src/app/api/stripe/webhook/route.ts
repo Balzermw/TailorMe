@@ -30,13 +30,14 @@ export async function POST(request: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const userId = session.metadata?.userId;
-    const kind = session.metadata?.kind;
-    const applicationId = session.metadata?.applicationId;
-    const credits = Number(session.metadata?.credits ?? 0);
+    const meta = session.metadata ?? {};
+    const userId = meta.userId;
+    const kind = meta.kind;
+    const applicationId = meta.applicationId;
+    const credits = Number(meta.credits ?? 0);
 
     if (kind === "review" && userId && applicationId) {
-      // Per-application Michael review paid for → mark it in review. Scoped to
+      // Per-application Expert Feedback paid for → mark it in review. Scoped to
       // the owner; setting fixed values makes a replayed event a no-op.
       const admin = getServiceSupabase();
       if (admin) {
@@ -49,13 +50,34 @@ export async function POST(request: Request) {
     } else if (userId && credits > 0) {
       const admin = getServiceSupabase();
       if (admin) {
-        // Idempotent on the session id — a replayed event grants nothing extra.
+        // Grant the plan's credits. Idempotent on the session id — a replayed
+        // event grants nothing extra. Add-ons never add credits.
         await admin.rpc("add_credits", {
           p_user_id: userId,
           p_credits: credits,
           p_reason: "purchase",
           p_stripe_session_id: session.id,
         });
+
+        // Record the order (plan + add-on flags + revenue) for fulfillment +
+        // admin visibility. Unique on stripe_session_id → replay-safe.
+        const expertFeedback = meta.expertFeedback === "1";
+        const humanRevision = meta.humanRevision === "1";
+        await admin.from("orders").upsert(
+          {
+            user_id: userId,
+            plan_slug: meta.planSlug ?? "unknown",
+            credits,
+            amount_cents: Number(meta.planCents ?? 0),
+            total_cents: Number(meta.totalCents ?? 0),
+            expert_feedback: expertFeedback,
+            human_revision: humanRevision,
+            stripe_session_id: session.id,
+            // Human add-ons need manual fulfillment; flag them for the admin queue.
+            fulfillment_status: expertFeedback || humanRevision ? "pending" : "none",
+          },
+          { onConflict: "stripe_session_id" },
+        );
       }
     }
   }

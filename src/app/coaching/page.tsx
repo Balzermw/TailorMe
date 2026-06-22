@@ -253,7 +253,7 @@ function Packages() {
           <div className="tmC-band-body">
             <h3>Already using TailorMe?</h3>
             <p>
-              Add Michael’s line-by-line review to any application for +$49,
+              Add Michael’s line-by-line review to any application for +$79,
               no package needed. 48-hour turnaround.
             </p>
           </div>

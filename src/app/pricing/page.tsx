@@ -17,6 +17,7 @@ import Nav from "@/components/landing/nav";
 import Footer from "@/components/landing/footer";
 import { ROUTES, TRUST } from "@/components/landing/data";
 import PricingFaq from "./pricing-faq";
+import { PricingView, PlanCta, RefundLink } from "./pricing-telemetry";
 
 export const metadata: Metadata = {
   title: "Pricing · TailorMe by Res.Me",
@@ -25,8 +26,11 @@ export const metadata: Metadata = {
 type Pack = {
   icon: LucideIcon;
   use: string;
+  slug: string;
   name: string;
   price: string;
+  priceNum: number;
+  credits: number;
   apps: string;
   per: string;
   desc: string;
@@ -39,11 +43,14 @@ const PACKS: Pack[] = [
   {
     icon: Compass,
     use: "Testing the waters",
+    slug: "starter",
     name: "Starter",
-    price: "$19",
+    price: "$29",
+    priceNum: 29,
+    credits: 5,
     apps: "5 applications",
-    per: "$3.80",
-    desc: "For a handful of roles you really want, not a spray-and-pray run.",
+    per: "$5.80",
+    desc: "Best for testing a few important roles before committing.",
     who: [
       "You’re employed, but a few dream postings caught your eye",
       "You want to see what tailoring does before committing",
@@ -52,30 +59,54 @@ const PACKS: Pack[] = [
   {
     icon: Briefcase,
     use: "Actively searching",
-    name: "Job hunt",
-    price: "$49",
+    slug: "job_hunt",
+    name: "Job Hunt",
+    price: "$69",
+    priceNum: 69,
+    credits: 15,
     apps: "15 applications",
-    per: "$3.27",
-    desc: "For a real search: several quality applications a week, each one tailored.",
+    per: "$4.60",
+    desc: "Best for an active search with several quality applications per week.",
     who: [
       "You’re applying every week and the generic resume isn’t converting",
-      "You want every application reviewed before it goes out",
+      "You want every important application reviewed before it goes out",
     ],
     popular: true,
   },
   {
     icon: Rocket,
     use: "Career switch or full campaign",
-    name: "All in",
-    price: "$99",
-    apps: "40 applications",
-    per: "$2.48",
-    desc: "For changing roles, industries, or cities: casting wide without going generic.",
+    slug: "campaign",
+    name: "Campaign",
+    price: "$129",
+    priceNum: 129,
+    credits: 35,
+    apps: "35 applications",
+    per: "$3.69",
+    desc: "Best for career switches, relocation, or applying across multiple role types.",
     who: [
       "You’re repositioning and every posting needs a different story",
-      "You’d rather buy once and never think about credits again",
+      "You want enough credits for a serious search without going generic",
     ],
     value: true,
+  },
+];
+
+const ADDON_TIERS = [
+  {
+    name: "Expert Feedback",
+    price: "+$79",
+    desc: "One human review pass on one selected application: prioritized notes, risks, weak spots, and what to improve. Feedback only, back within 48 hours.",
+  },
+  {
+    name: "Human Revision",
+    price: "+$149",
+    desc: "One hands-on human revision pass for a single application: an expert actually revises it with you, not just notes. Premium add-on.",
+  },
+  {
+    name: "Full white-glove service",
+    price: "$225+",
+    desc: "A higher-touch, done-with-you resume engagement. By request — get in touch and we’ll scope it. Not the same as Expert Feedback.",
   },
 ];
 
@@ -107,9 +138,9 @@ const GUIDE: { q: string; a: RichPart[] }[] = [
   {
     q: "I’m in a full-on search.",
     a: [
-      { b: "Job hunt" },
+      { b: "Job Hunt" },
       " is the sweet spot, and ",
-      { b: "All in" },
+      { b: "Campaign" },
       " if you’re switching careers or casting wide.",
     ],
   },
@@ -136,7 +167,7 @@ function PackCards() {
               (em ? " is-em" : "")
             }
           >
-            <span className="tm-pill tmP-pack-chip">{chip || "\u00A0"}</span>
+            <span className="tm-pill tmP-pack-chip">{chip || " "}</span>
             <span className="tmP-pack-ic" aria-hidden="true">
               <p.icon size={18} />
             </span>
@@ -157,12 +188,15 @@ function PackCards() {
                 </span>
               ))}
             </div>
-            <Link
+            <PlanCta
+              slug={p.slug}
+              price={p.priceNum}
+              credits={p.credits}
+              perApp={p.per}
               className={"tm-btn " + (em ? "tm-btn--primary" : "tm-btn--outline")}
-              href={ROUTES.buyCredits}
             >
               Buy {p.name.toLowerCase()}
-            </Link>
+            </PlanCta>
           </div>
         );
       })}
@@ -170,9 +204,17 @@ function PackCards() {
   );
 }
 
-function HumanReviewRow() {
+function ExpertUpsell() {
   return (
-    <div className="tm-card tm-human">
+    <div
+      className="tm-card tm-human"
+      style={{
+        marginTop: "var(--g)",
+        background: "#fff",
+        borderColor: "var(--tm-mint-200)",
+        boxShadow: "0 14px 34px rgba(16, 24, 40, 0.08)",
+      }}
+    >
       <Image
         className="tm-human-photo"
         src="/michael.png"
@@ -181,18 +223,45 @@ function HumanReviewRow() {
         height={56}
       />
       <div className="tm-human-body">
-        <h3>Add Michael’s expert review</h3>
+        <h3>Want human eyes on your best application?</h3>
         <p>
-          Michael (head of Res.Me, Certified Professional Resume Writer, 650+
-          resumes written) goes through your final draft line by line and adds
-          positioning notes for your target role. Back in your inbox within 48
-          hours.
+          Add Expert Feedback for $79. A resume expert reviews one selected
+          application and gives prioritized, human feedback within 48 hours.
+        </p>
+        <p className="tm-small" style={{ marginTop: "6px" }}>
+          Expert Feedback is a review pass, not a full rewrite. Human Revision is
+          available separately for $149.
         </p>
       </div>
       <div className="tm-human-price">
-        <strong>+$49</strong>
+        <strong style={{ color: "var(--tm-mint-700)" }}>+$79</strong>
         <span>per application</span>
       </div>
+    </div>
+  );
+}
+
+function AddOnTiers() {
+  return (
+    <div className="tmP-guide mt-[26px]">
+      {ADDON_TIERS.map((t) => (
+        <div key={t.name} className="tm-card tmP-guide-item">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              gap: "8px",
+            }}
+          >
+            <strong style={{ fontSize: "15px" }}>{t.name}</strong>
+            <span className="tm-m" style={{ color: "var(--tm-mint-700)" }}>
+              {t.price}
+            </span>
+          </div>
+          <p style={{ marginTop: "8px" }}>{t.desc}</p>
+        </div>
+      ))}
     </div>
   );
 }
@@ -215,14 +284,18 @@ function TrustStrip() {
 export default function PricingPage() {
   return (
     <div className="tm">
+      <PricingView />
       <Nav active="Pricing" />
       <main>
         <section className="tm-sec tmP-head">
           <span className="tm-pill">Pricing</span>
-          <h1 className="tm-h1">Pay per application. That’s it.</h1>
+          <h1 className="tm-h1">
+            Tailor every important application. Add expert review when it
+            matters.
+          </h1>
           <p className="tm-body">
-            No subscription. Credits never expire, and every application gets
-            the full pipeline.
+            No subscription. Buy application credits once, use them across roles,
+            and upgrade any application with human feedback.
           </p>
         </section>
 
@@ -232,14 +305,16 @@ export default function PricingPage() {
         >
           <div className="tm-wrap">
             <PackCards />
-            <p className="tmP-refund">
-              <ShieldCheck size={15} /> Not happy? Unused credits refunded in
-              full within 30 days.
-            </p>
+            <ExpertUpsell />
+            <RefundLink>
+              <ShieldCheck size={15} /> Unused credits refunded in full within 30
+              days.
+            </RefundLink>
             <p className="tm-small mt-[28px] text-center">
               Every new account starts with{" "}
-              <span className="tm-m">1 free application</span>, a full resume
-              audit. No card required.
+              <span className="tm-m">1 free application and a full resume
+              audit</span>
+              . No card required.
             </p>
           </div>
         </section>
@@ -278,7 +353,12 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <HumanReviewRow />
+            <h2 className="tm-h2 mt-[44px]">Add human review</h2>
+            <p className="tm-body mt-[10px]">
+              Every application already gets the full three-agent review. When a
+              role really matters, add a human pass.
+            </p>
+            <AddOnTiers />
           </div>
         </section>
 

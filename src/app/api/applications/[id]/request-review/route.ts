@@ -3,14 +3,14 @@ import type Stripe from "stripe";
 import { APP_URL, stripeConfigured } from "@/lib/config";
 import { stripe } from "@/lib/stripe";
 import { getServerSupabase } from "@/lib/supabase/server";
-import { MICHAEL_ADDON_CENTS } from "@/lib/packs";
+import { EXPERT_FEEDBACK_CENTS } from "@/lib/packs";
 import { REVIEW_RULES, rateLimitDisabled } from "@/lib/limits";
 import { consume, tooManyRequests } from "@/lib/rate-limit";
 import type { ApplyResult } from "@/lib/types";
 
-// Requests Michael's human review for one specific application: creates a $49
-// Stripe Checkout session tagged with the applicationId. On payment, the Stripe
-// webhook flips that application's michael_status (see api/stripe/webhook).
+// Requests Expert Feedback (human review) for one specific application: creates
+// a Stripe Checkout session tagged with the applicationId. On payment, the
+// Stripe webhook flips that application's michael_status (see api/stripe/webhook).
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -68,9 +68,9 @@ export async function POST(
       price_data: {
         currency: "usd",
         product_data: {
-          name: `Michael's expert review · ${app.role} @ ${app.company}`,
+          name: `Expert Feedback · ${app.role} @ ${app.company}`,
         },
-        unit_amount: MICHAEL_ADDON_CENTS,
+        unit_amount: EXPERT_FEEDBACK_CENTS,
       },
       quantity: 1,
     },

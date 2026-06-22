@@ -62,15 +62,16 @@ export const AGENT_NOTES = [
 ];
 
 export const PRICING = [
-  { name: "Starter", price: "$19", apps: "5 applications", per: "$3.80 each" },
+  { slug: "starter", name: "Starter", price: "$29", apps: "5 applications", per: "$5.80/app" },
   {
-    name: "Job hunt",
-    price: "$49",
+    slug: "job_hunt",
+    name: "Job Hunt",
+    price: "$69",
     apps: "15 applications",
-    per: "$3.27 each",
+    per: "$4.60/app",
     popular: true,
   },
-  { name: "All in", price: "$99", apps: "40 applications", per: "$2.48 each" },
+  { slug: "campaign", name: "Campaign", price: "$129", apps: "35 applications", per: "$3.69/app" },
 ];
 
 export const FAQS = [
@@ -92,7 +93,7 @@ export const FAQS = [
   },
   {
     q: "What does the human review add?",
-    a: "A professional Res.Me writer goes through your final draft line by line and adds positioning notes for your target role, within 48 hours. It’s optional: every application already includes the full agent review. +$49 per application.",
+    a: "A professional Res.Me writer goes through your final draft line by line and adds positioning notes for your target role, within 48 hours. It’s optional: every application already includes the full agent review. +$79 per application.",
   },
   {
     q: "Do credits expire?",

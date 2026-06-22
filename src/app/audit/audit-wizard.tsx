@@ -1498,6 +1498,7 @@ function StepJob({
     setStatusIdx(0);
     setTargetLabel(deriveTargetLabel(postingForScore));
     setPhase("scoring");
+    track("free_audit_started", { source: useSample ? "sample" : "user" });
     const scoreStart = performance.now();
 
     // Fire the lightweight role-research in the background — it returns before
@@ -2045,7 +2046,7 @@ function MichaelPitch() {
           your inbox within 48 hours.
         </p>
         <div className="tmF-michael-foot">
-          <span className="tm-pill tm-pill--mint">+$49 per application</span>
+          <span className="tm-pill tm-pill--mint">+$79 per application</span>
           <span className="tm-small" style={{ fontSize: "12.5px" }}>
             Add it at checkout, or{" "}
             <Link
@@ -2687,6 +2688,7 @@ function StepResults({
           setAuditAgents(DEMO_AGENTS); // demo / rate-limited / error → labeled sample
           setAuditSample(true);
         }
+        track("free_audit_completed", { source: useSample ? "sample" : "user" });
       })
       .catch(() => {
         if (!active) return;
@@ -2700,6 +2702,11 @@ function StepResults({
       active = false;
     };
   }, [useSample, resumeText, posting]);
+
+  // The signed-out "create an account to download" gate is a paywall view.
+  useEffect(() => {
+    if (!auditLoading && !user) track("paywall_seen", { trigger: "download" });
+  }, [auditLoading, user]);
 
   // Stash the run inputs and jump straight to the dedicated tailoring page,
   // which runs the ~1-minute job and drops the user into the editor when it's
