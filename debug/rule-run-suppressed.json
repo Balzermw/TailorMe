@@ -1,0 +1,79 @@
+[
+  {
+    "finding": {
+      "findingId": "qualifications_summary_over_traditional_objective_5a9c3bed",
+      "ruleId": "qualifications_summary_over_traditional_objective",
+      "canonicalIssueId": "qualifications_summary_over_traditional_objective",
+      "category": "summary",
+      "agent": "editor",
+      "severity": "medium",
+      "confidence": 0.9,
+      "priorityGroup": "WORTH FIXING",
+      "section": "summary",
+      "title": "Use a Qualifications Summary / Key Features / Professional P...",
+      "message": "Replace objective with a summary that sells your qualifications and personal brand for this role.",
+      "whyItMatters": "Objectives are outdated and self-focused. Modern summaries act as a branded headline that immediately shows fit and hooks the scanner. Resume Magic contrasts traditional Objective vs. Qualifications Summary.",
+      "suggestedFix": "3-5 lines: Role + years + key strengths + 1-2 quantified proof points + unique value/brand.",
+      "targetSection": "summary",
+      "fixActionLabel": "Edit Summary",
+      "uiSeverityLabel": "Medium",
+      "dedupeFingerprint": "f4328780",
+      "sourceRuleIds": [
+        "qualifications_summary_over_traditional_objective"
+      ]
+    },
+    "reason": "global_cap"
+  },
+  {
+    "finding": {
+      "findingId": "avoid_first_person_pronouns_c753d7fa",
+      "ruleId": "avoid_first_person_pronouns",
+      "canonicalIssueId": "avoid_first_person_pronouns",
+      "category": "bullet_strength",
+      "agent": "editor",
+      "severity": "medium",
+      "confidence": 0.9,
+      "priorityGroup": "WORTH FIXING",
+      "section": "experience",
+      "evidenceSnippet": "I was tasked with writing documentation and I also participated in code reviews for my team members regularly. Beta LLC",
+      "title": "Write in implied first person: no 'I', 'me', 'my' anywhere o...",
+      "message": "Remove all first-person pronouns. Rewrite sentences to start with the action or result.",
+      "whyItMatters": "First person is redundant (the document is about you) and wastes characters/scan attention. Professional convention across nearly all US corporate resumes is implied first person. 'I' stands out negatively in scans.",
+      "suggestedFix": "Change 'I led a team of 5 that delivered...' to 'Led 5-person team delivering...'.",
+      "targetSection": "experience",
+      "fixActionLabel": "Edit Experience",
+      "uiSeverityLabel": "Medium",
+      "dedupeFingerprint": "8e532429",
+      "sourceRuleIds": [
+        "avoid_first_person_pronouns"
+      ],
+      "occurrences": 1
+    },
+    "reason": "global_cap"
+  },
+  {
+    "finding": {
+      "findingId": "omit_references_section_87601f84",
+      "ruleId": "omit_references_section",
+      "canonicalIssueId": "omit_references_section",
+      "category": "section_completeness",
+      "agent": "editor",
+      "severity": "low",
+      "confidence": 0.9,
+      "priorityGroup": "WORTH FIXING",
+      "section": "formatting",
+      "title": "Omit 'References available upon request' and any references ...",
+      "message": "Remove the references line – it takes up valuable space and isn't necessary.",
+      "whyItMatters": "Wastes space; employers assume you have them and will ask when needed. Modern practice is to prepare separate list.",
+      "suggestedFix": "Delete it; have a separate references document ready if requested.",
+      "targetSection": "formatting",
+      "fixActionLabel": "Fix Formatting",
+      "uiSeverityLabel": "Low",
+      "dedupeFingerprint": "06969c89",
+      "sourceRuleIds": [
+        "omit_references_section"
+      ]
+    },
+    "reason": "global_cap"
+  }
+]
