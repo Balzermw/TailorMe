@@ -12,7 +12,7 @@ import {
   setTargetResume,
 } from "@/lib/resume";
 import { docToResumeText } from "@/lib/apply/serialize";
-import { getSessionId } from "@/lib/track";
+import { getSessionId, track } from "@/lib/track";
 import { supabaseConfigured } from "@/lib/config";
 import { ROUTES } from "@/components/landing/data";
 import EditEditor from "../../applications/[id]/edit/edit-editor";
@@ -99,6 +99,17 @@ export default function ResumeEditLoader({
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data?.error || "failed");
+        // Safe funnel telemetry (counts only — no résumé content).
+        if (data.stats) {
+          track("resume_feedback_suggestions_surfaced", {
+            tier: "paid",
+            rules_loaded: data.stats.rulesLoaded,
+            candidates: data.stats.candidates,
+            deduped: data.stats.deduped,
+            surfaced: data.stats.surfaced,
+            suppressed: data.stats.suppressed,
+          });
+        }
         return Array.isArray(data.proofPoints) ? data.proofPoints : [];
       }}
       onTargetJob={(current) => {

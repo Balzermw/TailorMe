@@ -25,6 +25,11 @@ describe("telemetry allowlist", () => {
       "paywall_seen",
       "refund_policy_clicked",
       "faq_opened",
+      "resume_feedback_suggestions_surfaced",
+      "resume_feedback_suggestion_clicked",
+      "resume_feedback_suggestion_expanded",
+      "resume_feedback_suggestion_applied",
+      "resume_feedback_suggestion_dismissed",
     ]) {
       expect(isAllowedEvent(name), name).toBe(true);
     }

@@ -31,10 +31,23 @@ function findingToProofPoint(f: ResumeRuleFinding): ProofPoint {
   };
 }
 
+// Safe, content-free funnel counts for telemetry (rules → candidates →
+// deduped → surfaced). NEVER includes résumé text or evidence snippets.
+interface FeedbackStats {
+  rulesLoaded: number;
+  candidates: number;
+  deduped: number;
+  surfaced: number;
+  suppressed: number;
+}
+
 // Fold the LLM proof points + deterministic rule findings into one deduped,
 // ranked, capped set. Falls back to the raw proof points if the doc can't be
 // rendered to LaTeX (the engine's detectors read LaTeX structure).
-function refineFeedback(doc: Parameters<typeof renderResumeTex>[0], proofPoints: ProofPoint[]): ProofPoint[] {
+function refineFeedback(
+  doc: Parameters<typeof renderResumeTex>[0],
+  proofPoints: ProofPoint[],
+): { proofPoints: ProofPoint[]; stats: FeedbackStats | null } {
   try {
     const latexSource = renderResumeTex(doc);
     const result = evaluateResumeRules({
@@ -43,9 +56,18 @@ function refineFeedback(doc: Parameters<typeof renderResumeTex>[0], proofPoints:
       tier: "paid", // the editor is an engaged workspace → allow up to 10
       templated: true, // base resume renders in our template (it owns layout/ATS)
     });
-    return result.surfaced.map(findingToProofPoint);
+    return {
+      proofPoints: result.surfaced.map(findingToProofPoint),
+      stats: {
+        rulesLoaded: result.stats.rulesLoaded,
+        candidates: result.stats.candidateFindingsCount,
+        deduped: result.stats.dedupedFindingsCount,
+        surfaced: result.stats.surfacedSuggestionsCount,
+        suppressed: result.stats.suppressedCount,
+      },
+    };
   } catch {
-    return proofPoints;
+    return { proofPoints, stats: null };
   }
 }
 
@@ -112,13 +134,13 @@ export async function POST(request: Request) {
       () => parseResume(docToResumeText(doc), undefined, true),
     );
     // Fold the LLM findings + deterministic rules → deduped, capped suggestions.
-    const proofPoints = refineFeedback(doc, parsed.proofPoints ?? []);
+    const { proofPoints, stats: funnel } = refineFeedback(doc, parsed.proofPoints ?? []);
     // Persist with the hash so the next identical request is a free cache hit.
     if (sb && user) {
       const merged = { ...stats, proofPoints, feedbackHash: hash };
       await sb.from("resumes").update({ stats: merged }).eq("user_id", user.id);
     }
-    return NextResponse.json({ proofPoints, cached: false });
+    return NextResponse.json({ proofPoints, cached: false, stats: funnel });
   } catch {
     return NextResponse.json(
       { error: "Couldn't review your resume. Try again." },

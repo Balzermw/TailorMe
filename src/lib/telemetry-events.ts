@@ -33,6 +33,14 @@ export const ALLOWED_EVENTS = new Set<string>([
   // content interactions
   "refund_policy_clicked",
   "faq_opened",
+  // resume feedback (rules engine) — counts/ids/categories only, NEVER content.
+  // The one "surfaced" event carries the whole funnel (rules → candidates →
+  // deduped → surfaced → suppressed); the rest are per-suggestion interactions.
+  "resume_feedback_suggestions_surfaced",
+  "resume_feedback_suggestion_clicked",
+  "resume_feedback_suggestion_expanded",
+  "resume_feedback_suggestion_applied",
+  "resume_feedback_suggestion_dismissed",
   // legacy names kept for back-compat with already-shipped instrumentation
   "pricing_view",
   "checkout_start",
