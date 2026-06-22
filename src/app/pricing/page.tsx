@@ -16,6 +16,7 @@ import {
 import Nav from "@/components/landing/nav";
 import Footer from "@/components/landing/footer";
 import { ROUTES, TRUST } from "@/components/landing/data";
+import { PLANS, type PlanSlug } from "@/lib/packs";
 import PricingFaq from "./pricing-faq";
 import { PricingView, PlanCta, RefundLink } from "./pricing-telemetry";
 
@@ -23,33 +24,24 @@ export const metadata: Metadata = {
   title: "Pricing · TailorMe by Res.Me",
 };
 
-type Pack = {
+// Presentation only — price/credits/per come from PLANS (lib/packs.ts), the
+// single source of truth that also drives Stripe, so the page can never
+// advertise a price that disagrees with what's charged.
+type PackPresentation = {
   icon: LucideIcon;
   use: string;
-  slug: string;
-  name: string;
-  price: string;
-  priceNum: number;
-  credits: number;
-  apps: string;
-  per: string;
+  slug: PlanSlug;
   desc: string;
   who: string[];
   popular?: boolean;
   value?: boolean;
 };
 
-const PACKS: Pack[] = [
+const PRESENTATION: PackPresentation[] = [
   {
     icon: Compass,
     use: "Testing the waters",
     slug: "starter",
-    name: "Starter",
-    price: "$29",
-    priceNum: 29,
-    credits: 5,
-    apps: "5 applications",
-    per: "$5.80",
     desc: "Best for testing a few important roles before committing.",
     who: [
       "You’re employed, but a few dream postings caught your eye",
@@ -60,12 +52,6 @@ const PACKS: Pack[] = [
     icon: Briefcase,
     use: "Actively searching",
     slug: "job_hunt",
-    name: "Job Hunt",
-    price: "$69",
-    priceNum: 69,
-    credits: 15,
-    apps: "15 applications",
-    per: "$4.60",
     desc: "Best for an active search with several quality applications per week.",
     who: [
       "You’re applying every week and the generic resume isn’t converting",
@@ -77,12 +63,6 @@ const PACKS: Pack[] = [
     icon: Rocket,
     use: "Career switch or full campaign",
     slug: "campaign",
-    name: "Campaign",
-    price: "$129",
-    priceNum: 129,
-    credits: 35,
-    apps: "35 applications",
-    per: "$3.69",
     desc: "Best for career switches, relocation, or applying across multiple role types.",
     who: [
       "You’re repositioning and every posting needs a different story",
@@ -91,6 +71,19 @@ const PACKS: Pack[] = [
     value: true,
   },
 ];
+
+const PACKS = PRESENTATION.map((p) => {
+  const plan = PLANS[p.slug];
+  return {
+    ...p,
+    name: plan.name,
+    price: `$${plan.amountCents / 100}`,
+    priceNum: plan.amountCents / 100,
+    credits: plan.credits,
+    apps: `${plan.credits} applications`,
+    per: plan.per,
+  };
+});
 
 const ADDON_TIERS = [
   {

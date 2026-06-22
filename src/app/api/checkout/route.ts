@@ -30,15 +30,14 @@ export async function POST(request: Request) {
     }
   }
 
-  // Accept the new plan slug; fall back to the legacy `packId` field name.
-  let body: { planSlug?: string; packId?: string; addOns?: unknown };
+  let body: { planSlug?: string; addOns?: unknown };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const plan = getPlan(body.planSlug ?? body.packId ?? "");
+  const plan = getPlan(body.planSlug ?? "");
   if (!plan) {
     return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
   }

@@ -27,10 +27,10 @@ export default async function AdminOrdersPage() {
       .select(
         "id, created_at, plan_slug, credits, amount_cents, total_cents, expert_feedback, human_revision, fulfillment_status",
       )
-      // Pending fulfillment first, then newest.
-      .order("fulfillment_status", { ascending: true })
       .order("created_at", { ascending: false })
       .limit(200);
+    // Pending-first ordering is applied in the client component (alpha-sorting
+    // 'done'|'none'|'pending' in SQL would put pending last).
     orders = (data ?? []) as OrderRow[];
   }
 

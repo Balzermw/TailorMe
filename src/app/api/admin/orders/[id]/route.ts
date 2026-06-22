@@ -10,6 +10,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const orderId = Number(id);
+  if (!Number.isInteger(orderId) || orderId <= 0) {
+    return NextResponse.json({ error: "Invalid order id." }, { status: 400 });
+  }
 
   const user = await getServerUser();
   if (!user || !isAdminEmail(user.email)) {

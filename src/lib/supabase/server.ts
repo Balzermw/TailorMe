@@ -1,11 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import {
   PUBLIC_SUPABASE_URL,
   PUBLIC_SUPABASE_ANON_KEY,
   supabaseConfigured,
 } from "@/lib/config";
+
+// Single canonical service-role client lives in ./admin. Re-exported here so
+// existing telemetry/event callers keep importing from "@/lib/supabase/server"
+// without a second (divergent, null-memoizing) implementation.
+export { getServiceSupabase } from "./admin";
 
 /**
  * Server Supabase client bound to the request cookies, or null in demo mode.
@@ -32,20 +36,4 @@ export async function getServerSupabase() {
       },
     },
   });
-}
-
-// Service-role client: bypasses RLS for server-only writes (telemetry). Returns
-// null when the service key isn't configured, so callers can no-op cleanly.
-// NEVER expose this to the browser — the key grants full DB access.
-let serviceClient: SupabaseClient | null | undefined;
-export function getServiceSupabase(): SupabaseClient | null {
-  if (serviceClient !== undefined) return serviceClient;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  serviceClient =
-    supabaseConfigured && PUBLIC_SUPABASE_URL && key
-      ? createClient(PUBLIC_SUPABASE_URL, key, {
-          auth: { persistSession: false, autoRefreshToken: false },
-        })
-      : null;
-  return serviceClient;
 }

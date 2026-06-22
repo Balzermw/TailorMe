@@ -2,16 +2,11 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { track } from "@/lib/track";
+import { track, deviceClass } from "@/lib/track";
 import { ROUTES } from "@/components/landing/data";
 
 // Client telemetry helpers for the (server-rendered) pricing page. Only
 // low-risk product metadata — no PII. Referrer is reduced to its hostname.
-
-function device(): string {
-  if (typeof navigator === "undefined") return "unknown";
-  return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? "mobile" : "desktop";
-}
 
 /** Fires pricing_viewed (+ upsell viewed) once on mount. */
 export function PricingView() {
@@ -26,7 +21,7 @@ export function PricingView() {
     track("pricing_viewed", {
       source: sp.get("utm_source") || sp.get("source") || "direct",
       campaign: sp.get("utm_campaign") || sp.get("campaign") || "",
-      device: device(),
+      device: deviceClass(),
       referrer,
     });
     track("expert_review_viewed", { location: "pricing" });

@@ -4,13 +4,14 @@
 // allowlists event names and bounds props. Events queue and flush in small
 // batches (and on page hide), so this never blocks or floods the network.
 
+import { MAX_BATCH } from "@/lib/telemetry-events";
+
 type Ev = {
   name: string;
   props?: Record<string, string | number | boolean>;
   sessionId: string | null;
 };
 
-const MAX_BATCH = 10;
 let cachedSid: string | null = null;
 let queue: Ev[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -35,6 +36,12 @@ function sessionId(): string | null {
 /** The per-session id, for tagging server-side AI runs (passed as a header). */
 export function getSessionId(): string | null {
   return sessionId();
+}
+
+/** Coarse device class for telemetry segmentation — never identifying. */
+export function deviceClass(): "mobile" | "desktop" | "unknown" {
+  if (typeof navigator === "undefined") return "unknown";
+  return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? "mobile" : "desktop";
 }
 
 function flush(): void {

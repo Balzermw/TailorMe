@@ -28,8 +28,18 @@ const date = (s: string) => {
   }
 };
 
+// Pending fulfillment first (the work queue), otherwise preserve the
+// date-desc order the server query already applied.
+function pendingFirst(rows: OrderRow[]): OrderRow[] {
+  return [...rows].sort(
+    (a, b) =>
+      (a.fulfillment_status === "pending" ? 0 : 1) -
+      (b.fulfillment_status === "pending" ? 0 : 1),
+  );
+}
+
 export default function AdminOrders({ initialOrders }: { initialOrders: OrderRow[] }) {
-  const [orders, setOrders] = useState(initialOrders);
+  const [orders, setOrders] = useState(() => pendingFirst(initialOrders));
   const [busy, setBusy] = useState<number | null>(null);
 
   const setStatus = async (id: number, status: "done" | "pending") => {

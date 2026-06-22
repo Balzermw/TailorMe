@@ -12,7 +12,7 @@ import {
   type PlanSlug,
   type AddOnSlug,
 } from "@/lib/packs";
-import { track } from "@/lib/track";
+import { track, deviceClass } from "@/lib/track";
 
 const PLAN_LIST = Object.values(PLANS);
 const ADDON_LIST = Object.values(ADD_ONS);
@@ -23,11 +23,6 @@ const ADDON_EVENT: Record<AddOnSlug, "expert_review" | "human_revision"> = {
   expert_feedback: "expert_review",
   human_revision: "human_revision",
 };
-
-function device(): string {
-  if (typeof navigator === "undefined") return "unknown";
-  return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? "mobile" : "desktop";
-}
 
 export default function CreditsPurchase() {
   const router = useRouter();
@@ -54,7 +49,7 @@ export default function CreditsPurchase() {
 
   // Page view + the add-on offers being on screen (checkout location).
   useEffect(() => {
-    track("pricing_viewed", { location: "checkout", device: device() });
+    track("pricing_viewed", { location: "checkout", device: deviceClass() });
     track("expert_review_viewed", { location: "checkout" });
     track("human_revision_viewed", { location: "checkout" });
   }, []);
@@ -90,7 +85,10 @@ export default function CreditsPurchase() {
   // redirect, so read the plan/flags the success_url carries back).
   const successTracked = useRef(false);
   useEffect(() => {
-    if (!showSuccess || successTracked.current) return;
+    // Only a real Stripe return (?success=1) is a completed purchase — the demo
+    // `setPaid` path shows the success UI but no money changed hands, so it must
+    // NOT emit purchase_completed (would pollute revenue/conversion analytics).
+    if (searchParams.get("success") !== "1" || successTracked.current) return;
     successTracked.current = true;
     const sp = searchParams;
     const slug = getPlan(sp.get("plan") ?? "")?.slug ?? sel;
