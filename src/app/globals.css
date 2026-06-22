@@ -3819,10 +3819,10 @@ body {
 }
 .tmD-row {
   display: grid;
-  grid-template-columns: 1fr 150px minmax(170px, 230px) 70px;
-  gap: 16px;
+  grid-template-columns: 1.6fr 150px 1.2fr auto;
+  gap: 18px;
   align-items: center;
-  padding: 14px 20px;
+  padding: 16px 20px;
   cursor: pointer;
   transition: border-color 140ms ease, background 140ms ease;
 }
