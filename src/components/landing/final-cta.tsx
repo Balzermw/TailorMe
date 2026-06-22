@@ -12,7 +12,9 @@ export default function FinalCta() {
   return (
     <section className="tm-sec">
       <div className="tm-wrap tm-cta">
-        <h2 className="tm-h2">Run your first application free.</h2>
+        <h2 className="tm-h2" style={{ maxWidth: "none" }}>
+          Run your first application free.
+        </h2>
         <p className="tm-body">
           See your fit score and the full three-agent review before you pay anything.
         </p>

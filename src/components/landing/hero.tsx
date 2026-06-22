@@ -1,82 +1,38 @@
-import Image from "next/image";
 import Link from "next/link";
-import { HEADLINE, HERO_STAGES, ROUTES } from "./data";
-
-function HeroArt() {
-  return (
-    <div className="tmB-art" aria-hidden="true">
-      <div className="tm-card tmB-doc">
-        <div className="tmB-scan"></div>
-        <div className="tmB-doc-bar b1"></div>
-        <div className="tmB-doc-bar b2"></div>
-        <div className="tmB-doc-bar b3 mt-[8px]"></div>
-        <div className="tmB-doc-bar b4"></div>
-        <div className="tmB-doc-bar mint b5"></div>
-        <div className="tmB-doc-bar b6"></div>
-        <div className="tmB-doc-bar b3"></div>
-        <div className="tmB-doc-bar mint b4"></div>
-        <div className="tmB-doc-bar b2"></div>
-      </div>
-      <div className="tm-card tmB-rail">
-        {HERO_STAGES.map(([stage, sub], i) => (
-          <div
-            key={stage}
-            className="tmB-stage"
-            style={{ "--i": i } as React.CSSProperties}
-          >
-            <span className="tmB-stage-dot"></span>
-            <span className="tmB-stage-txt">
-              <b>{stage}</b>
-              <span>{sub}</span>
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="tm-card tmB-hero-michael">
-        <Image
-          src="/michael.png"
-          alt="Michael, head of Res.Me"
-          width={38}
-          height={38}
-        />
-        <span>
-          <b>Human review by Michael</b>
-          <span>Head of Res.Me · CPRW</span>
-        </span>
-      </div>
-    </div>
-  );
-}
+import { ArrowRight, Sparkles } from "lucide-react";
+import { HEADLINE, HERO_SUB, ROUTES } from "./data";
+import HeroScoreCard from "./hero-score-card";
 
 export default function Hero() {
   return (
-    <section className="tm-sec">
+    <section className="tm-sec tm-sec--hero">
       <div className="tm-wrap tmB-hero">
-        <div>
+        <div className="tmH-copy">
+          <span className="tm-pill tmH-badge">
+            <Sparkles size={15} /> Agentic resume review powered by Res.Me
+          </span>
           <h1 className="tm-h1">
             {HEADLINE.pre}
             <em>{HEADLINE.em}</em>
-            {HEADLINE.post}
           </h1>
-          <p className="tm-body">
-            Paste a job posting. TailorMe rewrites your resume for it, then
-            three specialist agents review the draft the way the ATS, the
-            recruiter, and the hiring manager will, and return fixes, not a
-            score.
-          </p>
+          <p className="tm-body">{HERO_SUB}</p>
           <div className="tmB-hero-ctas">
-            <Link className="tm-btn tm-btn--primary" href={ROUTES.audit}>
-              Get a free resume audit
+            <Link
+              className="tm-btn tm-btn--primary tm-btn--lg"
+              href={ROUTES.audit}
+            >
+              Run the agents on my resume
             </Link>
-            <Link className="tm-btn tm-btn--outline" href={ROUTES.transformation}>
-              See a real transformation
+            <Link
+              className="tm-btn tm-btn--outline tm-btn--lg"
+              href={ROUTES.transformation}
+            >
+              See a sample report <ArrowRight size={16} />
             </Link>
           </div>
-          <p className="tm-small mt-[22px]">
-            First application free · no card · credits never expire
-          </p>
+          <p className="tm-small tmH-note">First score free · no card required</p>
         </div>
-        <HeroArt />
+        <HeroScoreCard />
       </div>
     </section>
   );

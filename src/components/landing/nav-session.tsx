@@ -23,7 +23,7 @@ export default function NavSession({
       <>
         <Link href={ROUTES.signIn}>Sign in</Link>
         <Link href={ROUTES.audit} className="tm-btn tm-btn--primary tm-btn--sm">
-          Get a free resume audit
+          Free audit
         </Link>
       </>
     );

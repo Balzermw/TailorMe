@@ -2,9 +2,78 @@
 // "ApplyForMeWebDesignv2" design handoff (TailorMe Homepage Final, Direction B).
 
 export const HEADLINE = {
-  pre: "Your experience is ",
-  em: "stronger",
-  post: " than your resume makes it look.",
+  pre: "See the score three AI agents give your resume ",
+  em: "before recruiters do.",
+  post: "",
+};
+
+// Hero sub-headline + CTAs.
+export const HERO_SUB =
+  "Three AI reviewers. Three perspectives. One fit score, plus the exact changes to make your resume stronger.";
+
+// Sample agent-score card shown beside the hero (composite persona). Scores are
+// out of 100: the gauge shows the overall agent score (with a fit verdict), the
+// bars the per-agent breakdown. The gauge number counts up + arc sweeps, and the
+// bars animate up, on load. Geometry matches the design mockup (r=73, stroke 11).
+export const HERO_SAMPLE = {
+  role: "Senior Platform Engineer",
+  context: "Nordpeak Systems · Agent Score",
+  score: 84,
+  scoreMax: 100,
+  verdict: "Strong fit",
+  status: "Ready for human review",
+  bars: [
+    { agent: "Ada", label: "ATS Score", icon: "cpu", color: "blue", value: 92 },
+    { agent: "Max", label: "Impact Score", icon: "zap", color: "mint", value: 71 },
+    { agent: "Remy", label: "Role-Fit Score", icon: "brain", color: "deep", value: 88 },
+  ],
+} as const;
+
+// "The agents" section (scaffold — full UI/UX to follow). Each agent models a
+// different gatekeeper and returns line-level fixes, not just a number.
+export const AGENTS = [
+  {
+    agent: "Ada",
+    persona: "The ATS",
+    role: "ATS & keywords",
+    icon: "cpu",
+    color: "blue",
+    blurb:
+      "Reads your resume the way an applicant tracking system does, then checks it against the exact terms the posting screens for.",
+    sample:
+      "Nordpeak requires Kubernetes and Terraform; your resume names Kubernetes once and Terraform never. Add both where your infra work backs them.",
+  },
+  {
+    agent: "Max",
+    persona: "The recruiter",
+    role: "Impact & metrics",
+    icon: "zap",
+    color: "mint",
+    blurb:
+      "Skims the way a recruiter does, hunting for duty-listing bullets and turning them into outcomes with the numbers that make your impact concrete.",
+    sample:
+      "“Responsible for system performance” is unmeasurable. You actually cut p95 latency 38% across 2.4M daily transactions, so lead with the number.",
+  },
+  {
+    agent: "Remy",
+    persona: "The hiring manager",
+    role: "Role-fit",
+    icon: "brain",
+    color: "deep",
+    blurb:
+      "Weighs your experience against what this specific role actually values, and re-orders the resume to lead with it.",
+    sample:
+      "Nordpeak is a platform-first role, but your resume opens with frontend work. Move your distributed-systems and reliability bullets to the top.",
+  },
+] as const;
+
+// The optional human pass after the agents. Image lives at /public/michael.png.
+export const MICHAEL = {
+  name: "Michael",
+  title: "Head of Res.Me · Certified Professional Resume Writer",
+  blurb:
+    "The three agents run on every application. When you want a human pass, Michael personally reviews your final draft and adds positioning notes for your target role.",
+  img: "/michael.png",
 };
 
 export const PAINS = [
@@ -114,16 +183,10 @@ export const MICHAEL_CREDS = [
   "Fiverr Top Rated Pro · 4.8/5 across 200+ reviews",
 ];
 
-export const HERO_STAGES = [
-  ["Read the job posting", "paste a URL or the posting text"],
-  ["Tailor every bullet", "rewritten for this job, not in general"],
-  ["Three agents review", "ATS, impact & role-fit fixes applied"],
-  ["Build the final PDF", "compiled, then checked page by page"],
-];
-
 // Route map for CTAs and nav.
 export const ROUTES = {
   home: "/",
+  agents: "/#agents",
   audit: "/audit",
   resumeNew: "/resume/new",
   resumeEdit: "/resume/edit",

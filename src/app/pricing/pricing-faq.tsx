@@ -23,12 +23,12 @@ const PRICING_FAQS = [
   {
     id: "refund_policy",
     q: "What is the refund policy?",
-    a: "If you are not happy, email balzermw@gmail.com within 30 days of purchase and we will refund any unused credits in full. Credits already spent on a tailored application, and completed human reviews, are not refundable.",
+    a: "If you are not happy, email balzermw@gmail.com within 30 days of purchase and we will refund any unused credits in full. Credits already spent on a tailored application are not refundable.",
   },
   {
-    id: "expert_feedback",
-    q: "What does Expert Feedback add?",
-    a: "A human review pass from a Certified Professional Resume Writer: prioritized notes, risks, and what to improve on one selected application, within 48 hours. It is feedback only — a review pass, not a rewrite. +$79 per application. Want hands-on changes? Human Revision is +$149.",
+    id: "human_review",
+    q: "Can a human review my resume?",
+    a: "Yes. For a hands-on pass, work with Michael, Head of Res.Me and a Certified Professional Resume Writer, through 1-on-1 coaching: full rewrites, cover letters, and sessions. See the coaching page for packages.",
   },
 ];
 

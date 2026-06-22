@@ -55,6 +55,12 @@ function ResumePaper() {
           cycles while owning <mark className="tmB-doc-kw">Kubernetes</mark>{" "}
           deployment standards.
         </p>
+        <p className="tmB-pdoc-bullet">
+          Cut deploy lead time from 2 days to{" "}
+          <mark className="tmB-doc-mx">under 1 hour</mark> by standardising{" "}
+          <mark className="tmB-doc-kw">CI/CD</mark> across{" "}
+          <mark className="tmB-doc-mx">9 services</mark>.
+        </p>
         <div className="tmB-pdoc-entry">
           <span className="tmB-pdoc-role">Software Engineer · Versa Labs</span>
           <span className="tmB-pdoc-date">2014 – 2019</span>
@@ -64,12 +70,37 @@ function ResumePaper() {
           <mark className="tmB-doc-mx">40k messages/min</mark> with{" "}
           <mark className="tmB-doc-kw">observability</mark> baked in.
         </p>
+        <p className="tmB-pdoc-bullet">
+          Introduced structured logging and alerting that dropped mean time to
+          detection to <mark className="tmB-doc-mx">under 5 minutes</mark>.
+        </p>
+        <div className="tmB-pdoc-entry">
+          <span className="tmB-pdoc-role">Backend Developer · Helio Apps</span>
+          <span className="tmB-pdoc-date">2011 – 2014</span>
+        </div>
+        <p className="tmB-pdoc-bullet">
+          Shipped the billing service behind{" "}
+          <mark className="tmB-doc-mx">$3M/yr</mark> in recurring revenue with
+          zero data-loss incidents across{" "}
+          <mark className="tmB-doc-mx">3 regions</mark>.
+        </p>
         <p className="tmB-pdoc-sec">Skills</p>
         <p className="tmB-pdoc-skills">
           <mark className="tmB-doc-kw">Distributed systems</mark> ·{" "}
           <mark className="tmB-doc-kw">Node.js at scale</mark> ·{" "}
           <mark className="tmB-doc-kw">Kubernetes</mark> ·{" "}
           <mark className="tmB-doc-kw">Observability</mark> · Mentorship
+        </p>
+        <p className="tmB-pdoc-sec">Education</p>
+        <div className="tmB-pdoc-entry">
+          <span className="tmB-pdoc-role">
+            BSc Computer Science · University of Copenhagen
+          </span>
+          <span className="tmB-pdoc-date">2010 – 2014</span>
+        </div>
+        <p className="tmB-pdoc-sec">Certifications</p>
+        <p className="tmB-pdoc-skills">
+          AWS Solutions Architect · Certified Kubernetes Administrator
         </p>
       </div>
       <p className="tmB-pdoc-pages">Page 1 of 2 · full résumé continues</p>

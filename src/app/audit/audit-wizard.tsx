@@ -18,7 +18,6 @@ import {
   Calendar,
   Check,
   ChevronDown,
-  ClipboardList,
   FileText,
   List,
   Minus,
@@ -2830,14 +2829,6 @@ const START_OPTIONS = [
     cta: "Build from scratch",
     route: ROUTES.resumeNew,
   },
-  {
-    id: "paste" as const,
-    icon: ClipboardList,
-    title: "I have some info, but no resume",
-    blurb: "Paste your LinkedIn, work history, or notes and we’ll structure it.",
-    cta: "Paste & structure",
-    route: ROUTES.resumeImport,
-  },
 ];
 
 function StartChooser({ onUpload }: { onUpload: () => void }) {
@@ -2847,7 +2838,7 @@ function StartChooser({ onUpload }: { onUpload: () => void }) {
       <section className="tm-sec tmF-head" style={{ paddingBottom: 0 }}>
         <h1 className="tm-h1">How would you like to start?</h1>
         <p className="tm-body">
-          Three ways in. Same editor, same three-agent review.
+          Two ways in. Same editor, same three-agent review.
         </p>
       </section>
       <section className="tm-sec" style={{ paddingTop: 24 }}>

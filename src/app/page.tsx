@@ -1,7 +1,6 @@
 import Nav from "@/components/landing/nav";
 import Hero from "@/components/landing/hero";
-import Pains from "@/components/landing/pains";
-import Guide from "@/components/landing/guide";
+import Agents from "@/components/landing/agents";
 import RunTimeline from "@/components/landing/run-timeline";
 import ResultDocs from "@/components/landing/result-docs";
 import Pricing from "@/components/landing/pricing";
@@ -15,8 +14,7 @@ export default function Home() {
       <Nav active="Home" />
       <main>
         <Hero />
-        <Pains />
-        <Guide />
+        <Agents />
         <RunTimeline />
         <ResultDocs />
         <Pricing />

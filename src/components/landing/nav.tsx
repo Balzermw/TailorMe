@@ -5,7 +5,6 @@ import NavSession from "./nav-session";
 import { getServerUser } from "@/lib/auth-server";
 
 const LINKS = [
-  ["Home", ROUTES.home],
   ["Pricing", ROUTES.pricing],
   ["Coaching", ROUTES.coaching],
 ] as const;

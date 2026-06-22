@@ -85,24 +85,6 @@ const PACKS = PRESENTATION.map((p) => {
   };
 });
 
-const ADDON_TIERS = [
-  {
-    name: "Expert Feedback",
-    price: "+$79",
-    desc: "One human review pass on one selected application: prioritized notes, risks, weak spots, and what to improve. Feedback only, back within 48 hours.",
-  },
-  {
-    name: "Human Revision",
-    price: "+$149",
-    desc: "One hands-on human revision pass for a single application: an expert actually revises it with you, not just notes. Premium add-on.",
-  },
-  {
-    name: "Full white-glove service",
-    price: "$225+",
-    desc: "A higher-touch, done-with-you resume engagement. By request — get in touch and we’ll scope it. Not the same as Expert Feedback.",
-  },
-];
-
 const INCLUDES = [
   { icon: Target, label: "Fit score before you commit" },
   { icon: FileText, label: "Tailored resume + cover letter" },
@@ -197,7 +179,9 @@ function PackCards() {
   );
 }
 
-function ExpertUpsell() {
+// Human review lives on the Coaching page (the full done-for-you service), not
+// in the self-serve pricing tiers — this band points people there.
+function CoachingReferral() {
   return (
     <div
       className="tm-card tm-human"
@@ -216,45 +200,18 @@ function ExpertUpsell() {
         height={56}
       />
       <div className="tm-human-body">
-        <h3>Want human eyes on your best application?</h3>
+        <h3>Want a human pass on your resume?</h3>
         <p>
-          Add Expert Feedback for $79. A resume expert reviews one selected
-          application and gives prioritized, human feedback within 48 hours.
-        </p>
-        <p className="tm-small" style={{ marginTop: "6px" }}>
-          Expert Feedback is a review pass, not a full rewrite. Human Revision is
-          available separately for $149.
+          Every application already gets the full three-agent review. For a
+          hands-on rewrite or 1-on-1 coaching, work with Michael, Head of
+          Res.Me, directly. A separate, done-for-you service.
         </p>
       </div>
       <div className="tm-human-price">
-        <strong style={{ color: "var(--tm-mint-700)" }}>+$79</strong>
-        <span>per application</span>
+        <Link className="tm-btn tm-btn--outline" href={ROUTES.coaching}>
+          See coaching
+        </Link>
       </div>
-    </div>
-  );
-}
-
-function AddOnTiers() {
-  return (
-    <div className="tmP-guide mt-[26px]">
-      {ADDON_TIERS.map((t) => (
-        <div key={t.name} className="tm-card tmP-guide-item">
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              justifyContent: "space-between",
-              gap: "8px",
-            }}
-          >
-            <strong style={{ fontSize: "15px" }}>{t.name}</strong>
-            <span className="tm-m" style={{ color: "var(--tm-mint-700)" }}>
-              {t.price}
-            </span>
-          </div>
-          <p style={{ marginTop: "8px" }}>{t.desc}</p>
-        </div>
-      ))}
     </div>
   );
 }
@@ -281,14 +238,10 @@ export default function PricingPage() {
       <Nav active="Pricing" />
       <main>
         <section className="tm-sec tmP-head">
-          <span className="tm-pill">Pricing</span>
-          <h1 className="tm-h1">
-            Tailor every important application. Add expert review when it
-            matters.
-          </h1>
+          <h1 className="tm-h1">Tailor every important application.</h1>
           <p className="tm-body">
-            No subscription. Buy application credits once, use them across roles,
-            and upgrade any application with human feedback.
+            No subscription. Buy application credits once and use them across
+            roles. Want a human pass? Work with Michael directly.
           </p>
         </section>
 
@@ -298,7 +251,7 @@ export default function PricingPage() {
         >
           <div className="tm-wrap">
             <PackCards />
-            <ExpertUpsell />
+            <CoachingReferral />
             <RefundLink>
               <ShieldCheck size={15} /> Unused credits refunded in full within 30
               days.
@@ -346,12 +299,6 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <h2 className="tm-h2 mt-[44px]">Add human review</h2>
-            <p className="tm-body mt-[10px]">
-              Every application already gets the full three-agent review. When a
-              role really matters, add a human pass.
-            </p>
-            <AddOnTiers />
           </div>
         </section>
 

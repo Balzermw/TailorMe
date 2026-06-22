@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { ArrowDown, Check, ClipboardList, Download, FileText } from "lucide-react";
-import { AGENT_NOTES } from "./data";
+import { AGENT_NOTES, ROUTES } from "./data";
 
 export default function RunTimeline() {
   return (
@@ -98,9 +99,12 @@ export default function RunTimeline() {
                     <Check size={11} /> 1 page
                   </span>
                 </span>
-                <span className="tm-btn tm-btn--primary tm-btn--sm justify-center mt-[6px]">
+                <Link
+                  href={ROUTES.audit}
+                  className="tm-btn tm-btn--primary tm-btn--sm justify-center mt-[6px]"
+                >
                   <Download size={14} /> Download both · 1 credit
-                </span>
+                </Link>
               </div>
             </div>
           </div>

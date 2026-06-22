@@ -35,6 +35,15 @@ function FitBars({ title }: { title: string }) {
   );
 }
 
+const JOB_LABEL: React.CSSProperties = {
+  fontSize: "11px",
+  fontWeight: 600,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  color: "var(--tm-zinc)",
+  marginBottom: "8px",
+};
+
 export default function JobFit() {
   return (
     <section
@@ -48,9 +57,10 @@ export default function JobFit() {
           <strong className="block text-[length:var(--body)] font-medium">
             Senior Platform Engineer · Nordpeak Systems
           </strong>
-          <p className="tm-small mt-[4px] mb-[14px]">
+          <p className="tm-small mt-[4px] mb-[16px]">
             Copenhagen / Remote EU · pasted as a URL
           </p>
+          <p style={JOB_LABEL}>Must-have skills we detected</p>
           <div className="flex flex-wrap gap-[8px]">
             {KEYWORDS.map((k) => (
               <span key={k} className="tm-pill tm-pill--gray">
@@ -58,8 +68,9 @@ export default function JobFit() {
               </span>
             ))}
           </div>
+          <p style={{ ...JOB_LABEL, marginTop: "18px" }}>From the posting</p>
           <p
-            className="tm-small mt-[16px]"
+            className="tm-small"
             style={{ lineHeight: 1.65, borderLeft: "2px solid var(--tm-border)", paddingLeft: "12px" }}
           >
             “Own the evolution of our backend platform: lead distributed Node.js
