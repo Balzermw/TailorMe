@@ -28,7 +28,7 @@ const PRICING_FAQS = [
   {
     id: "human_review",
     q: "Can a human review my resume?",
-    a: "Yes. For a hands-on pass, work with Michael, Head of Res.Me and a Certified Professional Resume Writer, through 1-on-1 coaching: full rewrites, cover letters, and sessions. See the coaching page for packages.",
+    a: "Yes. Add Expert Feedback at checkout for a 48-hour human review pass on one application. For hands-on rewriting, revision, cover letters, or coaching, work with Michael through the Coaching page.",
   },
 ];
 

@@ -21,7 +21,8 @@ export default function BuyCreditsPage() {
           <h1 className="tm-h1">Buy credits</h1>
           <p className="tm-body">
             One credit = one application: fit score, tailored resume + cover
-            letter, full agent review. Credits never expire.
+            letter, and full agent review. Add human feedback at checkout when
+            one application needs extra eyes. Credits never expire.
           </p>
         </section>
         <Suspense fallback={null}>

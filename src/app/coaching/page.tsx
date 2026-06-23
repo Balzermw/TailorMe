@@ -253,8 +253,9 @@ function Packages() {
           <div className="tmC-band-body">
             <h3>Already using TailorMe?</h3>
             <p>
-              Add Michael’s line-by-line review to any application for +$79,
-              no package needed. 48-hour turnaround.
+              Add Expert Feedback to any application for +$79, no package
+              needed. Michael reviews the finished draft and returns feedback
+              within 48 hours.
             </p>
           </div>
           <Link className="tm-btn tm-btn--outline" href={ROUTES.dashboard}>
