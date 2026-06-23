@@ -43,13 +43,18 @@ export default function ResumeEditLoader({
     const fromDraft = hasResumeDraft();
     loadBaseResumeDoc().then((d) => {
       if (!active) return;
-      setDoc(d ?? serverDoc ?? null);
+      const resolved = d ?? serverDoc ?? null;
+      setDoc(resolved);
       // A freshly built/imported résumé (draft) has no prior feedback, unless
       // the audit handed advice over with it; a reload of the saved résumé shows
       // the last review persisted server-side.
       setProofPoints(fromDraft ? loadDraftProofPoints() : serverProofPoints);
       clearResumeDraft(); // consume the one-time handoff so reloads use the saved copy
       setLoaded(true);
+      // The draft lives only in sessionStorage. Persist it (account when signed
+      // in, else the browser) so a reload, the print view, and the PDF endpoint
+      // all find the résumé instead of showing "no resume yet".
+      if (fromDraft && resolved) void saveResumeDoc(resolved);
     });
     return () => {
       active = false;
