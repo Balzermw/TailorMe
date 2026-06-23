@@ -13,7 +13,7 @@ test("@critical unsupported resume file shows a readable error", async ({ page }
   await page.goto("/audit?start=upload");
   await expect(page.getByRole("button", { name: /Upload your resume/i })).toBeVisible();
   await uploadResumeFile(page, badFile);
-  await expect(page.getByText(/Unsupported file type|PDF|Word|text/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator("p", { hasText: /Unsupported file type/i })).toBeVisible({ timeout: 15_000 });
 });
 
 test("@critical parse API 500 shows controlled error and does not crash", async ({ page }) => {

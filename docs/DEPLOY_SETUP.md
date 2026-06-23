@@ -104,6 +104,8 @@ per-application "request human review" checkout (`request-review/route.ts`) alwa
    with production values: `NEXT_PUBLIC_APP_URL` (real domain), Supabase URL + anon + service-role
    keys, **live** Stripe secret + webhook secret, the LLM provider key(s), and `ADMIN_EMAILS`.
    Do **not** carry over the dev-only toggles `CREDITS_DISABLED` / `RATE_LIMIT_DISABLED`.
+   Set `REQUIRE_LIVE_AI_PARSE=1` only if launch validation should fail closed when AI parsing is
+   unavailable instead of falling back to local heuristics.
 2. **Migrations** against the prod Supabase project (apply `0001`–`0007` in order — see §1).
 3. **Stripe webhook**: create the endpoint pointing at `https://<domain>/api/stripe/webhook` and
    set its signing secret as `STRIPE_WEBHOOK_SECRET` in the host.

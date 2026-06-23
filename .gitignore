@@ -15,6 +15,7 @@
 /test-results/
 /playwright-report/
 /tests/e2e/results/
+/docs/qa/REAL_RESUME_CORPUS_RESULTS*.md
 
 # E2E / QA local env
 .env.e2e.local
@@ -46,6 +47,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+debug.log
 
 # env files (can opt-in for committing if needed)
 .env*

@@ -52,6 +52,10 @@ Retest steps:
 
 ## Active Findings
 
+No active P1 findings after the unsupported-extension upload fix.
+
+## Resolved In This Branch
+
 ### QA-P1-001
 
 Bug ID: QA-P1-001
@@ -62,7 +66,7 @@ Severity: P1 / Critical
 
 Priority: P1
 
-Status: Open, covered by expected-fail E2E
+Status: Fixed in this branch
 
 Environment: local Playwright E2E, `E2E_TEST_MODE=1`
 
@@ -81,17 +85,15 @@ Reproduction steps:
 
 Expected result: API rejects the request with a 4xx unsupported file type response.
 
-Actual result: API parses the text content successfully.
+Actual result before fix: API parsed the text content successfully.
 
 User impact: direct API clients can bypass browser file-picker extension filtering.
 
 Privacy impact: no leak observed, but server-side validation is weaker than UI validation.
 
-Suggested fix: validate allowed filename extensions and MIME types in `/api/parse-resume` before parser dispatch.
+Fix applied: validate allowed filename extensions in `/api/parse-resume` before parser dispatch.
 
-Retest steps: remove the `test.fail` marker from the unsupported-extension case and verify it passes.
-
-## Resolved In This Branch
+Retest steps: run `npx playwright test --project=chromium tests/e2e/specs/negative-edge-cases.spec.ts --grep "unsupported resume file"`.
 
 ### QA-P2-002
 

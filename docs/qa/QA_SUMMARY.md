@@ -63,7 +63,7 @@ Outputs:
 - `npm run test:e2e:a11y` passed.
 - `npm run test:e2e` passed across Chromium, Firefox, WebKit, mobile Chromium, and tablet projects: 275 passed, 5 skipped.
 - Responsive checks passed for mobile, tablet, and desktop viewports across all Playwright projects.
-- Chromium critical workflow checks passed; one unsupported-upload validation bug is captured as an expected failure.
+- Chromium critical workflow checks passed; the unsupported-upload validation bug is now covered by a passing negative test.
 - Strict paid OpenAI real-resume batches passed with live parsing required:
   - `live-paid-strict-125-135`: 10 passed, 0 failed, 0 skipped.
   - `live-paid-strict-135-145`: 10 passed, 0 failed, 0 skipped.
@@ -74,10 +74,10 @@ Outputs:
 
 ## Bugs And Quality Findings
 
-- `QA-P1-001`: `/api/parse-resume` does not reject unsupported extensions server-side when the file bytes decode as plain text. Browser file inputs restrict common usage, but direct API calls can still parse an `.exe` text fixture.
+- Fixed in this branch: `QA-P1-001`, `/api/parse-resume` now rejects unsupported extensions server-side before parsing.
 - Fixed in this branch: the homepage had tablet-width horizontal overflow from the hero/report preview and agent-card grid. The landing CSS now collapses those sections earlier and constrains grid children.
 - Parser quality caveat: the table-heavy Markdown synthetic resume parses without crashing, but the candidate name is lost and the UI falls back to `Your resume`.
-- Build warning observed during E2E startup: `metadataBase` is not set, so social metadata resolves against `http://localhost:3000`.
+- Fixed in this branch: `metadataBase` is set from `NEXT_PUBLIC_APP_URL`, so social metadata does not fall back to localhost when the production URL is configured.
 - Strict v2 quality scoring caps free-audit results at 88 when the audit gives concrete fix guidance but not a full before/after rewrite pair. This is expected because full rewrite examples are reserved for the paid tailoring flow.
 
 ## Manual Areas Remaining
