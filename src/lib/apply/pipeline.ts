@@ -97,11 +97,15 @@ const PARSE_SYSTEM =
   "figure like '40k', 'p95', '3x'); list the concrete hard skills and tools named " +
   "(8–20, deduplicated, as written); pick 4–6 representative experience bullets verbatim " +
   "and mark which contain a metric. " +
-  "Then give 5–8 PROOF POINTS: specific, real weaknesses, each backed by an EXACT verbatim " +
-  "quote copied from the resume (copy the real text character-for-character — do NOT " +
-  "paraphrase, do NOT fix its spacing or punctuation — so the candidate sees the finding " +
-  "is about THEIR resume, not generic AI advice). Keep each quote to the smallest relevant " +
-  "span (a phrase, line, or date range), max ~160 chars. For each proof point return: a " +
+  "Then give 5–8 PROOF POINTS: specific, real weaknesses. When the issue is about text that " +
+  "EXISTS in the resume, back it with an EXACT verbatim quote of THAT text (copy it " +
+  "character-for-character, do NOT paraphrase or fix its spacing or punctuation, so the " +
+  "candidate sees the finding is about THEIR resume, not generic AI advice). The quote must " +
+  "be the exact text the issue is about, NEVER an unrelated line. When the issue is about " +
+  "something MISSING or ABSENT (no summary, no skills section, a section that is not there), " +
+  "leave the quote EMPTY rather than substituting an unrelated line. Keep each quote to the " +
+  "smallest relevant span (a phrase, line, or date range), max ~160 chars. For each proof " +
+  "point return: a " +
   "short title; a one-line summary; the verbatim quote; why it matters (how an ATS parser " +
   "or a recruiter skimming for ~6 seconds actually reads it); how tailoring fixes it; and a " +
   "severity (high / medium / low). Hunt for REAL issues such as: letter-spaced or " +
@@ -263,7 +267,10 @@ const STRUCTURE_SYSTEM =
   "LinkedIn URL with ' | '; a short professional summary ONLY if the text has one " +
   "(otherwise empty); experience entries (role, company, dates, and the bullet " +
   "points roughly as written); education; projects; certifications; and a " +
-  "deduplicated skills list. Keep wording close to the original. Plain text only.";
+  "deduplicated skills list. Keep wording close to the original. Include the most recent " +
+  "and most relevant roles in full (up to ~12 experience entries); for older or less " +
+  "relevant roles, keep a brief one-line entry or omit them, so the result stays focused " +
+  "and within size limits. Plain text only.";
 
 /** Structure pasted resume/LinkedIn/notes text into a TailoredDoc (no posting,
  * no scoring). Powers the paste-import path. Returns null if too thin to use. */
@@ -338,7 +345,7 @@ export async function structureResume(
         },
       },
     },
-    3200,
+    8000,
     provider,
   );
   const doc = sanitizeDoc(data);
@@ -1103,7 +1110,7 @@ const AGENT_META: Record<
     archetype: "The Parser",
     specialty: "ATS & keywords",
     accent: "blue",
-    reads: "Reads it the way the tracking system does",
+    reads: "Reads your resume like an ATS system",
     kind: "coverage",
   },
   impact: {
@@ -1111,7 +1118,7 @@ const AGENT_META: Record<
     archetype: "The Quantifier",
     specialty: "Impact & metrics",
     accent: "mint",
-    reads: "Reads every line looking for a number",
+    reads: "Reads your resume looking for quantified results",
     kind: "impact",
   },
   rolefit: {
@@ -1119,7 +1126,7 @@ const AGENT_META: Record<
     archetype: "The Hiring Manager",
     specialty: "Role-fit",
     accent: "navy",
-    reads: "Reads it the way the person hiring would",
+    reads: "Reads your resume like a hiring manager",
     kind: "ranking",
   },
 };
@@ -1233,9 +1240,12 @@ async function rankLines(
     "review",
     GUARDRAILS,
     `Resume:\n${resumeText}\n\nJob posting:\n${postingText}\n\n` +
-      "Two tasks. (1) Score the candidate's resume lines (experience bullets) 0–100 for " +
-      "relevance to THIS posting — its keywords and core responsibilities. Return the 6–8 " +
-      "most informative lines, ranked highest first: a short label (≤9 words) paraphrasing the " +
+      "Two tasks. (1) Score the candidate's EXPERIENCE BULLETS 0–100 for " +
+      "relevance to THIS posting — its keywords and core responsibilities. Only real work/" +
+      "experience accomplishment bullets are eligible: never include education, degrees, the " +
+      "summary, skills lists, certifications, awards, or contact lines, and never mark any of " +
+      "those as 'cut'. Return the 6–8 " +
+      "most informative bullets, ranked highest first: a short label (≤9 words) paraphrasing the " +
       "REAL line (faithful — no new claims), the 0–100 score, and a status — 'kept-top' for " +
       "the single strongest, 'kept' for clearly relevant, 'trimmed' for marginal, 'cut' for " +
       "low-relevance lines to drop to hold two pages. Cut by RELEVANCE, not age. " +
@@ -1294,6 +1304,15 @@ async function rankLines(
     }))
     // Drop rows with a non-numeric score (would render as a contradictory 0/Kept).
     .filter((l) => l.label && Number.isFinite(l.score))
+    // Defense in depth: never rank/cut non-experience lines (education, degrees,
+    // skills, certs) even if the model slips one in — "cut your degree" is alarming
+    // and wrong, since these aren't experience bullets.
+    .filter(
+      (l) =>
+        !/\b(education|bachelor|masters?|doctorate|bsc|msc|mba|ph\.?d|b\.s\.|m\.s\.|degree|diploma|coursework|g\.?p\.?a|cum laude)\b/i.test(
+          l.label,
+        ),
+    )
     .map((l) => ({ ...l, score: Math.max(0, Math.min(100, Math.round(l.score))) }));
   const impactStats = (Array.isArray(data.impactStats) ? data.impactStats : [])
     .map((s) => ({ value: String(s.value || "").trim(), label: String(s.label || "").trim() }))
@@ -1309,6 +1328,7 @@ export async function buildAgents(
   fit: FitBreakdown,
   bullets: TailoredBullet[],
   provider?: Provider,
+  role?: string,
 ): Promise<AuditAgent[]> {
   // Ada — keyword coverage (derived from the fit keywords + real occurrences).
   const keywords = (fit.keywords ?? []).slice(0, 8).map((k) => {
@@ -1330,7 +1350,7 @@ export async function buildAgents(
     id: "ats",
     ...AGENT_META.ats,
     title: "Keyword coverage",
-    subtitle: "exact strings the posting wants",
+    subtitle: "how many keywords your resume covers from the posting",
     footer:
       missing > 0
         ? "" // the graphical "to add" callout carries the advice now
@@ -1387,11 +1407,9 @@ export async function buildAgents(
   const impact: AuditAgent = {
     id: "impact",
     ...AGENT_META.impact,
-    title: "Impact found",
-    subtitle: "how many, how much, vs. what",
-    footer: stats.length
-      ? `${stats.length} quantified, defensible win${stats.length === 1 ? "" : "s"} surfaced from your own resume.`
-      : "Max flags lines that state activity with no result, and shows where to add the numbers.",
+    title: "Quantified impact",
+    subtitle: "how many of your bullets can be quantified (backed by a number)",
+    footer: "",
     detail:
       "Max scans every experience line for a measurable outcome (how many, how much, versus " +
       "what) and rewrites activity into results using only figures already in your resume. It " +
@@ -1404,10 +1422,10 @@ export async function buildAgents(
   const rolefit: AuditAgent = {
     id: "rolefit",
     ...AGENT_META.rolefit,
-    title: "Ranked for this role",
-    subtitle: "every line scored 0–100 for this role",
+    title: "Your bullets, ranked",
+    subtitle: `taken from your current resume, scored 0/100 for ${role?.trim() || "this posting"}`,
     chip: "Hard limit · 2 pages",
-    footer: "Trimmed by relevance to this role, never by age.",
+    footer: "",
     detail:
       "Remy scores every line 0–100 for relevance to this posting, keeps the strongest, and " +
       "trims the lowest to hold a tight two pages. Lines are cut by relevance and never by age: " +
@@ -1445,7 +1463,7 @@ export async function runAudit(
   const { company, role, fit } = await scoreFit(resumeText, postingText, provider);
   // No tailored bullets yet (tailoring is the paid step), so Max surfaces the
   // candidate's real extracted wins; the before/after pair appears post-tailor.
-  const agents = await buildAgents(resumeText, postingText, fit, [], provider);
+  const agents = await buildAgents(resumeText, postingText, fit, [], provider, role);
   return { company, role, fit, bullets: [], keywords: [], agentNotes: [], agents, doc: null };
 }
 
@@ -1563,7 +1581,7 @@ export async function runFull(
   // independent — run them together to keep the full-run latency down.
   const [agentNotes, agents] = await Promise.all([
     review(tailored.doc, postingText, provider),
-    buildAgents(resumeText, postingText, fit, tailored.bullets, provider),
+    buildAgents(resumeText, postingText, fit, tailored.bullets, provider, role),
   ]);
   // Anchor before/after pairs to doc coordinates for the editor's diff rows, and
   // snapshot the AI draft so the editor can offer "reset to AI version".

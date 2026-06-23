@@ -9,6 +9,7 @@ import {
   saveResumeDoc,
   clearResumeDraft,
   hasResumeDraft,
+  loadDraftProofPoints,
   setTargetResume,
 } from "@/lib/resume";
 import { docToResumeText } from "@/lib/apply/serialize";
@@ -43,9 +44,10 @@ export default function ResumeEditLoader({
     loadBaseResumeDoc().then((d) => {
       if (!active) return;
       setDoc(d ?? serverDoc ?? null);
-      // A freshly built/imported résumé (draft) has no prior feedback; only a
-      // reload of the saved résumé shows the last review persisted server-side.
-      setProofPoints(fromDraft ? [] : serverProofPoints);
+      // A freshly built/imported résumé (draft) has no prior feedback, unless
+      // the audit handed advice over with it; a reload of the saved résumé shows
+      // the last review persisted server-side.
+      setProofPoints(fromDraft ? loadDraftProofPoints() : serverProofPoints);
       clearResumeDraft(); // consume the one-time handoff so reloads use the saved copy
       setLoaded(true);
     });

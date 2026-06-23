@@ -13,9 +13,12 @@ export default function AuditPage() {
     <div className="tm">
       <Nav active="" />
       <main>
-        {/* AuditWizard reads ?start via useSearchParams → needs a Suspense boundary */}
+        {/* AuditWizard reads ?start via useSearchParams → needs a Suspense boundary.
+            tmF-anim eases the page in on arrival so the hero → audit nav feels smooth. */}
         <Suspense fallback={null}>
-          <AuditWizard />
+          <div className="tmF-anim">
+            <AuditWizard />
+          </div>
         </Suspense>
       </main>
       <Footer />

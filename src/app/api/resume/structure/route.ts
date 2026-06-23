@@ -59,7 +59,11 @@ export async function POST(request: Request) {
       );
     }
     return NextResponse.json({ doc });
-  } catch {
+  } catch (err) {
+    console.error(
+      "[resume/structure] failed:",
+      err instanceof Error ? err.message : err,
+    );
     return NextResponse.json(
       { error: "Couldn't import that. Try again." },
       { status: 502 },
