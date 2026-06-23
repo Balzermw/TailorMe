@@ -5,7 +5,7 @@
 // localStorage so the flow still works without Supabase. All calls are
 // best-effort — a signed-out or failed save is a silent no-op.
 
-import type { ResumeStats, TailoredDoc } from "@/lib/types";
+import type { ProofPoint, ResumeStats, TailoredDoc } from "@/lib/types";
 import { supabaseConfigured } from "@/lib/config";
 import { docToResumeText } from "@/lib/apply/serialize";
 
@@ -70,6 +70,7 @@ export async function saveResume(resume: SavedResume): Promise<void> {
 }
 
 const DRAFT_KEY = "tm_resume_draft"; // sessionStorage handoff: builder -> editor
+const DRAFT_PP_KEY = "tm_resume_draft_pp"; // optional advice carried with a draft
 
 function writeLocalDoc(doc: TailoredDoc, source?: string): boolean {
   if (typeof window === "undefined") return false;
@@ -142,12 +143,32 @@ export async function loadBaseResumeDoc(): Promise<TailoredDoc | null> {
   return null;
 }
 
-export function setResumeDraft(doc: TailoredDoc): void {
+// Hand a structured doc to the editor. Optional proofPoints carry advice (e.g.
+// from the free audit) so the editor's Suggestions panel shows it for a draft;
+// passing none clears any stale carried advice.
+export function setResumeDraft(doc: TailoredDoc, proofPoints?: ProofPoint[]): void {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify(doc));
+    if (proofPoints && proofPoints.length) {
+      window.sessionStorage.setItem(DRAFT_PP_KEY, JSON.stringify(proofPoints));
+    } else {
+      window.sessionStorage.removeItem(DRAFT_PP_KEY);
+    }
   } catch {
     /* ignore */
+  }
+}
+
+/** Proof points carried alongside a one-time draft handoff (audit → editor). */
+export function loadDraftProofPoints(): ProofPoint[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.sessionStorage.getItem(DRAFT_PP_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return Array.isArray(parsed) ? (parsed as ProofPoint[]) : [];
+  } catch {
+    return [];
   }
 }
 
@@ -155,6 +176,7 @@ export function clearResumeDraft(): void {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.removeItem(DRAFT_KEY);
+    window.sessionStorage.removeItem(DRAFT_PP_KEY);
   } catch {
     /* ignore */
   }

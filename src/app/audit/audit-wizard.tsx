@@ -18,6 +18,7 @@ import {
   Calendar,
   Check,
   ChevronDown,
+  ClipboardPaste,
   FileText,
   List,
   Minus,
@@ -35,17 +36,22 @@ import type {
   ProofPoint,
   ResumeStats,
   RoleContext,
+  TailoredDoc,
 } from "@/lib/types";
-import { useSession } from "@/lib/auth";
+import { useSession, type SessionUser } from "@/lib/auth";
 import { track, getSessionId } from "@/lib/track";
 import {
   clearSavedResume,
+  loadBaseResumeDoc,
   loadSavedResume,
   loadTargetResume,
   loadTargetResumeId,
   saveResume,
+  setResumeDraft,
   type SavedResume,
 } from "@/lib/resume";
+import { SAMPLE_DOC } from "@/lib/apply/sample";
+import { fixSection, SECTION_LABEL } from "@/lib/apply/sections";
 
 // Per-dimension demo evidence (fallback when Anthropic isn't configured).
 const FIT_WHY: { plus: string[]; minus: string[] }[] = [
@@ -86,7 +92,7 @@ const FIT_WHY: { plus: string[]; minus: string[] }[] = [
   },
 ];
 
-interface FitView {
+export interface FitView {
   header: string;
   overall: number;
   verdict: string; // clean verdict tier, e.g. "Strong fit"
@@ -159,7 +165,7 @@ function toView(result: ApplyResult): FitView {
   };
 }
 
-const STEP_LABELS = ["Your resume", "Job Score", "Agent audit"];
+const STEP_LABELS = ["Your resume", "Job Score", "AI agent audit", "Summary"];
 
 function Stepper({ step }: { step: number }) {
   return (
@@ -424,6 +430,7 @@ const SEV_LABEL: Record<ProofPoint["severity"], string> = {
 // A single proof point: headline + summary up front, the verbatim resume quote
 // as proof it's real, and an optional deep-dive into why + the fix.
 function ProofPointCard({ p }: { p: ProofPoint }) {
+  const section = fixSection(p); // which résumé section this fix lives in
   return (
     <div
       style={{
@@ -456,6 +463,14 @@ function ProofPointCard({ p }: { p: ProofPoint }) {
           }}
         >
           {p.severity}
+        </span>
+      </div>
+      <div style={{ marginTop: "8px" }}>
+        <span
+          className="tm-pill tm-pill--gray"
+          style={{ fontSize: "10.5px" }}
+        >
+          {SECTION_LABEL[section]} section
         </span>
       </div>
       {p.summary && (
@@ -590,9 +605,9 @@ const SAMPLE_PROFILE: ResumeStats = {
     {
       title: "No summary tuned to this role",
       summary: "There’s no 1–2 line summary telling this employer why you fit.",
-      quote: "Participated in code reviews and sprint planning.",
-      why: "Without a tailored summary the reader infers your fit from scattered bullets, and filler lines like this one spend space a positioning statement should own.",
-      fix: "We add a tight, role-specific summary and cut low-signal lines so the top third of the page sells your strongest match.",
+      quote: "",
+      why: "Without a tailored summary the reader infers your fit from scattered bullets, so the top third of the page (the part that gets read first) never states your strongest match outright.",
+      fix: "We add a tight, role-specific summary so the top third of the page sells your fit before the reader hits the bullets.",
       severity: "medium",
     },
   ],
@@ -1026,89 +1041,38 @@ function StepUpload({
             </Reveal>
           )}
 
-          {(profile.proofPoints?.length || profile.weaknesses?.length) ? (
-            <Reveal show={reveal >= 5} style={{ marginTop: "20px" }}>
-              <p
-                className="tmF-p2-label"
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
-              >
-                <AlertTriangle size={14} style={{ color: "#ba7517" }} /> What tailoring will
-                fix
-              </p>
-              <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px" }}>
-                Each one is pulled from your resume. Open it for the fix.
-              </p>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                  marginTop: "10px",
-                }}
-              >
-                {profile.proofPoints && profile.proofPoints.length > 0
-                  ? (["high", "medium", "low"] as const).map((sev) => {
-                      const group = profile.proofPoints!.filter((p) => p.severity === sev);
-                      if (group.length === 0) return null;
-                      return (
-                        <div
-                          key={sev}
-                          style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-                        >
-                          <p
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "7px",
-                              fontSize: "11px",
-                              fontWeight: 600,
-                              letterSpacing: "0.05em",
-                              textTransform: "uppercase",
-                              color: SEV_COLOR[sev],
-                            }}
-                          >
-                            {SEV_LABEL[sev]}
-                            <span
-                              style={{
-                                fontSize: "10.5px",
-                                fontWeight: 600,
-                                minWidth: "17px",
-                                textAlign: "center",
-                                padding: "0 5px",
-                                borderRadius: "999px",
-                                background: SEV_PILL[sev].bg,
-                                color: SEV_PILL[sev].ink,
-                              }}
-                            >
-                              {group.length}
-                            </span>
-                          </p>
-                          {group.map((p, i) => (
-                            <ProofPointCard key={`${sev}-${i}`} p={p} />
-                          ))}
-                        </div>
-                      );
-                    })
-                  : profile.weaknesses!.map((wk, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          border: "0.5px solid var(--tm-border)",
-                          borderRadius: "12px",
-                          padding: "14px 16px",
-                          fontSize: "13px",
-                          lineHeight: 1.5,
-                          color: "var(--tm-ink)",
-                          display: "flex",
-                          gap: "8px",
-                        }}
-                      >
-                        <span style={{ color: "#ba7517", flex: "none" }}>•</span> {wk}
-                      </div>
-                    ))}
-              </div>
-            </Reveal>
-          ) : null}
+          {(() => {
+            const fixCount = profile.proofPoints?.length || profile.weaknesses?.length || 0;
+            if (!fixCount) return null;
+            // Teaser only — the full, prioritized fix list (with each fix) is
+            // consolidated on the Summary step after the job match, so we don't
+            // dump a problem list on the user before they've even picked a job.
+            return (
+              <Reveal show={reveal >= 5} style={{ marginTop: "20px" }}>
+                <div
+                  style={{
+                    border: "0.5px solid rgba(186,117,23,.3)",
+                    background: "#fdf3e7",
+                    borderRadius: "12px",
+                    padding: "14px 16px",
+                    display: "flex",
+                    gap: "12px",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <AlertTriangle size={16} style={{ color: "#ba7517", flex: "none", marginTop: "1px" }} />
+                  <div>
+                    <p style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--tm-ink)" }}>
+                      We found {fixCount} thing{fixCount === 1 ? "" : "s"} to tighten in your resume.
+                    </p>
+                    <p className="tm-small" style={{ marginTop: "3px", fontSize: "12.5px" }}>
+                      You’ll see each one, with the fix, in your summary after the job match.
+                    </p>
+                  </div>
+                </div>
+              </Reveal>
+            );
+          })()}
 
           <Reveal show={reveal >= 5} style={{ marginTop: "22px" }}>
             <div
@@ -1371,23 +1335,351 @@ function ManualReviewCTA({ overall }: { overall: number }) {
         background: "var(--tm-blue-50)",
         borderRadius: "12px",
         padding: "16px 18px",
+        display: "flex",
+        gap: "14px",
+        alignItems: "flex-start",
       }}
     >
-      <p style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--tm-ink)", lineHeight: 1.5 }}>
-        {line}
-      </p>
-      <p className="tm-small" style={{ marginTop: "6px", fontSize: "12.5px", lineHeight: 1.5 }}>
-        A manual review by a Res.Me expert can reposition your background more effectively for
-        this kind of role, or tell you honestly which targets fit best. We won’t overpromise.
-      </p>
-      <Link
-        href={ROUTES.coaching}
-        className="tm-btn tm-btn--outline"
-        style={{ marginTop: "12px" }}
-      >
-        <PenLine size={15} /> Get an expert review
-      </Link>
+      <Image
+        src="/michael.png"
+        alt="Michael, Head of Res.Me"
+        width={52}
+        height={52}
+        style={{
+          width: "52px",
+          height: "52px",
+          borderRadius: "50%",
+          objectFit: "cover",
+          border: "0.5px solid var(--tm-border)",
+          flex: "none",
+        }}
+      />
+      <div style={{ minWidth: 0 }}>
+        <p style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--tm-ink)", lineHeight: 1.5 }}>
+          {line}
+        </p>
+        <p className="tm-small" style={{ marginTop: "6px", fontSize: "12.5px", lineHeight: 1.5 }}>
+          Michael, Head of Res.Me and a Certified Professional Resume Writer, has a strong track
+          record transforming resumes for candidates who don’t look qualified on paper. He can
+          rewrite yours for this kind of role, or coach you on career and resume strategy. We won’t
+          overpromise: he’ll also tell you honestly which targets fit best.
+        </p>
+        <Link
+          href={ROUTES.coaching}
+          className="tm-btn tm-btn--outline"
+          style={{ marginTop: "12px" }}
+        >
+          <PenLine size={15} /> Get a rewrite or coaching from Michael
+        </Link>
+      </div>
     </div>
+  );
+}
+
+// The fit breakdown (score hero + ranked dimensions + location + keyword
+// coverage). Presentational + self-contained (owns its expand state) so both
+// the Job Score step and the Summary step render an identical breakdown. The
+// prose verdict is trimmed to a one-line lead — the ranked rows carry the "why".
+function FitResult({ view, shown }: { view: FitView; shown: boolean }) {
+  const [openDims, setOpenDims] = useState<Set<number>>(new Set());
+  // Drop a "Why 84 — strong fit:" lead the model sometimes prefixes, then keep
+  // only the first sentence; the dimension rows + keyword chips do the rest.
+  const ci = view.summary.indexOf(":");
+  const summaryFull = (ci >= 0 ? view.summary.slice(ci + 1) : view.summary).trim();
+  const summaryLead = summaryFull.match(/^[^.!?]*[.!?]/)?.[0] ?? summaryFull;
+  const ranked = [...view.dims].sort((a, b) => b.score - a.score);
+  const theme = fitTheme(view.overall);
+  const keywords = view.keywords ?? [];
+  const kwMatched = keywords.filter((k) => k.inResume);
+  const kwMissing = keywords.filter((k) => !k.inResume);
+
+  return (
+    <Fragment>
+      {/* score hero — the score is the hero; colour follows the fit tier */}
+      <div
+        className="tm-card"
+        style={{
+          background: theme.card,
+          border: `0.5px solid ${theme.border}`,
+          display: "flex",
+          alignItems: "center",
+          gap: "24px",
+          flexWrap: "wrap",
+          padding: "24px 26px",
+        }}
+      >
+        <ScoreRing score={view.overall} run={shown} color={theme.ring} />
+        <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+          <span
+            className="tm-pill"
+            style={{
+              background: "#fff",
+              color: theme.ink,
+              border: `0.5px solid ${theme.border}`,
+            }}
+          >
+            {theme.positive ? <Check size={12} /> : <AlertTriangle size={12} />}{" "}
+            {view.verdict}
+          </span>
+          <h3
+            style={{
+              fontSize: "21px",
+              fontWeight: 600,
+              color: "var(--tm-ink)",
+              margin: "10px 0 0",
+              lineHeight: 1.25,
+            }}
+          >
+            {heroHeadline(view.overall)}
+          </h3>
+          {summaryLead && (
+            <p
+              className="tm-small"
+              style={{ marginTop: "8px", fontSize: "13px", lineHeight: 1.55 }}
+            >
+              {summaryLead}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* dimensions — ranked strongest → focus, expand for evidence */}
+      <div className="tm-card" style={{ padding: "20px 22px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "8px",
+          }}
+        >
+          <span className="tmF-p2-label">Across the {ranked.length} dimensions</span>
+          <span
+            className="tm-small"
+            style={{ display: "inline-flex", alignItems: "center", gap: "12px", fontSize: "11.5px" }}
+          >
+            {BAND_LEGEND.map((x) => (
+              <span key={x.l} style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                <span style={{ height: "8px", width: "8px", borderRadius: "50%", background: x.c }} />
+                {x.l}
+              </span>
+            ))}
+          </span>
+        </div>
+
+        <div style={{ marginTop: "8px" }}>
+          {ranked.map((d, i) => {
+            const b = band(d.score);
+            const open = openDims.has(i);
+            return (
+              <div
+                key={`${i}-${d.label}`}
+                style={{ borderTop: i ? "0.5px solid var(--tm-border)" : "none" }}
+              >
+                <div
+                  onClick={() =>
+                    setOpenDims((s) => {
+                      const n = new Set(s);
+                      if (n.has(i)) n.delete(i);
+                      else n.add(i);
+                      return n;
+                    })
+                  }
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    padding: "13px 0",
+                    cursor: "pointer",
+                  }}
+                >
+                  <label
+                    style={{
+                      flex: "0 0 128px",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      color: "var(--tm-ink)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {d.label}
+                  </label>
+                  <div
+                    style={{
+                      flex: "1 1 60px",
+                      height: "8px",
+                      borderRadius: "999px",
+                      background: "rgba(24,24,27,0.08)",
+                      overflow: "hidden",
+                      minWidth: "48px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: "100%",
+                        borderRadius: "999px",
+                        background: b.bar,
+                        width: shown ? `${d.score}%` : "0%",
+                        transition: "width .9s cubic-bezier(.22,1,.36,1)",
+                        transitionDelay: `${i * 70}ms`,
+                      }}
+                    />
+                  </div>
+                  <output
+                    style={{
+                      width: "26px",
+                      textAlign: "right",
+                      fontSize: "15px",
+                      fontWeight: 600,
+                      color: "var(--tm-ink)",
+                      fontVariantNumeric: "tabular-nums",
+                      flex: "none",
+                    }}
+                  >
+                    {d.score}
+                  </output>
+                  <span
+                    className="tm-pill"
+                    style={{
+                      flex: "none",
+                      fontSize: "10.5px",
+                      background: b.pillBg,
+                      color: b.pillInk,
+                      minWidth: "76px",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {b.tag}
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      flex: "none",
+                      display: "flex",
+                      color: "var(--tm-zinc)",
+                      transform: open ? "rotate(45deg)" : "none",
+                      transition: "transform .2s",
+                    }}
+                  >
+                    <Plus size={15} />
+                  </span>
+                </div>
+                {/* Smooth expand: animate the grid row 0fr→1fr + fade. */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateRows: open ? "1fr" : "0fr",
+                    transition: "grid-template-rows .32s cubic-bezier(.22,1,.36,1)",
+                  }}
+                >
+                  <div style={{ overflow: "hidden", minHeight: 0 }}>
+                    <div
+                      className="tmF-why"
+                      style={{
+                        paddingBottom: "12px",
+                        opacity: open ? 1 : 0,
+                        transition: "opacity .28s ease",
+                      }}
+                    >
+                      {d.why && (
+                        <p
+                          className="tm-small"
+                          style={{ marginBottom: "8px", fontSize: "12.5px", lineHeight: 1.5, color: "var(--tm-ink)" }}
+                        >
+                          {d.why}
+                        </p>
+                      )}
+                      {d.plus.map((p, pi) => (
+                        <p key={`p-${pi}`} className="tmF-why-line is-plus">
+                          <Check size={12} /> {p}
+                        </p>
+                      ))}
+                      {d.gaps.map((m, mi) => (
+                        <p key={`g-${mi}`} className="tmF-why-line is-minus">
+                          <Plus size={12} style={{ transform: "rotate(45deg)" }} /> {m}
+                        </p>
+                      ))}
+                      {d.plus.length === 0 && d.gaps.length === 0 && !d.why && (
+                        <p className="tm-small" style={{ fontSize: "12.5px" }}>
+                          No detailed evidence for this dimension.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* location gate — tri-state pill (pass / fail / not specified) */}
+          <div
+            style={{
+              borderTop: "0.5px solid var(--tm-border)",
+              paddingTop: "14px",
+              marginTop: "2px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <label style={{ flex: "0 0 128px", fontSize: "13px", fontWeight: 500, color: "var(--tm-ink)" }}>
+              Location &amp; logistics
+            </label>
+            <span
+              className="tm-pill"
+              style={{
+                flex: "none",
+                background: LOCATION_STATE[view.locationStatus].bg,
+                color: LOCATION_STATE[view.locationStatus].ink,
+              }}
+            >
+              {view.locationStatus === "pass" ? (
+                <Check size={12} />
+              ) : view.locationStatus === "fail" ? (
+                <AlertTriangle size={12} />
+              ) : (
+                <Minus size={12} />
+              )}{" "}
+              {LOCATION_STATE[view.locationStatus].label}
+            </span>
+            <span className="tm-small" style={{ fontSize: "12.5px", flex: "1 1 160px", minWidth: 0 }}>
+              {view.locationNote}
+            </span>
+          </div>
+
+          {/* keyword coverage — exactly which posting terms the resume hits/misses */}
+          {keywords.length > 0 && (
+            <div style={{ borderTop: "0.5px solid var(--tm-border)", paddingTop: "14px", marginTop: "2px" }}>
+              <span className="tmF-p2-label">
+                Keywords the posting screens for ({kwMatched.length}/{keywords.length})
+              </span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
+                {kwMatched.map((k) => (
+                  <span
+                    key={`m-${k.term}`}
+                    className="tm-pill tm-pill--mint"
+                    style={{ fontSize: "11px" }}
+                  >
+                    <Check size={11} /> {k.term}
+                  </span>
+                ))}
+                {kwMissing.map((k) => (
+                  <span
+                    key={`x-${k.term}`}
+                    className="tm-pill"
+                    style={{ fontSize: "11px", background: "#fdf3e7", color: "#854f0b" }}
+                  >
+                    <Plus size={11} style={{ transform: "rotate(45deg)" }} /> {k.term}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </Fragment>
   );
 }
 
@@ -1397,17 +1689,18 @@ function StepJob({
   useSample,
   resumeText,
   onNext,
+  onScored,
 }: {
   posting: string;
   setPosting: (v: string) => void;
   useSample: boolean;
   resumeText: string;
   onNext: () => void;
+  onScored?: (v: FitView) => void;
 }) {
   const [phase, setPhase] = useState<"idle" | "scoring" | "done">("idle");
   const [view, setView] = useState<FitView>(DEMO_VIEW);
   const [shown, setShown] = useState(false); // triggers the ring + bar fill animation
-  const [openDims, setOpenDims] = useState<Set<number>>(new Set()); // expanded dimensions (independent toggles)
   const [note, setNote] = useState<string | null>(null);
   const [fetching, setFetching] = useState(false);
   const [fetchErr, setFetchErr] = useState<string | null>(null);
@@ -1560,7 +1853,7 @@ function StepJob({
     if (scoreRun.current !== myRun) return;
     setNote(msg);
     setView(v);
-    setOpenDims(new Set());
+    onScored?.(v); // lift the fit result so the Summary step can reuse it
     // Let the loader visibly complete its last step, hold a short beat, THEN
     // reveal — so the hand-off reads as "analysis finished → results glide in"
     // instead of cutting away mid-progress (which felt jarring).
@@ -1581,15 +1874,6 @@ function StepJob({
     );
   };
 
-  // Hero summary: drop a "Why 84 — strong fit:" lead the model sometimes prefixes
-  // (the verdict pill already states the tier), keeping the clean prose.
-  const ci = view.summary.indexOf(":");
-  const summaryRest = (ci >= 0 ? view.summary.slice(ci + 1) : view.summary).trim();
-  // Strengths lead, the one focus area lands last (design: rank by score desc).
-  const ranked = [...view.dims].sort((a, b) => b.score - a.score);
-  // Colour the hero by fit tier — never green for a weak match.
-  const theme = fitTheme(view.overall);
-
   // Editing the posting (or "Change") invalidates a score — return to idle so the
   // user re-scores the text that will actually be tailored, cancelling any pending
   // timers / in-flight call so a stale result can't snap back.
@@ -1597,7 +1881,6 @@ function StepJob({
     cancelScore();
     setPhase("idle");
     setShown(false);
-    setOpenDims(new Set());
     setNote(null);
     setFetchNote(null);
     setDemoScore(false);
@@ -1741,262 +2024,7 @@ function StepJob({
         </button>
       </div>
 
-      {/* score hero — the score is the hero; colour follows the fit tier */}
-      <div
-        className="tm-card"
-        style={{
-          background: theme.card,
-          border: `0.5px solid ${theme.border}`,
-          display: "flex",
-          alignItems: "center",
-          gap: "24px",
-          flexWrap: "wrap",
-          padding: "24px 26px",
-        }}
-      >
-        <ScoreRing score={view.overall} run={shown} color={theme.ring} />
-        <div style={{ flex: "1 1 260px", minWidth: 0 }}>
-          <span
-            className="tm-pill"
-            style={{
-              background: "#fff",
-              color: theme.ink,
-              border: `0.5px solid ${theme.border}`,
-            }}
-          >
-            {theme.positive ? <Check size={12} /> : <AlertTriangle size={12} />}{" "}
-            {view.verdict}
-          </span>
-          <h3
-            style={{
-              fontSize: "21px",
-              fontWeight: 600,
-              color: "var(--tm-ink)",
-              margin: "10px 0 0",
-              lineHeight: 1.25,
-            }}
-          >
-            {heroHeadline(view.overall)}
-          </h3>
-          {summaryRest && (
-            <p
-              className="tm-small"
-              style={{ marginTop: "8px", fontSize: "13px", lineHeight: 1.55 }}
-            >
-              {summaryRest}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* dimensions — ranked strongest → focus, expand for evidence */}
-      <div className="tm-card" style={{ padding: "20px 22px" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "8px",
-          }}
-        >
-          <span className="tmF-p2-label">Across the {ranked.length} dimensions</span>
-          <span
-            className="tm-small"
-            style={{ display: "inline-flex", alignItems: "center", gap: "12px", fontSize: "11.5px" }}
-          >
-            {BAND_LEGEND.map((x) => (
-              <span key={x.l} style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
-                <span style={{ height: "8px", width: "8px", borderRadius: "50%", background: x.c }} />
-                {x.l}
-              </span>
-            ))}
-          </span>
-        </div>
-
-        <div style={{ marginTop: "8px" }}>
-          {ranked.map((d, i) => {
-            const b = band(d.score);
-            const open = openDims.has(i);
-            return (
-              <div
-                key={`${i}-${d.label}`}
-                style={{ borderTop: i ? "0.5px solid var(--tm-border)" : "none" }}
-              >
-                <div
-                  onClick={() =>
-                    setOpenDims((s) => {
-                      const n = new Set(s);
-                      if (n.has(i)) n.delete(i);
-                      else n.add(i);
-                      return n;
-                    })
-                  }
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                    padding: "13px 0",
-                    cursor: "pointer",
-                  }}
-                >
-                  <label
-                    style={{
-                      flex: "0 0 128px",
-                      fontSize: "13px",
-                      fontWeight: 500,
-                      color: "var(--tm-ink)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {d.label}
-                  </label>
-                  <div
-                    style={{
-                      flex: "1 1 60px",
-                      height: "8px",
-                      borderRadius: "999px",
-                      background: "rgba(24,24,27,0.08)",
-                      overflow: "hidden",
-                      minWidth: "48px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "100%",
-                        borderRadius: "999px",
-                        background: b.bar,
-                        width: shown ? `${d.score}%` : "0%",
-                        transition: "width .9s cubic-bezier(.22,1,.36,1)",
-                        transitionDelay: `${i * 70}ms`,
-                      }}
-                    />
-                  </div>
-                  <output
-                    style={{
-                      width: "26px",
-                      textAlign: "right",
-                      fontSize: "15px",
-                      fontWeight: 600,
-                      color: "var(--tm-ink)",
-                      fontVariantNumeric: "tabular-nums",
-                      flex: "none",
-                    }}
-                  >
-                    {d.score}
-                  </output>
-                  <span
-                    className="tm-pill"
-                    style={{
-                      flex: "none",
-                      fontSize: "10.5px",
-                      background: b.pillBg,
-                      color: b.pillInk,
-                      minWidth: "76px",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {b.tag}
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      flex: "none",
-                      display: "flex",
-                      color: "var(--tm-zinc)",
-                      transform: open ? "rotate(45deg)" : "none",
-                      transition: "transform .2s",
-                    }}
-                  >
-                    <Plus size={15} />
-                  </span>
-                </div>
-                {/* Smooth expand: animate the grid row 0fr→1fr + fade, so the
-                    evidence eases open instead of snapping in. */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateRows: open ? "1fr" : "0fr",
-                    transition: "grid-template-rows .32s cubic-bezier(.22,1,.36,1)",
-                  }}
-                >
-                  <div style={{ overflow: "hidden", minHeight: 0 }}>
-                    <div
-                      className="tmF-why"
-                      style={{
-                        paddingBottom: "12px",
-                        opacity: open ? 1 : 0,
-                        transition: "opacity .28s ease",
-                      }}
-                    >
-                      {d.why && (
-                        <p
-                          className="tm-small"
-                          style={{ marginBottom: "8px", fontSize: "12.5px", lineHeight: 1.5, color: "var(--tm-ink)" }}
-                        >
-                          {d.why}
-                        </p>
-                      )}
-                      {d.plus.map((p, pi) => (
-                        <p key={`p-${pi}`} className="tmF-why-line is-plus">
-                          <Check size={12} /> {p}
-                        </p>
-                      ))}
-                      {d.gaps.map((m, mi) => (
-                        <p key={`g-${mi}`} className="tmF-why-line is-minus">
-                          <Plus size={12} style={{ transform: "rotate(45deg)" }} /> {m}
-                        </p>
-                      ))}
-                      {d.plus.length === 0 && d.gaps.length === 0 && !d.why && (
-                        <p className="tm-small" style={{ fontSize: "12.5px" }}>
-                          No detailed evidence for this dimension.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* location gate — tri-state pill (pass / fail / not specified), never a bar */}
-          <div
-            style={{
-              borderTop: "0.5px solid var(--tm-border)",
-              paddingTop: "14px",
-              marginTop: "2px",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <label style={{ flex: "0 0 128px", fontSize: "13px", fontWeight: 500, color: "var(--tm-ink)" }}>
-              Location &amp; logistics
-            </label>
-            <span
-              className="tm-pill"
-              style={{
-                flex: "none",
-                background: LOCATION_STATE[view.locationStatus].bg,
-                color: LOCATION_STATE[view.locationStatus].ink,
-              }}
-            >
-              {view.locationStatus === "pass" ? (
-                <Check size={12} />
-              ) : view.locationStatus === "fail" ? (
-                <AlertTriangle size={12} />
-              ) : (
-                <Minus size={12} />
-              )}{" "}
-              {LOCATION_STATE[view.locationStatus].label}
-            </span>
-            <span className="tm-small" style={{ fontSize: "12.5px", flex: "1 1 160px", minWidth: 0 }}>
-              {view.locationNote}
-            </span>
-          </div>
-        </div>
-      </div>
+      <FitResult view={view} shown={shown} />
 
       {note && (
         <p className="tmS-free" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
@@ -2020,14 +2048,19 @@ function StepJob({
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "flex-end",
+          justifyContent: "center",
           gap: "14px",
           flexWrap: "wrap",
         }}
       >
-        <button type="button" className="tm-btn tm-btn--primary" onClick={onNext}>
-          Run my free audit <ArrowRight size={15} />
-        </button>
+        <div style={{ textAlign: "center" }}>
+          <button type="button" className="tm-btn tm-btn--primary" onClick={onNext}>
+            Run my free AI agent audit <ArrowRight size={15} />
+          </button>
+          <p className="tm-small" style={{ marginTop: "8px", fontSize: "12px" }}>
+            Three AI agents (ATS, impact, role-fit) read your resume against this posting.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -2175,7 +2208,7 @@ function CoverageEvidence({ a }: { a: AuditAgent }) {
             ))}
           </div>
           <p className="tm-small" style={{ marginTop: "8px", fontSize: "11.5px", color: "var(--tm-zinc)" }}>
-            Tailoring adds these only where your experience genuinely backs them.
+            Only to be added if your experience genuinely backs them.
           </p>
         </div>
       )}
@@ -2184,9 +2217,14 @@ function CoverageEvidence({ a }: { a: AuditAgent }) {
 }
 
 function ImpactEvidence({ a }: { a: AuditAgent }) {
+  const total = a.quantified?.total ?? 0;
+  const count = a.quantified?.count ?? 0;
+  const gap = Math.max(0, total - count);
+  const hasStats = !!(a.stats && a.stats.length > 0);
   return (
     <div>
-      {a.quantified && a.quantified.total > 0 && (
+      {/* meter — how much of the resume already carries a number */}
+      {total > 0 && (
         <div style={{ marginBottom: "14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div
@@ -2200,7 +2238,7 @@ function ImpactEvidence({ a }: { a: AuditAgent }) {
             >
               <div
                 style={{
-                  width: `${Math.round((a.quantified.count / a.quantified.total) * 100)}%`,
+                  width: `${Math.round((count / total) * 100)}%`,
                   height: "100%",
                   borderRadius: "999px",
                   background: "#2dbd8b",
@@ -2216,31 +2254,72 @@ function ImpactEvidence({ a }: { a: AuditAgent }) {
                 flex: "none",
               }}
             >
-              {a.quantified.count}
-              <span style={{ color: "var(--tm-zinc)", fontWeight: 400 }}>
-                /{a.quantified.total} lines quantified
-              </span>
+              {count}
+              <span style={{ color: "var(--tm-zinc)", fontWeight: 400 }}>/{total} lines have a number</span>
             </span>
           </div>
           <p className="tm-small" style={{ marginTop: "6px", fontSize: "11.5px", color: "var(--tm-zinc)" }}>
-            How many of your experience lines carry a hard number today.
+            The remainder do not have a result. Tailoring adds results.
           </p>
         </div>
       )}
+
+      {/* found — numbers already on the resume */}
+      {hasStats && (
+        <div>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              color: "#0f7a52",
+            }}
+          >
+            <Check size={12} /> Numbers you already have
+          </span>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))",
+              gap: "8px",
+              marginTop: "8px",
+            }}
+          >
+            {a.stats!.map((s, i) => (
+              <div key={i} style={{ borderRadius: "10px", background: ACCENT[s.accent].tint, padding: "10px 12px" }}>
+                <div style={{ fontSize: "18px", fontWeight: 600, color: ACCENT[s.accent].ink }}>
+                  {s.value}
+                </div>
+                <div className="tm-small" style={{ fontSize: "11px", marginTop: "2px" }}>
+                  {s.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* example — one vague line rewritten with its own numbers */}
       {(a.before || a.after) && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div style={{ marginTop: hasStats ? "14px" : 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+          <span
+            style={{
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              color: "var(--tm-zinc)",
+            }}
+          >
+            Example rewrite
+          </span>
           {a.before && (
-            <div
-              style={{
-                borderRadius: "10px",
-                border: "0.5px solid var(--tm-border)",
-                padding: "10px 12px",
-                background: "#fff",
-              }}
-            >
-              <span
-                style={{ fontSize: "10px", fontWeight: 600, letterSpacing: ".06em", color: "var(--tm-zinc)" }}
-              >
+            <div style={{ borderRadius: "10px", border: "0.5px solid var(--tm-border)", padding: "10px 12px", background: "#fff" }}>
+              <span style={{ fontSize: "10px", fontWeight: 600, letterSpacing: ".06em", color: "var(--tm-zinc)" }}>
                 BEFORE
               </span>
               <p style={{ marginTop: "3px", fontSize: "13px", color: "var(--tm-zinc)", lineHeight: 1.5 }}>
@@ -2249,17 +2328,8 @@ function ImpactEvidence({ a }: { a: AuditAgent }) {
             </div>
           )}
           {a.after && (
-            <div
-              style={{
-                borderRadius: "10px",
-                border: "0.5px solid rgba(45,189,139,.4)",
-                padding: "10px 12px",
-                background: "#e9f8f1",
-              }}
-            >
-              <span
-                style={{ fontSize: "10px", fontWeight: 600, letterSpacing: ".06em", color: "#0f7a52" }}
-              >
+            <div style={{ borderRadius: "10px", border: "0.5px solid rgba(45,189,139,.4)", padding: "10px 12px", background: "#e9f8f1" }}>
+              <span style={{ fontSize: "10px", fontWeight: 600, letterSpacing: ".06em", color: "#0f7a52" }}>
                 AFTER
               </span>
               <p style={{ marginTop: "3px", fontSize: "13px", color: "var(--tm-ink)", lineHeight: 1.5 }}>
@@ -2269,28 +2339,40 @@ function ImpactEvidence({ a }: { a: AuditAgent }) {
           )}
         </div>
       )}
-      {a.stats && a.stats.length > 0 && (
+
+      {/* to add — lines that still need a number */}
+      {gap > 0 && (
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))",
-            gap: "8px",
             marginTop: "12px",
+            borderRadius: "10px",
+            border: "0.5px dashed rgba(186, 117, 23, 0.5)",
+            background: "#fef9f0",
+            padding: "10px 12px",
           }}
         >
-          {a.stats.map((s, i) => (
-            <div key={i} style={{ borderRadius: "10px", background: ACCENT[s.accent].tint, padding: "10px 12px" }}>
-              <div style={{ fontSize: "18px", fontWeight: 600, color: ACCENT[s.accent].ink }}>
-                {s.value}
-              </div>
-              <div className="tm-small" style={{ fontSize: "11px", marginTop: "2px" }}>
-                {s.label}
-              </div>
-            </div>
-          ))}
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              color: "#ba7517",
+            }}
+          >
+            <Plus size={12} /> {gap} to quantify
+          </span>
+          <p className="tm-small" style={{ marginTop: "8px", fontSize: "11.5px", color: "var(--tm-zinc)" }}>
+            Existing lines on your resume that state activity with no numbers. Tailoring only adds
+            numbers where your work genuinely supports it.
+          </p>
         </div>
       )}
-      {!a.before && !a.after && !(a.stats && a.stats.length > 0) && (
+
+      {total === 0 && !a.before && !a.after && !hasStats && (
         <p className="tm-small" style={{ fontSize: "12.5px", lineHeight: 1.5 }}>
           No quantified outcomes found in your resume yet. Max flags the lines that state
           activity without a result, so you know exactly where to add the numbers.
@@ -2314,7 +2396,7 @@ function RankingEvidence({ a }: { a: AuditAgent }) {
         className="tm-small"
         style={{ fontSize: "11.5px", lineHeight: 1.5, color: "var(--tm-zinc)", marginBottom: "10px" }}
       >
-        Each row is one of your experience bullets, scored 0–100 for how well it matches this posting.
+        Each row is a bullet from your <b style={{ fontWeight: 600, color: "var(--tm-ink)" }}>current</b> resume, scored 0 to 100 for how well it matches this posting. Nothing here is rewritten yet.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
       {lines.map((l) => {
@@ -2585,10 +2667,10 @@ const DEMO_AGENTS: AuditAgent[] = [
     archetype: "The Parser",
     specialty: "ATS & keywords",
     accent: "blue",
-    reads: "Reads it the way the tracking system does",
+    reads: "Reads your resume like an ATS system",
     kind: "coverage",
     title: "Keyword coverage",
-    subtitle: "exact strings the posting wants",
+    subtitle: "how many keywords your resume covers from the posting",
     footer: "",
     detail:
       "Ada matches the posting's must-have keywords against your resume and counts the hits. Missing terms are the biggest ATS risk; tailoring adds them only where your experience backs them.",
@@ -2611,11 +2693,11 @@ const DEMO_AGENTS: AuditAgent[] = [
     archetype: "The Quantifier",
     specialty: "Impact & metrics",
     accent: "mint",
-    reads: "Reads every line looking for a number",
+    reads: "Reads your resume looking for quantified results",
     kind: "impact",
-    title: "Impact found",
-    subtitle: "how many, how much, vs. what",
-    footer: "4 vague lines → 4 quantified, defensible wins.",
+    title: "Quantified impact",
+    subtitle: "how many of your bullets can be quantified (backed by a number)",
+    footer: "",
     detail:
       "Max scans every line for a measurable outcome and rewrites activity into results, using only numbers already in your resume. It never invents a figure.",
     quantified: { count: 5, total: 9 },
@@ -2634,12 +2716,12 @@ const DEMO_AGENTS: AuditAgent[] = [
     archetype: "The Hiring Manager",
     specialty: "Role-fit",
     accent: "navy",
-    reads: "Reads it the way the person hiring would",
+    reads: "Reads your resume like a hiring manager",
     kind: "ranking",
-    title: "Ranked for this role",
-    subtitle: "every line scored 0–100 for this role",
+    title: "Your bullets, ranked",
+    subtitle: "taken from your current resume, scored 0/100 for Senior Platform Engineer",
     chip: "Hard limit · 2 pages",
-    footer: "Trimmed by relevance to this role, never by age.",
+    footer: "",
     detail:
       "Remy scores every line 0–100 for relevance to this posting, keeps the strongest, and trims the lowest to hold two pages, by relevance and never by age.",
     lines: [
@@ -2652,33 +2734,104 @@ const DEMO_AGENTS: AuditAgent[] = [
   },
 ];
 
+// Stash the paid-run inputs for the dedicated tailoring page. Shared by the
+// audit results and the summary so the paid handoff payload stays identical.
+interface TailorArgs {
+  useSample: boolean;
+  resumeText: string;
+  postingText: string;
+  proofPoints: ProofPoint[];
+  resumeId: string | null;
+}
+function stashTailor(args: TailorArgs): void {
+  try {
+    sessionStorage.setItem("tm_tailor", JSON.stringify(args));
+  } catch {
+    /* ignore */
+  }
+}
+
+// The paid "tailor for this job" run / signed-out account gate. Reused by the
+// audit results and the summary so the upsell reads the same in both places.
+function TailorGate({
+  user,
+  onRunFull,
+}: {
+  user: SessionUser | null;
+  onRunFull: () => void;
+}) {
+  return user ? (
+    <div className="tm-card tmF-gate" style={{ padding: "30px" }}>
+      <span className="tm-pill tm-pill--mint">
+        <Check size={12} /> signed in as {user.name}
+      </span>
+      <h3>Tailor this application</h3>
+      <p>
+        We’ll rewrite every bullet for this posting and compile your resume +
+        cover letter, building on the review above.
+      </p>
+      <button
+        type="button"
+        className="tm-btn tm-btn--primary tm-btn--lg"
+        onClick={() => {
+          track("tailor_click");
+          onRunFull();
+        }}
+      >
+        Tailor my application · 1 credit
+      </button>
+      <p className="tm-small" style={{ fontSize: "12px" }}>
+        Uses <span className="tm-m">1 credit</span> · your first is free · credits
+        never expire
+      </p>
+    </div>
+  ) : (
+    <div className="tm-card tmF-gate" style={{ padding: "30px" }}>
+      <span className="tm-pill tm-pill--mint">
+        <Check size={12} /> your audit is ready
+      </span>
+      <h3>Create a free account to download it</h3>
+      <p>
+        The clean PDF, the cover letter, and the full line-by-line feedback
+        report. Your first application is free, no card required.
+      </p>
+      <Link className="tm-btn tm-btn--primary tm-btn--lg" href={ROUTES.signIn}>
+        Create free account
+      </Link>
+      <p className="tm-small" style={{ fontSize: "12px" }}>
+        Encrypted at rest · delete everything in one click
+      </p>
+    </div>
+  );
+}
+
 function StepResults({
   useSample,
   resumeText,
   posting,
-  proofPoints,
-  resumeId,
+  onAudited,
+  onNext,
 }: {
   useSample: boolean;
   resumeText: string;
   posting: string;
-  proofPoints: ProofPoint[];
-  resumeId: string | null;
+  onAudited?: (agents: AuditAgent[], sample: boolean) => void;
+  onNext: () => void;
 }) {
-  const router = useRouter();
-  const { user } = useSession();
-
-  // The agent audit shown before any paid run is the user's REAL audit, computed
-  // from their own resume + posting (mode "audit" — free, no credit, no documents).
-  // Only the downloadable tailored resume + cover letter below are gated. Falls
-  // back to a clearly-labeled sample if the audit can't run (demo mode without a
-  // provider, rate-limited, or error).
+  // The agent audit is the user's REAL audit (mode "audit" — free, no credit, no
+  // documents); it falls back to a clearly-labeled sample if it can't run (demo
+  // without a provider, rate-limited, or error). Results are lifted to the parent
+  // so the Summary step can reuse them without a second call.
   const [auditAgents, setAuditAgents] = useState<AuditAgent[] | null>(null);
   const [auditSample, setAuditSample] = useState(false);
   const [auditLoading, setAuditLoading] = useState(true);
+  // Keep the latest onAudited in a ref so it isn't an effect dep (a new inline
+  // callback each render must not re-trigger the one-time audit fetch).
+  const onAuditedRef = useRef(onAudited);
   useEffect(() => {
-    // `auditLoading` starts true; this fetch runs once for the step-3 mount (deps
-    // are stable through the terminal step), so no synchronous reset is needed.
+    onAuditedRef.current = onAudited;
+  }, [onAudited]);
+  useEffect(() => {
     let active = true;
     fetch("/api/apply", {
       method: "POST",
@@ -2692,11 +2845,14 @@ function StepResults({
       .then((d) => {
         if (!active) return;
         if (d.result?.agents?.length) {
-          setAuditAgents(d.result.agents as AuditAgent[]);
+          const agents = d.result.agents as AuditAgent[];
+          setAuditAgents(agents);
           setAuditSample(false);
+          onAuditedRef.current?.(agents, false);
         } else {
           setAuditAgents(DEMO_AGENTS); // demo / rate-limited / error → labeled sample
           setAuditSample(true);
+          onAuditedRef.current?.(DEMO_AGENTS, true);
         }
         track("free_audit_completed", { source: useSample ? "sample" : "user" });
       })
@@ -2704,6 +2860,7 @@ function StepResults({
         if (!active) return;
         setAuditAgents(DEMO_AGENTS);
         setAuditSample(true);
+        onAuditedRef.current?.(DEMO_AGENTS, true);
       })
       .finally(() => {
         if (active) setAuditLoading(false);
@@ -2712,26 +2869,6 @@ function StepResults({
       active = false;
     };
   }, [useSample, resumeText, posting]);
-
-  // The signed-out "create an account to download" gate is a paywall view.
-  useEffect(() => {
-    if (!auditLoading && !user) track("paywall_seen", { trigger: "download" });
-  }, [auditLoading, user]);
-
-  // Stash the run inputs and jump straight to the dedicated tailoring page,
-  // which runs the ~1-minute job and drops the user into the editor when it's
-  // ready — so they never wait it out here on the results page.
-  const runFull = () => {
-    try {
-      sessionStorage.setItem(
-        "tm_tailor",
-        JSON.stringify({ useSample, resumeText, postingText: posting, proofPoints, resumeId }),
-      );
-    } catch {
-      /* ignore */
-    }
-    router.push("/applications/tailoring");
-  };
 
   return (
     <div className="flex flex-col gap-[20px]">
@@ -2754,75 +2891,323 @@ function StepResults({
             }}
           />
           <div>
-            <b style={{ fontSize: "15px", color: "var(--tm-ink)" }}>Running your agent audit…</b>
+            <b style={{ fontSize: "15px", color: "var(--tm-ink)" }}>Running your AI agent audit…</b>
             <p className="tm-small" style={{ fontSize: "12.5px", marginTop: "1px" }}>
               Three specialist agents are reading your resume against this posting.
             </p>
           </div>
         </div>
       ) : (
-        <div className="tmF-anim">
-          <AgentAudit agents={auditAgents ?? DEMO_AGENTS} sample={auditSample} />
-        </div>
-      )}
-      {!auditLoading && (
         <>
-          <MichaelPitch />
-
-          {user ? (
-            <div className="tm-card tmF-gate" style={{ padding: "30px" }}>
-                <span className="tm-pill tm-pill--mint">
-                  <Check size={12} /> signed in as {user.name}
-                </span>
-                <h3>Tailor this application</h3>
-                <p>
-                  We’ll rewrite every bullet for this posting and compile your resume
-                  + cover letter, building on the review above.
-                </p>
-                <button
-                  type="button"
-                  className="tm-btn tm-btn--primary tm-btn--lg"
-                  onClick={() => {
-                    track("tailor_click");
-                    void runFull();
-                  }}
-                >
-                  Tailor my application · 1 credit
-                </button>
-                <p className="tm-small" style={{ fontSize: "12px" }}>
-                  Uses <span className="tm-m">1 credit</span> · your first is free · credits
-                  never expire
-                </p>
-              </div>
-          ) : (
-            <div className="tm-card tmF-gate" style={{ padding: "30px" }}>
-              <span className="tm-pill tm-pill--mint">
-                <Check size={12} /> your audit is ready
-              </span>
-              <h3>Create a free account to download it</h3>
-              <p>
-                The clean PDF, the cover letter, and the full line-by-line feedback
-                report. Your first application is free, no card required.
-              </p>
-              <Link
-                className="tm-btn tm-btn--primary tm-btn--lg"
-                href={ROUTES.signIn}
-              >
-                Create free account
-              </Link>
-              <p className="tm-small" style={{ fontSize: "12px" }}>
-                Encrypted at rest · delete everything in one click
-              </p>
-            </div>
-          )}
+          <div className="tmF-anim">
+            <AgentAudit agents={auditAgents ?? DEMO_AGENTS} sample={auditSample} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button type="button" className="tm-btn tm-btn--primary" onClick={onNext}>
+              See your summary <ArrowRight size={15} />
+            </button>
+          </div>
         </>
       )}
     </div>
   );
 }
 
-// Entry chooser: the two ways to start. Data-driven so a third "paste resume
-// text" card is a one-line add later.
+// ---------- Step 4: Summary — all the advice in one place + free editor handoff ----------
+function StepSummary({
+  stats,
+  fitView,
+  auditAgents,
+  auditSample,
+  resumeText,
+  useSample,
+  posting,
+  resumeId,
+}: {
+  stats: ResumeStats | null;
+  fitView: FitView | null;
+  auditAgents: AuditAgent[] | null;
+  auditSample: boolean;
+  resumeText: string;
+  useSample: boolean;
+  posting: string;
+  resumeId: string | null;
+}) {
+  const router = useRouter();
+  const { user } = useSession();
+  const [shown, setShown] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
+
+  // Animate the fit bars/ring on mount, like the Job Score step does.
+  useEffect(() => {
+    const t = setTimeout(() => setShown(true), 60);
+    return () => clearTimeout(t);
+  }, []);
+  // Signed-out summary still shows the download gate → it's a paywall view.
+  useEffect(() => {
+    if (!user) track("paywall_seen", { trigger: "download" });
+  }, [user]);
+
+  const proofPoints = useSample ? SAMPLE_PROFILE.proofPoints ?? [] : stats?.proofPoints ?? [];
+  const name = useSample ? SAMPLE_PROFILE.name : stats?.name;
+
+  // Free handoff: structure the user's resume into an editable doc and open the
+  // base-resume editor, carrying the parse fixes into its Suggestions panel. No
+  // credit, no sign-in. Demo (no LLM) falls back to a saved/sample doc.
+  const openEditor = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      let doc: TailoredDoc | null = null;
+      if (useSample) {
+        doc = SAMPLE_DOC;
+      } else {
+        const res = await fetch("/api/resume/structure", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-tm-session": getSessionId() ?? "" },
+          body: JSON.stringify({ text: resumeText }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data.demo) doc = (await loadBaseResumeDoc()) ?? SAMPLE_DOC;
+        else if (res.ok && data.doc) doc = data.doc as TailoredDoc;
+        else throw new Error(data.error || "Couldn’t open the editor. Try again.");
+      }
+      setResumeDraft(doc, proofPoints);
+      router.push(ROUTES.resumeEdit);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn’t open the editor. Try again.");
+      setBusy(false);
+    }
+  };
+
+  const runFull = () => {
+    stashTailor({
+      useSample,
+      resumeText,
+      postingText: posting,
+      proofPoints: stats?.proofPoints ?? [],
+      resumeId,
+    });
+    router.push("/applications/tailoring");
+  };
+
+  // Three buckets — the clear payoff: what's strong, what to change, what to add.
+  const matchedKw = fitView?.keywords?.filter((k) => k.inResume) ?? [];
+  const missingKw = fitView?.keywords?.filter((k) => !k.inResume) ?? [];
+  const strongDims = (fitView?.dims ?? []).filter((d) => d.score >= 78);
+  const quantified = stats?.metricBullets ?? 0;
+  const hasStrengths = matchedKw.length > 0 || strongDims.length > 0 || quantified > 0;
+  const changeGroups: [ProofPoint["severity"], ProofPoint[]][] = [
+    ["high", proofPoints.filter((p) => p.severity === "high")],
+    ["medium", proofPoints.filter((p) => p.severity === "medium")],
+    ["low", proofPoints.filter((p) => p.severity === "low")],
+  ];
+
+  return (
+    <div className="flex flex-col gap-[20px]">
+      {/* recap */}
+      <div className="tm-card" style={{ padding: "20px 22px" }}>
+        <span className="tmF-p2-label">Your audit summary</span>
+        <h3 style={{ fontSize: "18px", fontWeight: 600, color: "var(--tm-ink)", margin: "8px 0 0" }}>
+          {name ? `${name}, here’s the verdict` : "Here’s the verdict"}
+        </h3>
+        <p className="tm-small" style={{ marginTop: "4px", fontSize: "13px" }}>
+          <b style={{ color: "var(--tm-ink)", fontWeight: 600 }}>
+            {fitView?.header || (posting ? "Your target posting" : "Your resume")}
+          </b>
+          {fitView?.locationNote ? ` · ${fitView.locationNote}` : ""}
+        </p>
+        {(auditSample || useSample) && (
+          <p className="tmS-free" style={{ marginTop: "10px", display: "block" }}>
+            This is a sample result.{" "}
+            <Link href={ROUTES.signIn} style={{ color: "var(--tm-mint-600)", textDecoration: "underline" }}>
+              create a free account
+            </Link>{" "}
+            to run your own.
+          </p>
+        )}
+      </div>
+
+      {/* 1 · what's strong (keep) */}
+      {hasStrengths && (
+        <div className="tm-card" style={{ padding: "20px 22px", borderColor: "var(--tm-mint-200)" }}>
+          <span
+            className="tmF-p2-label"
+            style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--tm-mint-600)" }}
+          >
+            <Check size={14} /> What’s strong · keep it
+          </span>
+          <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px" }}>
+            Already working for this role. Tailoring leaves these alone.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
+            {strongDims.length > 0 && (
+              <p className="tm-small" style={{ fontSize: "12.5px", color: "var(--tm-ink)" }}>
+                Strong on {strongDims.map((d) => d.label).join(", ")}.
+              </p>
+            )}
+            {quantified > 0 && (
+              <p className="tm-small" style={{ fontSize: "12.5px", color: "var(--tm-ink)" }}>
+                {quantified} bullet{quantified === 1 ? "" : "s"} already carry a hard metric.
+              </p>
+            )}
+            {matchedKw.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {matchedKw.map((k) => (
+                  <span key={k.term} className="tm-pill tm-pill--mint" style={{ fontSize: "11px" }}>
+                    <Check size={11} /> {k.term}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 2 · what to change (rewrite/fix) */}
+      {proofPoints.length > 0 && (
+        <div className="tm-card" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
+          <div>
+            <span
+              className="tmF-p2-label"
+              style={{ display: "flex", alignItems: "center", gap: "8px", color: "#854f0b" }}
+            >
+              <PenLine size={14} /> What to change · {proofPoints.length} fix
+              {proofPoints.length === 1 ? "" : "es"}
+            </span>
+            <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px" }}>
+              Rewrites pulled from your resume. Each shows the section it lives in.
+            </p>
+          </div>
+          {changeGroups.map(([sev, items]) =>
+            items.length === 0 ? null : (
+              <div key={sev} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    color: SEV_COLOR[sev],
+                  }}
+                >
+                  {SEV_LABEL[sev]} · {items.length}
+                </span>
+                {items.map((p, i) => (
+                  <ProofPointCard key={`${sev}-${i}`} p={p} />
+                ))}
+              </div>
+            ),
+          )}
+        </div>
+      )}
+
+      {/* 3 · what to add (missing keywords) */}
+      {missingKw.length > 0 && (
+        <div className="tm-card" style={{ padding: "20px 22px" }}>
+          <span
+            className="tmF-p2-label"
+            style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--tm-blue-600)" }}
+          >
+            <Plus size={14} /> What to add · {missingKw.length} keyword
+            {missingKw.length === 1 ? "" : "s"}
+          </span>
+          <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px" }}>
+            The posting screens for these and your resume misses them. Tailoring adds them only where
+            your experience genuinely backs them.
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "12px" }}>
+            {missingKw.map((k) => (
+              <span
+                key={k.term}
+                className="tm-pill"
+                style={{ fontSize: "11px", background: "#fdf3e7", color: "#854f0b" }}
+              >
+                <Plus size={11} style={{ transform: "rotate(45deg)" }} /> {k.term}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* full breakdown — fit + agent detail, on demand */}
+      <div className="flex flex-col gap-[16px]">
+        <div style={{ textAlign: "center" }}>
+          <button
+            type="button"
+            onClick={() => setShowDetail((s) => !s)}
+            className="tm-btn tm-btn--outline"
+          >
+            <ChevronDown
+              size={15}
+              style={{ transform: showDetail ? "rotate(180deg)" : "none", transition: "transform .2s" }}
+            />
+            {showDetail ? "Hide the full breakdown" : "See the full fit + agent breakdown"}
+          </button>
+        </div>
+        {showDetail && (
+          <div className="flex flex-col gap-[16px]">
+            {fitView && <FitResult view={fitView} shown={shown} />}
+            <AgentAudit agents={auditAgents ?? DEMO_AGENTS} sample={auditSample || useSample} />
+          </div>
+        )}
+      </div>
+
+      {/* primary, free handoff — explain the mechanism */}
+      <div className="tm-card tmF-gate" style={{ padding: "30px" }}>
+        <span className="tm-pill tm-pill--mint">
+          <Check size={12} /> free · no card required
+        </span>
+        <h3>Open the editor to make these changes</h3>
+        <p>
+          Each suggestion above opens next to the section it affects, so you can apply it yourself.
+          Prefer it done for you? Run the full AI tailor below to rewrite every bullet for this posting.
+        </p>
+        <button
+          type="button"
+          className="tm-btn tm-btn--primary tm-btn--lg"
+          onClick={() => void openEditor()}
+          disabled={busy}
+        >
+          {busy ? "Opening…" : "Open in editor"} <ArrowRight size={15} />
+        </button>
+        {busy && (
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px" }}>
+            <style>{`@keyframes tmspin{to{transform:rotate(360deg)}}`}</style>
+            <span
+              aria-hidden="true"
+              style={{
+                height: "16px",
+                width: "16px",
+                flex: "none",
+                borderRadius: "50%",
+                border: "2px solid var(--tm-blue-50)",
+                borderTopColor: "var(--tm-blue-600)",
+                animation: "tmspin .8s linear infinite",
+              }}
+            />
+            <span className="tm-small" style={{ fontSize: "12px" }}>
+              Structuring your resume into the editor… this can take a few seconds.
+            </span>
+          </div>
+        )}
+        {error && (
+          <p className="tm-small" style={{ color: "#b3261e", marginTop: "4px" }}>
+            {error}
+          </p>
+        )}
+      </div>
+
+      {/* secondary upsell: human pass + the paid tailored run */}
+      <MichaelPitch />
+      <TailorGate user={user} onRunFull={runFull} />
+    </div>
+  );
+}
+
+// Entry chooser: the ways to start. Data-driven so cards are a one-line add.
 const START_OPTIONS = [
   {
     id: "upload" as const,
@@ -2831,6 +3216,14 @@ const START_OPTIONS = [
     blurb: "Upload it, get instant feedback, and tailor it to any job.",
     cta: "Upload my resume",
     route: "",
+  },
+  {
+    id: "import" as const,
+    icon: ClipboardPaste,
+    title: "Import from LinkedIn",
+    blurb: "Paste your LinkedIn profile or notes and we'll build a resume to edit.",
+    cta: "Paste from LinkedIn",
+    route: ROUTES.resumeImport,
   },
   {
     id: "scratch" as const,
@@ -2849,7 +3242,7 @@ function StartChooser({ onUpload }: { onUpload: () => void }) {
       <section className="tm-sec tmF-head" style={{ paddingBottom: 0 }}>
         <h1 className="tm-h1">How would you like to start?</h1>
         <p className="tm-body">
-          Two ways in. Same editor, same three-agent review.
+          Three ways in. Same editor, same three-agent review.
         </p>
       </section>
       <section className="tm-sec" style={{ paddingTop: 24 }}>
@@ -2904,6 +3297,11 @@ export default function AuditWizard() {
   const [useSample, setUseSample] = useState(false);
   const [stats, setStats] = useState<ResumeStats | null>(null);
   const [posting, setPosting] = useState("");
+  // Lifted from StepJob / StepResults so the Summary step can consolidate the
+  // fit score and the agent findings without re-running either.
+  const [fitView, setFitView] = useState<FitView | null>(null);
+  const [auditAgents, setAuditAgents] = useState<AuditAgent[] | null>(null);
+  const [auditSample, setAuditSample] = useState(false);
 
   // On a step change, re-orient to the top of the flow so the new step isn't
   // mounted off-screen below where the just-clicked button was. (Smooth via the
@@ -2927,7 +3325,7 @@ export default function AuditWizard() {
       <section ref={headRef} className="tm-sec tmF-head" style={{ paddingBottom: 0 }}>
         <h1 className="tm-h1">See what tailoring does to your resume</h1>
         <p className="tm-body">
-          Three steps, about two minutes. Your draft is reviewed by three
+          Four steps, about two minutes. Your draft is reviewed by three
           specialist AI agents (trained on ATS parsing, impact, and role-fit)
           each returning line-level fixes. First application free, no card
           required.
@@ -2967,6 +3365,7 @@ export default function AuditWizard() {
               useSample={useSample}
               resumeText={resumeText}
               onNext={() => setStep(2)}
+              onScored={setFitView}
             />
           )}
           {step === 2 && (
@@ -2974,12 +3373,27 @@ export default function AuditWizard() {
               useSample={useSample}
               resumeText={resumeText}
               posting={posting}
-              proofPoints={stats?.proofPoints ?? []}
+              onAudited={(a, s) => {
+                setAuditAgents(a);
+                setAuditSample(s);
+              }}
+              onNext={() => setStep(3)}
+            />
+          )}
+          {step === 3 && (
+            <StepSummary
+              stats={stats}
+              fitView={fitView}
+              auditAgents={auditAgents}
+              auditSample={auditSample}
+              resumeText={resumeText}
+              useSample={useSample}
+              posting={posting}
               resumeId={resumeId}
             />
           )}
           </div>
-          {step < 2 && (
+          {step < 3 && (
             <p
               className="tm-small mt-[16px] cursor-pointer text-center"
               onClick={() => (step === 0 ? setMode("choose") : setStep(step - 1))}

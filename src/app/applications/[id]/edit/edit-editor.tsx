@@ -34,23 +34,45 @@ import { ROUTES } from "@/components/landing/data";
 import { bulletKey, diffMap } from "@/lib/apply/redline";
 import { highlight, highlightHits } from "@/lib/highlight";
 import { composeContact, parseContact, type ContactFields } from "@/lib/apply/contact";
+import { type Section, SECTION_LABEL, fixSection } from "@/lib/apply/sections";
 import PrintDoc from "../print/print-doc";
-
-type Section =
-  | "header"
-  | "summary"
-  | "experience"
-  | "projects"
-  | "education"
-  | "certifications"
-  | "skills"
-  | "fixes";
 
 const SEV: Record<ProofPoint["severity"], { label: string; color: string; bg: string }> = {
   high: { label: "High priority", color: "#b3261e", bg: "#fdecea" },
   medium: { label: "Worth fixing", color: "#854f0b", bg: "#fdf3e7" },
   low: { label: "Minor polish", color: "var(--tm-zinc)", bg: "rgba(24,24,27,0.06)" },
 };
+
+// Indeterminate progress bar shown while an AI review is running (we can't know
+// the real duration, so a moving segment reads as "working" without faking %).
+function ReviewProgress() {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: "relative",
+        height: "3px",
+        borderRadius: "2px",
+        overflow: "hidden",
+        background: "var(--tm-blue-50)",
+        marginTop: "10px",
+      }}
+    >
+      <style>{`@keyframes tmEbar{0%{left:-40%}100%{left:100%}}`}</style>
+      <span
+        style={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          width: "40%",
+          borderRadius: "2px",
+          background: "var(--tm-blue-600)",
+          animation: "tmEbar 1.1s ease-in-out infinite",
+        }}
+      />
+    </div>
+  );
+}
 
 // "Review my edits": AI checks the user's own changes against the AI original.
 type Verdict = "good" | "weaker" | "issue";
@@ -70,30 +92,6 @@ const VERDICT_LABEL: Record<Verdict, string> = {
   weaker: "Weaker than the AI version",
   issue: "Worth a look",
 };
-
-const SECTION_LABEL: Record<Section, string> = {
-  header: "Header",
-  summary: "Summary",
-  experience: "Experience",
-  projects: "Projects",
-  education: "Education",
-  certifications: "Certifications",
-  skills: "Skills",
-  fixes: "Feedback",
-};
-
-// Route a finding to the editor section the user edits to act on it, so each
-// piece of feedback links straight to where the change is made.
-function fixSection(p: ProofPoint): Section {
-  const t = `${p.title} ${p.summary} ${p.quote ?? ""} ${p.fix}`.toLowerCase();
-  if (/summary|objective|profile/.test(t)) return "summary";
-  if (/certif|credential|license/.test(t)) return "certifications";
-  if (/\bprojects?\b|portfolio/.test(t)) return "projects";
-  if (/\bskills?\b|toolset|technolog/.test(t)) return "skills";
-  if (/education|degree|\bgpa\b|coursework|university|college/.test(t)) return "education";
-  if (/contact|email|phone|linkedin|headline|\bname\b|\btitle\b/.test(t)) return "header";
-  return "experience"; // dates, bullets, metrics, scope, achievements, etc.
-}
 
 // Section-at-a-time résumé editor (Res.Me builder pattern): sidebar nav →
 // one section in the center with full-size inputs → wide résumé-only live
@@ -831,6 +829,7 @@ export default function EditEditor({
                   <X size={14} />
                 </button>
               </div>
+              {reviewLoading && <ReviewProgress />}
               {reviewError && <p className="tmE-review-status is-err">{reviewError}</p>}
               {!reviewLoading && !reviewError && review.items.length === 0 && (
                 <p className="tmE-review-status">
@@ -1217,9 +1216,13 @@ export default function EditEditor({
                     {onGetFeedback ? "Resume feedback" : "Suggestions from your audit"}
                   </h2>
                   <p className="tmE-panel-sub">
-                    {onGetFeedback
-                      ? "A first-pass review of your content."
-                      : "What the tailoring targeted. Use these as a checklist while you edit."}
+                    {!onGetFeedback
+                      ? "What the tailoring targeted. Open a card to jump to the section it changes."
+                      : feedbackLoading
+                        ? "Reviewing your content…"
+                        : proofPoints.length > 0
+                          ? "A first-pass review of your content. Open a card to jump to the section it changes."
+                          : "No feedback yet. Add your experience and skills, then run a review."}
                   </p>
                 </div>
                 {onGetFeedback && (
@@ -1241,12 +1244,8 @@ export default function EditEditor({
                   </button>
                 )}
               </div>
+              {feedbackLoading && <ReviewProgress />}
               {feedbackError && <p className="tmE-fix-status">{feedbackError}</p>}
-              {onGetFeedback && !proofPoints.length && !feedbackLoading && !feedbackError && (
-                <p className="tmE-fix-status">
-                  No feedback yet. Add your experience and skills, then run a review.
-                </p>
-              )}
               {(["high", "medium", "low"] as const).map((sev) => {
                 const group = proofPoints.filter((p) => p.severity === sev);
                 if (group.length === 0) return null;
