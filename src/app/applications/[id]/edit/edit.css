@@ -407,8 +407,26 @@
 .tmE-preview-note {
   font-size: 11.5px;
   color: var(--tm-zinc);
-  margin: 4px 0 10px;
+  margin: 4px 0 0;
   line-height: 1.4;
+}
+/* Stands out from the muted legend note: an amber "preview only" badge so users
+   don't mistake the keyword/metric tints for something in their downloaded PDF. */
+.tmE-preview-disclaimer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 7px 0 12px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #fdf3e7;
+  color: #854f0b;
+  border: 0.5px solid rgba(133, 79, 11, 0.28);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.tmE-preview-disclaimer svg {
+  flex: none;
 }
 .tmE-preview-bar {
   display: flex;
@@ -797,15 +815,18 @@
   border-radius: 10px;
   border: 0.5px solid var(--tm-border);
 }
-.tmE-review-item.is-good {
+.tmE-review-item.is-good,
+.tmE-review-item.is-improved {
   background: var(--tm-mint-50);
   border-color: var(--tm-mint-200);
 }
-.tmE-review-item.is-weaker {
+.tmE-review-item.is-weaker,
+.tmE-review-item.is-okay {
   background: #fdf3e7;
   border-color: #f0d9a9;
 }
-.tmE-review-item.is-issue {
+.tmE-review-item.is-issue,
+.tmE-review-item.is-risky {
   background: #fdecea;
   border-color: #f3c7c3;
 }
@@ -832,13 +853,16 @@
   border-radius: 999px;
   background: #fff;
 }
-.tmE-review-verdict.is-good {
+.tmE-review-verdict.is-good,
+.tmE-review-verdict.is-improved {
   color: var(--tm-mint-700);
 }
-.tmE-review-verdict.is-weaker {
+.tmE-review-verdict.is-weaker,
+.tmE-review-verdict.is-okay {
   color: #854f0b;
 }
-.tmE-review-verdict.is-issue {
+.tmE-review-verdict.is-issue,
+.tmE-review-verdict.is-risky {
   color: #b3261e;
 }
 .tmE-review-note {
@@ -900,6 +924,31 @@
   padding-left: 26px;
   padding-right: 26px;
 }
+/* Approximate US Letter page boundary drawn over the live preview. Marks where
+   the résumé spills onto the next page; the downloaded PDF is the exact split. */
+.tmE-pagebreak {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px dashed rgba(67, 115, 219, 0.55);
+  pointer-events: none;
+  z-index: 3;
+}
+.tmE-pagebreak span {
+  position: absolute;
+  right: 10px;
+  top: -9px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--tm-blue-600);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  box-shadow: 0 1px 3px rgba(24, 24, 27, 0.2);
+}
+
 /* Spotlight the line a hovered feedback finding points to. */
 .tmE-preview .mcv-hl {
   background: var(--tm-blue-50);

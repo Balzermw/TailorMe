@@ -34,6 +34,29 @@ function renderContact(contact: string) {
   });
 }
 
+// Abbreviate full month names so a long date range ("February 2022 – December
+// 2024") fits the fixed date column instead of overflowing onto the role title.
+const MONTH_ABBR: Record<string, string> = {
+  january: "Jan",
+  february: "Feb",
+  march: "Mar",
+  april: "Apr",
+  may: "May",
+  june: "Jun",
+  july: "Jul",
+  august: "Aug",
+  september: "Sep",
+  october: "Oct",
+  november: "Nov",
+  december: "Dec",
+};
+function shortDates(s: string | undefined): string {
+  return (s ?? "").replace(
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/gi,
+    (m) => MONTH_ABBR[m.toLowerCase()] ?? m,
+  );
+}
+
 // moderncv-banking render of the tailored resume + cover letter.
 // "Save as PDF" via the browser; "Download .tex" fetches the real LaTeX source
 // (which a LATEX_COMPILE_URL service can compile to an identical PDF).
@@ -71,7 +94,7 @@ export default function PrintDoc({
   const coverParas = coverParagraphs(doc.coverLetter);
 
   return (
-    <div className="print-wrap">
+    <div className="print-wrap" data-testid="print-document">
       {!hideToolbar && (
         <div className="print-toolbar">
           <Link className="tm-btn tm-btn--outline tm-btn--sm" href={backHref ?? editHref(id)}>
@@ -115,7 +138,7 @@ export default function PrintDoc({
               <h2 className="mcv-sec">Experience</h2>
               {doc.experience.map((e, i) => (
                 <div key={i} className="mcv-entry">
-                  <div className="mcv-entry-dates">{e.dates}</div>
+                  <div className="mcv-entry-dates">{shortDates(e.dates)}</div>
                   <div>
                     <div className="mcv-entry-role">{e.role}</div>
                     <div className="mcv-entry-company">{e.company}</div>
@@ -135,7 +158,7 @@ export default function PrintDoc({
               <h2 className="mcv-sec">Education</h2>
               {doc.education.map((ed, i) => (
                 <div key={i} className="mcv-entry">
-                  <div className="mcv-entry-dates">{ed.dates}</div>
+                  <div className="mcv-entry-dates">{shortDates(ed.dates)}</div>
                   <div>
                     <div className="mcv-entry-role">{ed.degree}</div>
                     <div className="mcv-entry-company">{ed.school}</div>
@@ -174,7 +197,7 @@ export default function PrintDoc({
               <h2 className="mcv-sec">Certifications</h2>
               {doc.certifications.map((c, i) => (
                 <div key={i} className="mcv-entry">
-                  <div className="mcv-entry-dates">{c.date}</div>
+                  <div className="mcv-entry-dates">{shortDates(c.date)}</div>
                   <div>
                     <div className="mcv-entry-role">{c.name}</div>
                     {c.issuer && <div className="mcv-entry-company">{c.issuer}</div>}
