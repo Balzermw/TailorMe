@@ -1,0 +1,439 @@
+[
+  {
+    "routePath": "/api/admin/orders/[id]",
+    "sourceFile": "src/app/api/admin/orders/[id]/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [
+      "id"
+    ],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/admin/rule-lab",
+    "sourceFile": "src/app/api/admin/rule-lab/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/applications/[id]",
+    "sourceFile": "src/app/api/applications/[id]/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [
+      "id"
+    ],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/applications/[id]/latex",
+    "sourceFile": "src/app/api/applications/[id]/latex/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [
+      "id"
+    ],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/applications/[id]/pdf",
+    "sourceFile": "src/app/api/applications/[id]/pdf/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [
+      "id"
+    ],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/applications/[id]/request-review",
+    "sourceFile": "src/app/api/applications/[id]/request-review/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [
+      "id"
+    ],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/apply",
+    "sourceFile": "src/app/api/apply/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/checkout",
+    "sourceFile": "src/app/api/checkout/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/compare",
+    "sourceFile": "src/app/api/compare/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/eval",
+    "sourceFile": "src/app/api/eval/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/events",
+    "sourceFile": "src/app/api/events/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/fetch-posting",
+    "sourceFile": "src/app/api/fetch-posting/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/parse-resume",
+    "sourceFile": "src/app/api/parse-resume/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/resume",
+    "sourceFile": "src/app/api/resume/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/resume/doc",
+    "sourceFile": "src/app/api/resume/doc/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/resume/feedback",
+    "sourceFile": "src/app/api/resume/feedback/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/resume/group-skills",
+    "sourceFile": "src/app/api/resume/group-skills/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/resume/pdf",
+    "sourceFile": "src/app/api/resume/pdf/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/resume/structure",
+    "sourceFile": "src/app/api/resume/structure/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/review-edits",
+    "sourceFile": "src/app/api/review-edits/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/role-context",
+    "sourceFile": "src/app/api/role-context/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/api/stripe/webhook",
+    "sourceFile": "src/app/api/stripe/webhook/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/auth/callback",
+    "sourceFile": "src/app/auth/callback/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
+    "routePath": "/",
+    "sourceFile": "src/app/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/admin/orders",
+    "sourceFile": "src/app/admin/orders/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "yes",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/applications/[id]/edit",
+    "sourceFile": "src/app/applications/[id]/edit/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [
+      "id"
+    ],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": ""
+  },
+  {
+    "routePath": "/applications/[id]/print",
+    "sourceFile": "src/app/applications/[id]/print/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [
+      "id"
+    ],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": ""
+  },
+  {
+    "routePath": "/applications/tailoring",
+    "sourceFile": "src/app/applications/tailoring/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/audit",
+    "sourceFile": "src/app/audit/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/book-session",
+    "sourceFile": "src/app/book-session/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/buy-credits",
+    "sourceFile": "src/app/buy-credits/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/coaching",
+    "sourceFile": "src/app/coaching/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/contact",
+    "sourceFile": "src/app/contact/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/dashboard",
+    "sourceFile": "src/app/dashboard/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "yes",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/dashboard-demo",
+    "sourceFile": "src/app/dashboard-demo/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/forgot-password",
+    "sourceFile": "src/app/forgot-password/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/pricing",
+    "sourceFile": "src/app/pricing/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/privacy",
+    "sourceFile": "src/app/privacy/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/resume/edit",
+    "sourceFile": "src/app/resume/edit/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/resume/import",
+    "sourceFile": "src/app/resume/import/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/resume/new",
+    "sourceFile": "src/app/resume/new/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/resume/print",
+    "sourceFile": "src/app/resume/print/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/security",
+    "sourceFile": "src/app/security/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/settings",
+    "sourceFile": "src/app/settings/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/signin",
+    "sourceFile": "src/app/signin/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/terms",
+    "sourceFile": "src/app/terms/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  },
+  {
+    "routePath": "/transformation",
+    "sourceFile": "src/app/transformation/page.tsx",
+    "routeType": "app route",
+    "dynamicParams": [],
+    "authLikelyRequired": "no",
+    "smokeTestStatus": "not started",
+    "notes": ""
+  }
+]

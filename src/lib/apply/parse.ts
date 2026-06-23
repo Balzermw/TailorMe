@@ -19,6 +19,8 @@ const YEAR_RANGE_RE = /\b(19|20)\d{2}\b.*?(present|current|(19|20)\d{2})/i;
 // A quantified metric: a percentage, currency, a number with a k/m/b/x suffix,
 // a decimal, or any 2+ digit run (38%, $1, 2.4M, 40k, p95).
 const METRIC_RE = /\d+\s?%|\$\s?\d|\d+(\.\d+)?\s?[kmbx]\b|\d+\.\d+|\d{2,}/i;
+const CONTACT_LINE_RE =
+  /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b|linkedin\.com\/[^\s"'<>]+|https?:\/\/[^\s"'<>]+|\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}\b|\b\d{1,6}\s+[A-Z][A-Za-z0-9.'-]*(?:\s+[A-Z][A-Za-z0-9.'-]*){0,4}\s+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Drive|Dr|Lane|Ln|Court|Ct)\b/i;
 
 /** A single positioned text run from a PDF page (PDF origin is bottom-left). */
 export interface PdfTextItem {
@@ -246,16 +248,23 @@ export function analyze(text: string): ResumeStats {
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
+  const publicLines = lines.filter((l) => !CONTACT_LINE_RE.test(l));
 
   // Name: first short line that looks like a person's name (no digits, ≤4 words).
   const name =
-    lines.find(
-      (l) => !/\d/.test(l) && l.split(/\s+/).length <= 4 && /^[A-Za-z]/.test(l),
+    publicLines.find(
+      (l) =>
+        !/\d/.test(l) &&
+        l.split(/\s+/).length <= 4 &&
+        /^[A-Za-z]/.test(l),
     ) ?? "Your resume";
 
-  const bulletLines = lines.filter((l) => BULLET_RE.test(l));
-  const bullets = bulletLines.length || lines.filter((l) => l.length > 40).length;
-  const metricBullets = (bulletLines.length ? bulletLines : lines).filter((l) =>
+  const bulletLines = publicLines.filter((l) => BULLET_RE.test(l));
+  const evidenceLines = (bulletLines.length ? bulletLines : publicLines.filter((l) => l.length > 40))
+    .map(stripBulletMarker)
+    .filter((l) => l.length >= 30);
+  const bullets = bulletLines.length || publicLines.filter((l) => l.length > 40).length;
+  const metricBullets = (bulletLines.length ? bulletLines : publicLines).filter((l) =>
     METRIC_RE.test(l),
   ).length;
   const roles = lines.filter((l) => YEAR_RANGE_RE.test(l)).length;
@@ -264,6 +273,7 @@ export function analyze(text: string): ResumeStats {
   const skills = KNOWN_SKILLS.filter((s) =>
     haystack.includes(s.toLowerCase()),
   );
+  const proofPoints = fallbackProofPoints(evidenceLines, metricBullets);
 
   return {
     name,
@@ -271,5 +281,51 @@ export function analyze(text: string): ResumeStats {
     bullets: Math.max(bullets, 1),
     metricBullets,
     skills,
+    sampleBullets: evidenceLines.slice(0, 6).map((line) => ({
+      text: clip(line, 180),
+      hasMetric: METRIC_RE.test(line),
+    })),
+    proofPoints,
+    weaknesses: proofPoints.map((p) => p.title),
   };
+}
+
+function stripBulletMarker(line: string): string {
+  return line.replace(BULLET_RE, "").trim();
+}
+
+function clip(line: string, max: number): string {
+  return line.length <= max ? line : `${line.slice(0, max - 1).trim()}...`;
+}
+
+function fallbackProofPoints(
+  evidenceLines: string[],
+  metricBullets: number,
+): NonNullable<ResumeStats["proofPoints"]> {
+  const points: NonNullable<ResumeStats["proofPoints"]> = [];
+  const unquantified = evidenceLines.find((line) => !METRIC_RE.test(line));
+  if (unquantified) {
+    points.push({
+      title: "Add measurable impact",
+      summary: "This experience line states work without showing the result.",
+      quote: clip(unquantified, 160),
+      why:
+        "Recruiters and ATS screens can see the activity, but they cannot tell scope, volume, speed, quality, or business impact from this line alone.",
+      fix:
+        "Add a truthful metric such as volume handled, time saved, error reduction, revenue, cost, users, tickets, SLA, team size, budget, latency, uptime, or throughput.",
+      severity: metricBullets === 0 ? "high" : "medium",
+    });
+  }
+  if (metricBullets === 0) {
+    points.push({
+      title: "No quantified wins found",
+      summary: "The readable resume text does not show a clear metric-backed accomplishment.",
+      why:
+        "A resume with only responsibilities is harder to rank against candidates who show measurable outcomes.",
+      fix:
+        "For each major role, add one honest result number where the source supports it. Use ranges only when they are true.",
+      severity: "high",
+    });
+  }
+  return points.slice(0, 3);
 }

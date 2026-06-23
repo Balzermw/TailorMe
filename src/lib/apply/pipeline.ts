@@ -55,13 +55,94 @@ const GUARDRAILS =
   "Use normal capitalization: capitalize names, proper nouns, and the first word of " +
   "every sentence and bullet. Never write all-lowercase, Title Case headings, or ALL CAPS. " +
   "Never promise jobs, interviews, salary increases, or ATS-bypass; say 'interview-ready' / " +
-  "'recruiter-ready'. Stay strictly faithful to the source resume: do not invent or inflate " +
+  "'recruiter-ready'. When writing analysis or review notes, do not quote or repeat contact " +
+  "details such as emails, phone numbers, LinkedIn URLs, websites, or street addresses. " +
+  "Stay strictly faithful to the source resume: do not invent or inflate " +
   "metrics, numbers, percentages, dates, tenure, job titles, technologies, or " +
   "responsibilities, and do not upgrade verbs beyond what the resume supports (e.g. " +
   "'built/maintained' is not 'architected/owned'). Re-frame and tailor what is actually " +
   "there; if it is not in the resume, do not claim it. Plain text only — no HTML or markdown.";
 
 /** Whitespace- and case-insensitive containment — robust to PDF spacing quirks. */
+const PUBLIC_REDACTIONS: [RegExp, string][] = [
+  [/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "the contact email"],
+  [/\bhttps?:\/\/(?:www\.)?linkedin\.com\/[^\s"'<>]+/gi, "the LinkedIn profile"],
+  [/\blinkedin\.com\/[^\s"'<>]+/gi, "the LinkedIn profile"],
+  [
+    /\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}\b/g,
+    "the contact phone",
+  ],
+  [
+    /\b\d{1,6}\s+[A-Z][A-Za-z0-9.'-]*(?:\s+[A-Z][A-Za-z0-9.'-]*){0,4}\s+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Drive|Dr|Lane|Ln|Court|Ct)\b/gi,
+    "the street address",
+  ],
+  [/\bhttps?:\/\/[^\s"'<>]+/gi, "the website URL"],
+];
+
+const QUANTIFIED_IMPACT_GUIDANCE =
+  "Add a truthful metric where the work supports it: scope, volume, frequency, time saved, error reduction, revenue, cost, users, tickets, SLA, team size, budget, conversion, latency, uptime, or throughput. Do not invent the number.";
+
+export function redactContactInfoForPublicOutput(input: string): string {
+  return PUBLIC_REDACTIONS.reduce(
+    (text, [pattern, replacement]) => text.replace(pattern, replacement),
+    input,
+  );
+}
+
+function containsContactInfo(input: string): boolean {
+  return redactContactInfoForPublicOutput(input) !== input;
+}
+
+function redactPublicValue<T>(value: T, depth = 0): T {
+  if (depth > 8 || value == null) return value;
+  if (typeof value === "string") return redactContactInfoForPublicOutput(value) as T;
+  if (typeof value !== "object") return value;
+  if (Array.isArray(value)) {
+    return value.map((item) => redactPublicValue(item, depth + 1)) as T;
+  }
+  const output: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    output[key] = redactPublicValue(item, depth + 1);
+  }
+  return output as T;
+}
+
+function redactFitBreakdown(fit: FitBreakdown): FitBreakdown {
+  return {
+    ...fit,
+    verdict: redactContactInfoForPublicOutput(fit.verdict || ""),
+    locationNote: redactContactInfoForPublicOutput(fit.locationNote || ""),
+    summary: redactContactInfoForPublicOutput(fit.summary || ""),
+    dimensions: (fit.dimensions ?? []).map((d) => ({
+      ...d,
+      label: redactContactInfoForPublicOutput(d.label || ""),
+      why: d.why ? redactContactInfoForPublicOutput(d.why) : undefined,
+      matched: (d.matched ?? []).map(redactContactInfoForPublicOutput),
+      gaps: (d.gaps ?? []).map(redactContactInfoForPublicOutput),
+    })),
+    keywords: (fit.keywords ?? []).map((k) => ({
+      ...k,
+      term: redactContactInfoForPublicOutput(k.term || ""),
+    })),
+  };
+}
+
+function publicAuditAgents(agents: AuditAgent[]): AuditAgent[] {
+  return redactPublicValue(agents).map((agent) =>
+    agent.id === "impact"
+      ? {
+          ...agent,
+          detail: agent.detail.includes(QUANTIFIED_IMPACT_GUIDANCE)
+            ? agent.detail
+            : `${agent.detail} ${QUANTIFIED_IMPACT_GUIDANCE}`,
+          footer: agent.footer?.trim()
+            ? `${agent.footer} ${QUANTIFIED_IMPACT_GUIDANCE}`
+            : QUANTIFIED_IMPACT_GUIDANCE,
+        }
+      : agent,
+  );
+}
+
 function resumeContains(resumeText: string, fragment: string): boolean {
   const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
   const f = norm(fragment);
@@ -219,13 +300,13 @@ export async function parseResume(
     .filter((p) => p && p.title && p.why)
     .slice(0, 10)
     .map((p) => ({
-      title: p.title.trim(),
-      summary: (p.summary || "").trim(),
+      title: redactContactInfoForPublicOutput(p.title.trim()),
+      summary: redactContactInfoForPublicOutput((p.summary || "").trim()),
       // Only show a quote we can actually find in the resume — otherwise the
       // card hides the "from your resume" block rather than show unverified text.
-      quote: verifyQuote(resumeText, p.quote || ""),
-      why: p.why.trim(),
-      fix: (p.fix || "").trim(),
+      quote: verifyQuote(resumeText, redactContactInfoForPublicOutput(p.quote || "")),
+      why: redactContactInfoForPublicOutput(p.why.trim()),
+      fix: redactContactInfoForPublicOutput((p.fix || "").trim()),
       severity: (["high", "medium", "low"].includes(p.severity)
         ? p.severity
         : "medium") as "high" | "medium" | "low",
@@ -245,11 +326,15 @@ export async function parseResume(
     // model inventing tools/skills (e.g. listing AWS or Zendesk that never appear).
     skills: (Array.isArray(data.skills) ? data.skills : [])
       .filter((s) => typeof s === "string" && s.trim() && resumeContains(resumeText, s))
+      .filter((s) => !containsContactInfo(s))
+      .map((s) => redactContactInfoForPublicOutput(s))
       .slice(0, 24),
     // "Experience we found" must be real lines from the upload — keep only
     // bullets whose text actually appears in the resume (verbatim, spacing-loose).
     sampleBullets: (Array.isArray(data.sampleBullets) ? data.sampleBullets : [])
       .filter((b) => b && b.text && resumeContains(resumeText, b.text))
+      .filter((b) => !containsContactInfo(b.text))
+      .map((b) => ({ ...b, text: redactContactInfoForPublicOutput(b.text) }))
       .slice(0, 6),
     proofPoints,
     // Legacy summary line kept for any non-proof-point consumer.
@@ -654,10 +739,7 @@ export async function scoreFit(
   );
 
   const keywords = Array.isArray(data.keywords) ? data.keywords.slice(0, 14) : [];
-  return {
-    company: data.company,
-    role: data.role,
-    fit: {
+  const fit = redactFitBreakdown({
       overall: data.overall,
       verdict: data.verdict,
       dimensions: Array.isArray(data.dimensions) ? data.dimensions : [],
@@ -668,7 +750,12 @@ export async function scoreFit(
       summary: data.summary,
       keywords,
       recommendReview: shouldSuggestManualReview({ overall: data.overall, keywords }),
-    },
+  });
+
+  return {
+    company: redactContactInfoForPublicOutput(data.company || ""),
+    role: redactContactInfoForPublicOutput(data.role || ""),
+    fit,
   };
 }
 
@@ -1085,7 +1172,7 @@ async function review(
     2400,
     provider,
   );
-  return data.notes;
+  return redactPublicValue(data.notes);
 }
 
 // ---------- 4. audit agents (Ada / Max / Remy) ----------
@@ -1313,10 +1400,18 @@ async function rankLines(
           l.label,
         ),
     )
+    .filter((l) => !containsContactInfo(l.label))
     .map((l) => ({ ...l, score: Math.max(0, Math.min(100, Math.round(l.score))) }));
   const impactStats = (Array.isArray(data.impactStats) ? data.impactStats : [])
     .map((s) => ({ value: String(s.value || "").trim(), label: String(s.label || "").trim() }))
-    .filter((s) => s.value && s.label && /\d/.test(s.value))
+    .filter(
+      (s) =>
+        s.value &&
+        s.label &&
+        /\d/.test(s.value) &&
+        !containsContactInfo(s.value) &&
+        !containsContactInfo(s.label),
+    )
     .slice(0, 4);
   return { lines, impactStats };
 }
@@ -1433,7 +1528,7 @@ export async function buildAgents(
     lines,
   };
 
-  return [ats, impact, rolefit];
+  return publicAuditAgents([ats, impact, rolefit]);
 }
 
 /** Free-audit preview: fit only, no documents (no credit spent). */

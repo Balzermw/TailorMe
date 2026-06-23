@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { APP_URL } from "@/lib/config";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+function appUrl(): URL {
+  try {
+    return new URL(APP_URL);
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
 
 export const metadata: Metadata = {
+  metadataBase: appUrl(),
   title:
     "TailorMe by Res.Me · Your experience is stronger than your resume makes it look",
   description:
@@ -23,7 +27,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-scroll-behavior="smooth"
-      className={`${geistSans.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

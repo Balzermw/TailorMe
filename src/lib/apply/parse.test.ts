@@ -26,6 +26,23 @@ describe("resume analysis heuristics", () => {
     expect(s.bullets).toBeGreaterThanOrEqual(1);
     expect(s.skills).toEqual([]);
   });
+
+  it("does not treat contact lines as the candidate name", () => {
+    const s = analyze(
+      [
+        "alex@example.com",
+        "linkedin.com/in/alex",
+        "555-222-1212",
+        "Jane Doe",
+        "Senior Engineer",
+        "- Built onboarding workflows for enterprise customers.",
+      ].join("\n"),
+    );
+    const publicText = JSON.stringify(s);
+    expect(s.name).toBe("Jane Doe");
+    expect(publicText).not.toMatch(/alex@example\.com|linkedin\.com|555-222-1212/i);
+    expect(s.proofPoints?.[0]?.quote).toBe("Built onboarding workflows for enterprise customers.");
+  });
 });
 
 // Build one positioned run. PDF origin is bottom-left, so larger y = higher.

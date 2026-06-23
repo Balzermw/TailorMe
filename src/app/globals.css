@@ -13,7 +13,7 @@
   --color-mint-400: #2dbd8b;
   --color-mint-600: #21926b;
   --color-mint-800: #16654a;
-  --font-sans: var(--font-geist-sans);
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
 }
 
 html {
@@ -535,9 +535,12 @@ body {
 }
 .tmB-hero {
   display: grid;
-  grid-template-columns: 1.04fr 0.96fr;
+  grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
   gap: 68px;
   align-items: center;
+}
+.tmB-hero > * {
+  min-width: 0;
 }
 .tmB-hero .tm-h1 {
   margin-top: 22px;
@@ -571,6 +574,8 @@ body {
 .tmH-card {
   align-self: center;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
   padding: 30px 32px;
   display: flex;
   flex-direction: column;
@@ -684,6 +689,7 @@ body {
   gap: 5px;
   font-size: 13.5px;
   margin-bottom: 8px;
+  min-width: 0;
 }
 .tmH-bar-name {
   font-weight: 500;
@@ -733,11 +739,13 @@ body {
 /* ---------- "the agents" section (scaffold) ---------- */
 .tmH-agents {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--g);
 }
 .tmH-agent {
   position: relative;
+  min-width: 0;
+  overflow: hidden;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -1416,6 +1424,16 @@ body {
   }
   .tm-footer {
     padding: 24px 40px;
+  }
+}
+
+@media (max-width: 900px) {
+  .tmB-hero {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+  .tmH-agents {
+    grid-template-columns: 1fr;
   }
 }
 
