@@ -48,6 +48,39 @@ vi.mock("@anthropic-ai/sdk", () => {
         { agent: "Impact & metrics", kind: "polish", text: "Add a baseline." },
       ],
     },
+    report_profile: {
+      name: "Alex Mercer",
+      primaryRole: "Senior Platform Engineer",
+      yearsExperience: 7,
+      roleCount: 1,
+      bulletCount: 2,
+      metricBulletCount: 0,
+      skills: ["Node.js", "alex@example.com"],
+      sampleBullets: [
+        { text: "Built Node.js services for platform teams.", hasMetric: false },
+        { text: "Contact alex@example.com for details.", hasMetric: false },
+      ],
+      proofPoints: [
+        {
+          title: "Contact detail used as evidence",
+          summary: "The email alex@example.com should never appear in public audit feedback.",
+          quote: "alex@example.com",
+          why: "An email is contact information, not resume evidence.",
+          fix: "Keep contact details in the header only.",
+          severity: "high",
+        },
+      ],
+    },
+    rank_lines: {
+      lines: [
+        { label: "Built platform services", score: 91, status: "kept-top" },
+        { label: "Email alex@example.com", score: 12, status: "cut" },
+      ],
+      impactStats: [
+        { value: "38%", label: "lower p95 latency" },
+        { value: "555-222-1212", label: "contact phone" },
+      ],
+    },
     // Faithfulness pass: same shape as tailor_resume's doc, no corrections → "clean".
     verify_faithfulness: {
       summary: "Platform engineer.",
@@ -76,12 +109,18 @@ vi.mock("@anthropic-ai/sdk", () => {
 
 let runScore: typeof import("./pipeline").runScore;
 let runFull: typeof import("./pipeline").runFull;
+let runAudit: typeof import("./pipeline").runAudit;
+let parseResume: typeof import("./pipeline").parseResume;
+let redactContactInfoForPublicOutput: typeof import("./pipeline").redactContactInfoForPublicOutput;
 
 beforeAll(async () => {
   process.env.ANTHROPIC_API_KEY = "sk-ant-test";
   const mod = await import("./pipeline");
   runScore = mod.runScore;
   runFull = mod.runFull;
+  runAudit = mod.runAudit;
+  parseResume = mod.parseResume;
+  redactContactInfoForPublicOutput = mod.redactContactInfoForPublicOutput;
 });
 
 beforeEach(() => {
@@ -125,6 +164,75 @@ describe("apply pipeline", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].name).toBe("report_fit");
     expect(calls[0].model).toBe("claude-sonnet-4-6");
+  });
+});
+
+describe("public audit output hygiene", () => {
+  const piiPattern =
+    /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b|\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}\b|linkedin\.com\/[^\s"'<>]+|\b\d{1,6}\s+[A-Z][A-Za-z0-9.'-]*(?:\s+[A-Z][A-Za-z0-9.'-]*){0,4}\s+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Drive|Dr|Lane|Ln|Court|Ct)\b/i;
+
+  it("redacts contact details from public review text", () => {
+    const redacted = redactContactInfoForPublicOutput(
+      "Email alex@example.com, call 555-222-1212, see linkedin.com/in/alex, or visit 123 Market St.",
+    );
+
+    expect(redacted).not.toMatch(piiPattern);
+    expect(redacted).toContain("the contact email");
+    expect(redacted).toContain("the contact phone");
+    expect(redacted).toContain("the LinkedIn profile");
+    expect(redacted).toContain("the street address");
+  });
+
+  it("keeps parse proof points and sample bullets free of contact snippets", async () => {
+    const stats = await parseResume(
+      "Alex Mercer\nalex@example.com\nBuilt Node.js services for platform teams.\nContact alex@example.com for details.",
+    );
+    const publicText = JSON.stringify(stats);
+
+    expect(publicText).not.toMatch(piiPattern);
+    expect(stats.skills).toEqual(["Node.js"]);
+    expect((stats.sampleBullets ?? []).map((b) => b.text)).toEqual([
+      "Built Node.js services for platform teams.",
+    ]);
+    expect(stats.proofPoints?.[0]?.quote).toBeUndefined();
+  });
+
+  it("redacts audit result fields and always includes quantified-impact guidance", async () => {
+    fixtureOverrides.report_fit = {
+      company: "Nordpeak Systems",
+      role: "Senior Platform Engineer",
+      overall: 84,
+      verdict: "Strong fit",
+      locationStatus: "unclear",
+      locationNote: "Contact alex@example.com is listed, but location is unclear.",
+      summary: "Why 84 - strong fit: call 555-222-1212 should not be visible.",
+      dimensions: [
+        {
+          label: "Technical skills",
+          score: 88,
+          matched: ["Node.js", "linkedin.com/in/alex"],
+          gaps: ["Would need proof beyond 123 Market St."],
+          why: "Email alex@example.com is not valid evidence.",
+        },
+      ],
+      keywords: [
+        { term: "Node.js", inResume: true },
+        { term: "alex@example.com", inResume: true },
+      ],
+    };
+
+    const result = await runAudit("resume with Node.js and alex@example.com", "posting");
+    const publicText = JSON.stringify(result);
+
+    expect(publicText).not.toMatch(piiPattern);
+    expect(publicText).toMatch(/truthful metric/i);
+    expect(publicText).toMatch(/Do not invent the number/i);
+    expect(result.agents?.find((a) => a.id === "impact")?.stats).toEqual([
+      { value: "38%", label: "lower p95 latency", accent: "blue" },
+    ]);
+    expect(result.agents?.find((a) => a.id === "rolefit")?.lines).toEqual([
+      { rank: 1, label: "Built platform services", score: 91, status: "kept-top" },
+    ]);
   });
 });
 

@@ -628,6 +628,7 @@ const PARSE_STEPS = [
 // earlier steps carry more of the wait and the last step doesn't dominate.
 const PARSE_LAST_STEP_MS = 3300;
 const PARSE_MIN_MS = 3600;
+const MAX_RESUME_UPLOAD_BYTES = 8 * 1024 * 1024;
 
 // ---------- Step 1: upload (real parsing) ----------
 function StepUpload({
@@ -720,6 +721,11 @@ function StepUpload({
 
   const handleFile = async (file: File) => {
     setError(null);
+    if (file.size > MAX_RESUME_UPLOAD_BYTES) {
+      setError("File too large (max 8 MB).");
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
     setParseStep(0);
     setPhase("parsing");
     const startedAt = performance.now();
@@ -3066,7 +3072,22 @@ function StepSummary({
         </div>
       )}
 
-      {/* 2 · what to change (rewrite/fix) */}
+      {/* 2 · what to quantify */}
+      <div className="tm-card" style={{ padding: "20px 22px", borderColor: "rgba(45,189,139,.35)" }}>
+        <span
+          className="tmF-p2-label"
+          style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--tm-mint-600)" }}
+        >
+          <TrendingUp size={14} /> What to quantify
+        </span>
+        <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px", color: "var(--tm-ink)" }}>
+          Add a truthful metric where the work supports it: scope, volume, frequency, time saved,
+          error reduction, revenue, cost, users, tickets, SLA, team size, budget, conversion,
+          latency, uptime, or throughput. Do not invent the number.
+        </p>
+      </div>
+
+      {/* 3 · what to change (rewrite/fix) */}
       {proofPoints.length > 0 && (
         <div className="tm-card" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
           <div>

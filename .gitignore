@@ -12,6 +12,24 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/tests/e2e/results/
+/docs/qa/REAL_RESUME_CORPUS_RESULTS*.md
+
+# E2E / QA local env
+.env.e2e.local
+
+# E2E runtime fixture output
+/tests/e2e/fixtures/resumes/
+
+# Private real-resume QA corpus
+resme-private-qa-corpus/
+private-qa-corpus/
+real-resumes/
+resume_files_deduped/
+*.real.pdf
+*.real.docx
 
 # next.js
 /.next/
@@ -29,10 +47,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+debug.log
 
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+!.env.e2e.example
 
 # one-off local data-extraction scripts with hardcoded PII paths — never commit
 _extract_inputs.mjs

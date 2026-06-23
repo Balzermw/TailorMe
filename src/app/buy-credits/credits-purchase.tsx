@@ -197,9 +197,9 @@ export default function CreditsPurchase() {
               );
             })}
             <p className="tm-small" style={{ fontSize: "12px" }}>
-              Add-ons are a human service for one application. They don’t add
-              application credits. Full white-glove service is available from
-              $225 — <Link href={ROUTES.contact} className="underline">get in touch</Link>.
+              Add-ons are human services for one application. They don’t add
+              application credits. Coaching and white-glove service are available
+              from $225. <Link href={ROUTES.contact} className="underline">Get in touch</Link>.
             </p>
           </div>
         </div>

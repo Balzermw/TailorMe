@@ -32,7 +32,7 @@ const TM_TERMS: LegalDocData = {
     ],
     [
       "Human review",
-      "The optional expert review is performed by a Res.Me professional within the stated turnaround (typically 48 hours) and consists of editorial feedback on your documents.",
+      "Expert Feedback is a human review pass for one completed application. Human Revision and coaching packages are separate hands-on services. Completed human services are non-refundable once delivered.",
     ],
     [
       "Changes",

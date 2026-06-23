@@ -200,16 +200,16 @@ function CoachingReferral() {
         height={56}
       />
       <div className="tm-human-body">
-        <h3>Want a human pass on your resume?</h3>
+        <h3>Want human eyes on a draft?</h3>
         <p>
-          Every application already gets the full three-agent review. For a
-          hands-on rewrite or 1-on-1 coaching, work with Michael, Head of
-          Res.Me, directly. A separate, done-for-you service.
+          Add Expert Feedback at checkout for a 48-hour review pass on one
+          application. For a hands-on rewrite, revision, or 1-on-1 coaching,
+          work with Michael, Head of Res.Me, directly.
         </p>
       </div>
       <div className="tm-human-price">
         <Link className="tm-btn tm-btn--outline" href={ROUTES.coaching}>
-          See coaching
+          Compare human options
         </Link>
       </div>
     </div>
@@ -241,7 +241,8 @@ export default function PricingPage() {
           <h1 className="tm-h1">Tailor every important application.</h1>
           <p className="tm-body">
             No subscription. Buy application credits once and use them across
-            roles. Want a human pass? Work with Michael directly.
+            roles. Add a human review when one application needs extra eyes, or
+            use coaching for hands-on help.
           </p>
         </section>
 
