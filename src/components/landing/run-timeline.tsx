@@ -8,8 +8,8 @@ export default function RunTimeline() {
       <div className="tm-wrap">
         <h2 className="tm-h2">Watch a real application run</h2>
         <p className="tm-body mt-[10px] max-w-[70ch]">
-          One composite candidate, one real posting, the same four moments,
-          every time.
+          One sample candidate and a real job posting, walked through all four
+          steps of an application.
         </p>
 
         <div className="tmB-tl">

@@ -13,7 +13,7 @@ export default function Agents() {
         <span className="tm-eyebrow">The agents</span>
         <h2 className="tm-h2 mt-[8px]">Three reviewers, three perspectives</h2>
         <p className="tm-body mt-[10px] max-w-[62ch]">
-          Three agents read every draft the way the ATS, the recruiter, and the
+          AI agents read every draft the way the ATS, the recruiter, and the
           hiring manager will, then hand back exact fixes.
         </p>
 
