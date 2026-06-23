@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Check,
   ChevronDown,
+  ChevronUp,
   Download,
   Info,
   Layers,
@@ -233,6 +234,9 @@ export default function EditEditor({
   const [lastFeedbackHash, setLastFeedbackHash] = useState<string | null>(null);
   // The live-preview container — feedback findings spotlight their line in it on hover.
   const previewRef = useRef<HTMLDivElement>(null);
+  // When a hovered finding's line is off the visible preview, point an arrow at it
+  // (up/down) instead of auto-scrolling the page out from under the user.
+  const [hlDir, setHlDir] = useState<"up" | "down" | null>(null);
   // Experience entries collapse to a one-line header; open entries that still
   // have AI rewrites to review so those aren't hidden.
   const [openEntries, setOpenEntries] = useState<Set<number>>(() => {
@@ -629,6 +633,7 @@ export default function EditEditor({
     previewRef.current
       ?.querySelectorAll(".mcv-hl")
       .forEach((e) => e.classList.remove("mcv-hl"));
+    setHlDir(null);
   }
   function highlightFinding(quote: string | undefined, section: Section) {
     const root = previewRef.current;
@@ -669,7 +674,14 @@ export default function EditEditor({
     }
     if (el) {
       el.classList.add("mcv-hl");
-      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      // Don't scroll the page (the preview is sticky, so scrollIntoView would
+      // yank the whole window). Instead, if the line sits above/below the visible
+      // viewport, surface a directional arrow so the user can choose to look.
+      const r = el.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      setHlDir(r.bottom < 72 ? "up" : r.top > vh - 40 ? "down" : null);
+    } else {
+      setHlDir(null);
     }
   }
 
@@ -1217,12 +1229,12 @@ export default function EditEditor({
                   </h2>
                   <p className="tmE-panel-sub">
                     {!onGetFeedback
-                      ? "What the tailoring targeted. Open a card to jump to the section it changes."
+                      ? "Open a card to jump to its section."
                       : feedbackLoading
                         ? "Reviewing your content…"
                         : proofPoints.length > 0
-                          ? "A first-pass review of your content. Open a card to jump to the section it changes."
-                          : "No feedback yet. Add your experience and skills, then run a review."}
+                          ? "Open a card to jump to its section."
+                          : "Run a review to see suggestions here."}
                   </p>
                 </div>
                 {onGetFeedback && (
@@ -1249,6 +1261,16 @@ export default function EditEditor({
               {(["high", "medium", "low"] as const).map((sev) => {
                 const group = proofPoints.filter((p) => p.severity === sev);
                 if (group.length === 0) return null;
+                // Global running index so cards fade in one after another across all
+                // three severity groups (not restarting the stagger per group).
+                const offset =
+                  sev === "high"
+                    ? 0
+                    : proofPoints.filter(
+                        (p) =>
+                          p.severity === "high" ||
+                          (sev === "low" && p.severity === "medium"),
+                      ).length;
                 return (
                   <div key={sev} className="tmE-fix-group">
                     <p className="tmE-fix-head" style={{ color: SEV[sev].color }}>
@@ -1260,7 +1282,8 @@ export default function EditEditor({
                       return (
                         <div
                           key={i}
-                          className="tmE-fix"
+                          className="tmE-fix tmE-fix--in"
+                          style={{ animationDelay: `${Math.min((offset + i) * 70, 700)}ms` }}
                           onMouseEnter={() => highlightFinding(p.quote, target)}
                           onMouseLeave={clearHighlight}
                         >
@@ -1306,6 +1329,11 @@ export default function EditEditor({
 
         {/* ---- wide résumé-only preview ---- */}
         <div className="tmE-preview" ref={previewRef}>
+          {hlDir === "up" && (
+            <div className="tmE-hl-arrow tmE-hl-arrow--up" aria-hidden="true">
+              <ChevronUp size={14} /> Highlighted above
+            </div>
+          )}
           <div className="tmE-preview-head">
             <p className="tmE-preview-label">Live preview</p>
             {(previewHits.kw || previewHits.metric) && (
@@ -1331,6 +1359,11 @@ export default function EditEditor({
             </p>
           )}
           <PrintDoc doc={doc} id={id} resumeOnly hideToolbar highlightKeywords={keywords} />
+          {hlDir === "down" && (
+            <div className="tmE-hl-arrow tmE-hl-arrow--down" aria-hidden="true">
+              <ChevronDown size={14} /> Highlighted below
+            </div>
+          )}
         </div>
       </div>
     </div>
