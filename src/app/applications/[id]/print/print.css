@@ -234,6 +234,13 @@
 }
 
 @media print {
+  /* Force a real US Letter sheet (8.5 x 11) with even margins, so "Save as PDF"
+     produces Letter pages regardless of the browser's locale default (which is
+     often A4). Chrome honors @page size for the saved PDF. */
+  @page {
+    size: 8.5in 11in;
+    margin: 0.5in;
+  }
   .print-toolbar {
     display: none;
   }
@@ -245,6 +252,10 @@
     border: none;
     border-radius: 0;
     margin: 0;
+    /* Let the content size itself and paginate across sheets — the on-screen
+       min-height (one-sheet illusion) would otherwise spill a short résumé onto
+       a blank second page. The @page box defines the printable area. */
+    min-height: 0;
     aspect-ratio: auto;
     box-shadow: none;
     page-break-after: always;
@@ -254,7 +265,17 @@
   }
   .mcv-head,
   .mcv-body {
+    /* The @page margin provides the edge; drop the on-screen inset. */
     padding-left: 0;
     padding-right: 0;
+  }
+  /* Clean page breaks: keep a dated entry whole, keep a section heading with the
+     content under it, and never orphan a skill group across a page boundary. */
+  .mcv-entry,
+  .mcv-skillgroup {
+    break-inside: avoid;
+  }
+  .mcv-sec {
+    break-after: avoid;
   }
 }
