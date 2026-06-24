@@ -87,6 +87,36 @@ export default function PasteImport() {
           {busy ? "Structuring…" : "Structure my resume"} <ArrowRight size={16} />
         </button>
       </div>
+      {busy && (
+        <div style={{ marginTop: 16, maxWidth: 420 }}>
+          <style>{`@keyframes tmIbar{0%{left:-45%}100%{left:100%}}`}</style>
+          <div
+            aria-hidden="true"
+            style={{
+              position: "relative",
+              height: "4px",
+              borderRadius: "3px",
+              overflow: "hidden",
+              background: "var(--tm-blue-50)",
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                width: "45%",
+                borderRadius: "3px",
+                background: "var(--tm-blue-600)",
+                animation: "tmIbar 1.1s ease-in-out infinite",
+              }}
+            />
+          </div>
+          <p className="tm-small" style={{ marginTop: 8, fontSize: "12.5px", color: "var(--tm-zinc)" }}>
+            Reading your background and structuring it into a resume. This can take a few seconds.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

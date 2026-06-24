@@ -1423,7 +1423,6 @@ export async function buildAgents(
   fit: FitBreakdown,
   bullets: TailoredBullet[],
   provider?: Provider,
-  role?: string,
 ): Promise<AuditAgent[]> {
   // Ada — keyword coverage (derived from the fit keywords + real occurrences).
   const keywords = (fit.keywords ?? []).slice(0, 8).map((k) => {
@@ -1518,7 +1517,7 @@ export async function buildAgents(
     id: "rolefit",
     ...AGENT_META.rolefit,
     title: "Your bullets, ranked",
-    subtitle: `taken from your current resume, scored 0/100 for ${role?.trim() || "this posting"}`,
+    subtitle: "bullets taken from existing resume",
     chip: "Hard limit · 2 pages",
     footer: "",
     detail:
@@ -1558,7 +1557,7 @@ export async function runAudit(
   const { company, role, fit } = await scoreFit(resumeText, postingText, provider);
   // No tailored bullets yet (tailoring is the paid step), so Max surfaces the
   // candidate's real extracted wins; the before/after pair appears post-tailor.
-  const agents = await buildAgents(resumeText, postingText, fit, [], provider, role);
+  const agents = await buildAgents(resumeText, postingText, fit, [], provider);
   return { company, role, fit, bullets: [], keywords: [], agentNotes: [], agents, doc: null };
 }
 
@@ -1676,7 +1675,7 @@ export async function runFull(
   // independent — run them together to keep the full-run latency down.
   const [agentNotes, agents] = await Promise.all([
     review(tailored.doc, postingText, provider),
-    buildAgents(resumeText, postingText, fit, tailored.bullets, provider, role),
+    buildAgents(resumeText, postingText, fit, tailored.bullets, provider),
   ]);
   // Anchor before/after pairs to doc coordinates for the editor's diff rows, and
   // snapshot the AI draft so the editor can offer "reset to AI version".

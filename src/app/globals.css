@@ -1192,9 +1192,9 @@ body {
 /* Clipping affordance: the résumé sheet sits on a second page (stacked-paper
    box-shadow), signalling a multi-page document rather than the whole thing. */
 .tmB-paper--clip {
-  /* Real US Letter (8.5 x 11) page shape; content need not fill it — anything
-     past the page edge clips, and the "page 1 of 2 continues" note sits below. */
-  aspect-ratio: 8.5 / 11;
+  /* Sized to the document content rather than a forced full US Letter height —
+     the fixed sample is short, so the page ratio left a large empty gap below
+     it. Overflow still clips anything that runs past the box. */
   overflow: hidden;
   box-shadow:
     5px 7px 0 -1px #fff,
@@ -4609,6 +4609,9 @@ body {
 }
 .tmT-docmock {
   overflow: hidden;
+  /* Extra breathing room at the foot so the clipped content doesn't run right
+     up to the bottom edge of the page mock. */
+  padding-bottom: 60px;
 }
 .tmT-page-stack {
   position: relative;

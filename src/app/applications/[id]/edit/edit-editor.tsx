@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -44,6 +44,71 @@ const SEV: Record<ProofPoint["severity"], { label: string; color: string; bg: st
   low: { label: "Minor polish", color: "var(--tm-zinc)", bg: "rgba(24,24,27,0.06)" },
 };
 
+// A feedback finding is dropped once its quoted text no longer exists in the doc.
+// This runs both at handoff (structuring may have already fixed it, e.g. a
+// letter-spaced name normalized) AND live as the user edits — so applying a
+// suggested change unmarks it. Deliberately lax: any edit to the quoted text
+// clears the finding, so a good-faith fix won't re-trigger the same warning.
+function docPlainText(doc: TailoredDoc): string {
+  const parts: (string | undefined)[] = [doc.name, doc.headline, doc.contact, doc.summary];
+  for (const e of doc.experience ?? []) parts.push(e.role, e.company, e.dates, ...(e.bullets ?? []));
+  for (const ed of doc.education ?? []) parts.push(ed.degree, ed.school, ed.dates);
+  for (const p of doc.projects ?? []) parts.push(p.name, p.description);
+  for (const c of doc.certifications ?? []) parts.push(c.name, c.issuer, c.date);
+  parts.push(...(doc.skills ?? []));
+  for (const g of doc.skillGroups ?? []) parts.push(g.label, ...(g.skills ?? []));
+  return parts.filter(Boolean).join("  ");
+}
+function normForMatch(s: string): string {
+  // Lowercase, drop ellipsis (parse truncates long quotes with "…"), and flatten
+  // all punctuation to spaces so formatting differences don't block a match.
+  return (s || "")
+    .toLowerCase()
+    .replace(/…|\.\.\./g, " ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function pruneResolvedFindings(points: ProofPoint[], doc: TailoredDoc): ProofPoint[] {
+  const hay = normForMatch(docPlainText(doc));
+  return points.filter((p) => {
+    if (!p.quote) return true; // "missing section" issues have no quote to verify
+    let q = normForMatch(p.quote);
+    // Drop a leading section-header word (e.g. "Skills") that isn't in the body.
+    const sp = q.indexOf(" ");
+    if (sp > 0) q = q.slice(sp + 1);
+    if (q.length < 12) return true; // too little to judge — keep
+    // Keep only while the quoted text is still present; once it's edited away the
+    // finding is considered resolved and disappears from the panel.
+    return hay.includes(q);
+  });
+}
+
+// Without a targeted posting there are no role keywords, so derive the ATS terms
+// from the résumé's own skills/tools — split skill lines into individual terms so
+// "Python, SQL, Kubernetes" each tint green where they appear in the bullets.
+function skillKeywords(doc: TailoredDoc): string[] {
+  const raw = [
+    ...(doc.skills ?? []),
+    ...((doc.skillGroups ?? []).flatMap((g) => g.skills ?? [])),
+  ];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const s of raw) {
+    for (const piece of (s || "").split(/[,;|:•/]|\band\b|&/i)) {
+      const t = piece.trim().replace(/^[-–—\s]+/, "");
+      if (t.length < 2 || t.length > 28) continue;
+      if (t.split(/\s+/).length > 4) continue; // a long phrase, not a keyword
+      const k = t.toLowerCase();
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(t);
+      if (out.length >= 40) return out;
+    }
+  }
+  return out;
+}
+
 // Indeterminate progress bar shown while an AI review is running (we can't know
 // the real duration, so a moving segment reads as "working" without faking %).
 function ReviewProgress() {
@@ -76,7 +141,7 @@ function ReviewProgress() {
 }
 
 // "Review my edits": AI checks the user's own changes against the AI original.
-type Verdict = "good" | "weaker" | "issue";
+type Verdict = "improved" | "okay" | "risky";
 type ReviewItem = {
   id: string;
   where: string;
@@ -89,10 +154,16 @@ type ReviewItem = {
   note: string;
 };
 const VERDICT_LABEL: Record<Verdict, string> = {
-  good: "Looks good",
-  weaker: "Weaker than the AI version",
-  issue: "Worth a look",
+  improved: "Improved",
+  okay: "Okay",
+  risky: "Risky",
 };
+
+function normalizeReviewVerdict(value: unknown): Verdict {
+  if (value === "improved" || value === "good") return "improved";
+  if (value === "risky" || value === "issue") return "risky";
+  return "okay";
+}
 
 // Section-at-a-time résumé editor (Res.Me builder pattern): sidebar nav →
 // one section in the center with full-size inputs → wide résumé-only live
@@ -175,7 +246,6 @@ export default function EditEditor({
   bulletDiffs,
   initialDecisions,
   keywords,
-  initialUserEdited,
   proofPoints: initialProofPoints,
   company,
   role,
@@ -227,6 +297,10 @@ export default function EditEditor({
   const [grouping, setGrouping] = useState(false);
   const [groupMsg, setGroupMsg] = useState<string | null>(null);
   const [proofPoints, setProofPoints] = useState<ProofPoint[]>(initialProofPoints);
+  // What the panel actually shows: findings whose quoted text still exists in the
+  // doc. Derived (not stored) so it updates live as the user edits — applying a
+  // suggested change drops its finding, and structuring-fixed ones never surface.
+  const shownPoints = useMemo(() => pruneResolvedFindings(proofPoints, doc), [proofPoints, doc]);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   // Hash of the résumé when feedback was last fetched — lets us show "up to date"
@@ -237,6 +311,29 @@ export default function EditEditor({
   // When a hovered finding's line is off the visible preview, point an arrow at it
   // (up/down) instead of auto-scrolling the page out from under the user.
   const [hlDir, setHlDir] = useState<"up" | "down" | null>(null);
+  // Approximate US Letter page boundaries in the live preview, so the user can see
+  // where the résumé spills onto page 2+ (the downloaded PDF is the exact split).
+  const docWrapRef = useRef<HTMLDivElement>(null);
+  const [pageBreaks, setPageBreaks] = useState<number[]>([]);
+  useEffect(() => {
+    const page = docWrapRef.current?.querySelector(".print-page") as HTMLElement | null;
+    if (!page) return;
+    const measure = () => {
+      const w = page.getBoundingClientRect().width;
+      const h = page.getBoundingClientRect().height;
+      const sheet = (w * 11) / 8.5; // a US Letter page at this on-screen width
+      if (!sheet || h <= sheet + 6) {
+        setPageBreaks((prev) => (prev.length ? [] : prev));
+        return;
+      }
+      const n = Math.ceil(h / sheet);
+      setPageBreaks(Array.from({ length: n - 1 }, (_, i) => Math.round((i + 1) * sheet)));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(page);
+    return () => ro.disconnect();
+  }, [doc]);
   // Experience entries collapse to a one-line header; open entries that still
   // have AI rewrites to review so those aren't hidden.
   const [openEntries, setOpenEntries] = useState<Set<number>>(() => {
@@ -263,10 +360,6 @@ export default function EditEditor({
 
   const diffs = diffMap(bulletDiffs);
   const totalPending = bulletDiffs.filter((d) => !decisions[bulletKey(d.entry, d.bullet)]).length;
-  const modified =
-    initialUserEdited ||
-    dirty ||
-    Object.values(decisions).some((d) => d === "rejected" || d === "edited");
 
   function touch() {
     setDirty(true);
@@ -433,7 +526,7 @@ export default function EditEditor({
         kind: "summary",
         original: originalDoc.summary,
         edited: doc.summary,
-        verdict: "good",
+        verdict: "okay",
         note: "",
       });
     }
@@ -442,6 +535,8 @@ export default function EditEditor({
       if (!oe) return;
       e.bullets.forEach((b, bi) => {
         const ob = oe.bullets[bi];
+        const decision = decisions[bulletKey(ei, bi)];
+        if (decision === "accepted" || decision === "rejected") return;
         if (ob != null && b.trim() && b.trim() !== ob.trim()) {
           out.push({
             id: `b:${ei}:${bi}`,
@@ -451,7 +546,7 @@ export default function EditEditor({
             edited: b,
             ei,
             bi,
-            verdict: "good",
+            verdict: "okay",
             note: "",
           });
         }
@@ -492,7 +587,7 @@ export default function EditEditor({
       setReview({
         items: changes.map((c) => {
           const r = byId.get(c.id);
-          return { ...c, verdict: r?.verdict ?? "good", note: r?.note ?? "" };
+          return { ...c, verdict: normalizeReviewVerdict(r?.verdict), note: r?.note ?? "" };
         }),
       });
     } catch (e) {
@@ -549,6 +644,10 @@ export default function EditEditor({
     setDoc(JSON.parse(JSON.stringify(originalDoc)) as TailoredDoc);
     setContactFields(parseContact(originalDoc.contact));
     setDecisions({});
+    setReview(null);
+    setReviewError(null);
+    setFeedbackError(null);
+    setLastFeedbackHash(null);
     touch();
   }
 
@@ -607,22 +706,26 @@ export default function EditEditor({
     { key: "education", label: "Education" },
     { key: "certifications", label: "Certifications" },
     { key: "skills", label: "Skills" },
-    ...(proofPoints.length || onGetFeedback
+    ...(shownPoints.length || onGetFeedback
       ? [
           {
             key: "fixes" as Section,
             label: onGetFeedback ? "Feedback" : "Suggestions",
-            badge: proofPoints.length || undefined,
+            badge: shownPoints.length || undefined,
           },
         ]
       : []),
   ];
 
+  // Keywords to tint green in the preview: the posting's role keywords when this
+  // résumé is targeted at a job, else the résumé's own skills/tools (the terms an
+  // ATS scans for) so a base résumé still shows its ATS keywords highlighted.
+  const previewKeywords = keywords.length > 0 ? keywords : skillKeywords(doc);
   // Only advertise the highlight legend for colors actually on screen. Match the
   // text the preview actually tints (summary + bullets via highlight()); skills,
   // header, and education are rendered without highlighting, so they don't count.
   const previewText = [doc.summary, ...doc.experience.flatMap((e) => e.bullets)].join("  ");
-  const previewHits = highlightHits(previewText, keywords);
+  const previewHits = highlightHits(previewText, previewKeywords);
   // True when the saved feedback already matches the current résumé (no re-run needed).
   const feedbackUpToDate = proofPoints.length > 0 && lastFeedbackHash === feedbackHash(doc);
 
@@ -685,6 +788,8 @@ export default function EditEditor({
     }
   }
 
+  const reviewableChangeCount = collectChanges().length;
+
   return (
     <div className="tmE-wrap">
       <div className="tmE-head">
@@ -697,7 +802,7 @@ export default function EditEditor({
         </h1>
         <div className="tmE-head-right">
           {bulletDiffs.length > 0 && (
-            <span className="tmE-progress">
+            <span className="tmE-progress" data-testid="revision-reviewed-count">
               {bulletDiffs.length - totalPending}/{bulletDiffs.length} changes reviewed
             </span>
           )}
@@ -706,7 +811,7 @@ export default function EditEditor({
               {!msg.err && <Check size={14} />} {msg.text}
             </span>
           )}
-          {modified && originalDoc && (
+          {reviewableChangeCount > 0 && originalDoc && (
             <button
               type="button"
               className="tm-btn tm-btn--outline tm-btn--sm"
@@ -850,16 +955,21 @@ export default function EditEditor({
               )}
               {!reviewLoading &&
                 review.items.map((it) => (
-                  <div key={it.id} className={"tmE-review-item is-" + it.verdict}>
+                  <div
+                    key={it.id}
+                    className={"tmE-review-item is-" + it.verdict}
+                    data-testid="review-item"
+                    data-review-id={it.id}
+                  >
                     <div className="tmE-review-top">
                       <span className="tmE-review-where">{it.where}</span>
                       <span className={"tmE-review-verdict is-" + it.verdict}>
-                        {it.verdict === "good" ? <Check size={12} /> : <AlertTriangle size={12} />}
+                        {it.verdict === "improved" ? <Check size={12} /> : <AlertTriangle size={12} />}
                         {VERDICT_LABEL[it.verdict]}
                       </span>
                     </div>
                     {it.note && <p className="tmE-review-note">{it.note}</p>}
-                    {it.verdict !== "good" && it.original && (
+                    {it.verdict !== "improved" && it.original && (
                       <button
                         type="button"
                         className="tmE-review-revert"
@@ -986,7 +1096,11 @@ export default function EditEditor({
                         );
                       }
                       return (
-                        <div key={bi} className={"tmE-diff" + (decision ? " is-decided" : " is-pending")}>
+                        <div
+                          key={bi}
+                          className={"tmE-diff" + (decision ? " is-decided" : " is-pending")}
+                          data-testid={`revision-diff-${ei}-${bi}`}
+                        >
                           <div className="tmE-diff-line tmE-diff-before">
                             <span className="tmE-diff-tag">Original</span>
                             <span>{highlight(diff.before, keywords)}</span>
@@ -996,16 +1110,41 @@ export default function EditEditor({
                             <span>{highlight(diff.after, keywords)}</span>
                           </div>
                           {decision === "edited" && (
-                            <textarea className="tmE-textarea" value={b} onChange={(ev) => setBulletText(ei, bi, ev.target.value)} placeholder="Your version…" />
+                            <textarea
+                              className="tmE-textarea"
+                              value={b}
+                              onChange={(ev) => setBulletText(ei, bi, ev.target.value)}
+                              placeholder="Your version…"
+                              aria-label={`Custom bullet ${bi + 1}`}
+                              data-testid={`revision-custom-bullet-${ei}-${bi}`}
+                            />
                           )}
                           <div className="tmE-diff-actions">
-                            <button type="button" className={"tmE-diff-btn" + (decision === "accepted" ? " is-on is-accept" : "")} onClick={() => decide(ei, bi, "accepted")}>
+                            <button
+                              type="button"
+                              className={"tmE-diff-btn" + (decision === "accepted" ? " is-on is-accept" : "")}
+                              onClick={() => decide(ei, bi, "accepted")}
+                              aria-pressed={decision === "accepted"}
+                              data-testid={`revision-accept-${ei}-${bi}`}
+                            >
                               <Check size={13} /> Accept
                             </button>
-                            <button type="button" className={"tmE-diff-btn" + (decision === "rejected" ? " is-on is-reject" : "")} onClick={() => decide(ei, bi, "rejected")}>
+                            <button
+                              type="button"
+                              className={"tmE-diff-btn" + (decision === "rejected" ? " is-on is-reject" : "")}
+                              onClick={() => decide(ei, bi, "rejected")}
+                              aria-pressed={decision === "rejected"}
+                              data-testid={`revision-reject-${ei}-${bi}`}
+                            >
                               <X size={13} /> Reject
                             </button>
-                            <button type="button" className={"tmE-diff-btn" + (decision === "edited" ? " is-on is-edit" : "")} onClick={() => decide(ei, bi, "edited")}>
+                            <button
+                              type="button"
+                              className={"tmE-diff-btn" + (decision === "edited" ? " is-on is-edit" : "")}
+                              onClick={() => decide(ei, bi, "edited")}
+                              aria-pressed={decision === "edited"}
+                              data-testid={`revision-edit-${ei}-${bi}`}
+                            >
                               <PenLine size={13} /> Edit
                             </button>
                             {!decision && <span className="tmE-diff-hint">choose one</span>}
@@ -1232,7 +1371,7 @@ export default function EditEditor({
                       ? "Open a card to jump to its section."
                       : feedbackLoading
                         ? "Reviewing your content…"
-                        : proofPoints.length > 0
+                        : shownPoints.length > 0
                           ? "Open a card to jump to its section."
                           : "Run a review to see suggestions here."}
                   </p>
@@ -1248,7 +1387,7 @@ export default function EditEditor({
                     {feedbackUpToDate ? <Check size={13} /> : <ListChecks size={13} />}{" "}
                     {feedbackLoading
                       ? "Reviewing…"
-                      : !proofPoints.length
+                      : !shownPoints.length
                         ? "Get feedback"
                         : feedbackUpToDate
                           ? "Up to date"
@@ -1259,14 +1398,14 @@ export default function EditEditor({
               {feedbackLoading && <ReviewProgress />}
               {feedbackError && <p className="tmE-fix-status">{feedbackError}</p>}
               {(["high", "medium", "low"] as const).map((sev) => {
-                const group = proofPoints.filter((p) => p.severity === sev);
+                const group = shownPoints.filter((p) => p.severity === sev);
                 if (group.length === 0) return null;
                 // Global running index so cards fade in one after another across all
                 // three severity groups (not restarting the stagger per group).
                 const offset =
                   sev === "high"
                     ? 0
-                    : proofPoints.filter(
+                    : shownPoints.filter(
                         (p) =>
                           p.severity === "high" ||
                           (sev === "low" && p.severity === "medium"),
@@ -1284,6 +1423,9 @@ export default function EditEditor({
                           key={i}
                           className="tmE-fix tmE-fix--in"
                           style={{ animationDelay: `${Math.min((offset + i) * 70, 700)}ms` }}
+                          data-testid="feedback-suggestion"
+                          data-suggestion-title={p.title}
+                          data-rule-id={p.ruleId ?? ""}
                           onMouseEnter={() => highlightFinding(p.quote, target)}
                           onMouseLeave={clearHighlight}
                         >
@@ -1328,7 +1470,7 @@ export default function EditEditor({
         </div>
 
         {/* ---- wide résumé-only preview ---- */}
-        <div className="tmE-preview" ref={previewRef}>
+        <div className="tmE-preview" ref={previewRef} data-testid="resume-live-preview">
           {hlDir === "up" && (
             <div className="tmE-hl-arrow tmE-hl-arrow--up" aria-hidden="true">
               <ChevronUp size={14} /> Highlighted above
@@ -1352,13 +1494,30 @@ export default function EditEditor({
             )}
           </div>
           {(previewHits.kw || previewHits.metric) && (
-            <p className="tmE-preview-note">
-              {previewHits.kw
-                ? "Highlights mark the posting keywords and metrics your resume hits."
-                : "Highlights mark the metrics in your resume."}
-            </p>
+            <>
+              <p className="tmE-preview-note">
+                {previewHits.kw
+                  ? "Highlights mark the posting keywords and metrics your resume hits."
+                  : "Highlights mark the metrics in your resume."}
+              </p>
+              <span className="tmE-preview-disclaimer">
+                <Info size={13} /> Preview only. These colors aren&apos;t in your PDF.
+              </span>
+            </>
           )}
-          <PrintDoc doc={doc} id={id} resumeOnly hideToolbar highlightKeywords={keywords} />
+          <div ref={docWrapRef} style={{ position: "relative" }}>
+            <PrintDoc doc={doc} id={id} resumeOnly hideToolbar highlightKeywords={previewKeywords} />
+            {pageBreaks.map((y, i) => (
+              <div
+                key={i}
+                className="tmE-pagebreak"
+                style={{ top: `${y}px` }}
+                aria-hidden="true"
+              >
+                <span>Page {i + 2}</span>
+              </div>
+            ))}
+          </div>
           {hlDir === "down" && (
             <div className="tmE-hl-arrow tmE-hl-arrow--down" aria-hidden="true">
               <ChevronDown size={14} /> Highlighted below

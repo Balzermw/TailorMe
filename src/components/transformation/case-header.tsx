@@ -3,9 +3,8 @@ export default function CaseHeader() {
     <section className="tm-sec tmF-head">
       <h1 className="tm-h1">One application, end to end</h1>
       <p className="tm-body">
-        Alex M. is a senior software engineer with 7 years of real impact and a
-        resume that read like a task list, tailored to one posting at Nordpeak
-        Systems.
+        Alex M., a senior engineer with 7 years of real impact hidden in a
+        resume that read like a task list, tailored to Nordpeak Systems.
       </p>
     </section>
   );

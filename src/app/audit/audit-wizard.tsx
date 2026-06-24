@@ -1016,7 +1016,7 @@ function StepUpload({
               <StatCard icon={<Calendar size={15} />} value={yearsN} label="years experience" />
               <StatCard icon={<Briefcase size={15} />} value={rolesN} label={rolesN === 1 ? "role" : "roles"} />
               <StatCard icon={<List size={15} />} value={bulletsN} label="experience bullets" />
-              <StatCard icon={<TrendingUp size={15} />} value={metricsN} label="quantified" />
+              <StatCard icon={<TrendingUp size={15} />} value={metricsN} label="quantified bullets" />
             </div>
           </Reveal>
 
@@ -1365,10 +1365,9 @@ function ManualReviewCTA({ overall }: { overall: number }) {
           {line}
         </p>
         <p className="tm-small" style={{ marginTop: "6px", fontSize: "12.5px", lineHeight: 1.5 }}>
-          Michael, Head of Res.Me and a Certified Professional Resume Writer, has a strong track
-          record transforming resumes for candidates who don’t look qualified on paper. He can
-          rewrite yours for this kind of role, or coach you on career and resume strategy. We won’t
-          overpromise: he’ll also tell you honestly which targets fit best.
+          I&apos;m Michael, Head of Res.Me and a Certified Professional Resume Writer. I&apos;ve
+          rewritten plenty of resumes that didn&apos;t look qualified on paper. I can do the same for
+          yours, coach you on strategy, and tell you honestly which roles fit.
         </p>
         <Link
           href={ROUTES.coaching}
@@ -2088,11 +2087,10 @@ function MichaelPitch() {
         </span>
         <h3>Want real human eyes on it? That’s Michael.</h3>
         <p>
-          The agents catch what a parser and a skim-read see. Michael (head of
-          Res.Me, Certified Professional Resume Writer, 650+ resumes written)
-          reads it like the hiring manager: he goes line by line through your
-          final draft and adds positioning notes for this specific role. Back in
-          your inbox within 48 hours.
+          The AI agents already catch what a parser and a skim-read miss. For
+          extra peace of mind, Michael (Certified Professional Resume Writer, 650+
+          resumes) reads your final draft like a hiring manager and sends
+          positioning notes for this role, back in your inbox within 48 hours.
         </p>
         <div className="tmF-michael-foot">
           <span className="tm-pill tm-pill--mint">+$79 per application</span>
@@ -2160,7 +2158,7 @@ function CoverageEvidence({ a }: { a: AuditAgent }) {
           }}
         >
           {matched}
-          <span style={{ color: "var(--tm-zinc)", fontWeight: 400 }}>/{total} matched</span>
+          <span style={{ color: "var(--tm-zinc)", fontWeight: 400 }}>/{total} found</span>
         </span>
       </div>
 
@@ -2200,7 +2198,7 @@ function CoverageEvidence({ a }: { a: AuditAgent }) {
               color: "#ba7517",
             }}
           >
-            <Plus size={12} /> {missingKws.length} to add
+            <Plus size={12} /> {missingKws.length} missing keywords
           </span>
           <div className="tmF-chips" style={{ marginTop: "8px" }}>
             {missingKws.map((k, i) => (
@@ -2402,7 +2400,7 @@ function RankingEvidence({ a }: { a: AuditAgent }) {
         className="tm-small"
         style={{ fontSize: "11.5px", lineHeight: 1.5, color: "var(--tm-zinc)", marginBottom: "10px" }}
       >
-        Each row is a bullet from your <b style={{ fontWeight: 600, color: "var(--tm-ink)" }}>current</b> resume, scored 0 to 100 for how well it matches this posting. Nothing here is rewritten yet.
+        Score of 0&ndash;100 based on your job target.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
       {lines.map((l) => {
@@ -2648,7 +2646,15 @@ function AgentAuditSequence({ agents }: { agents: AuditAgent[] }) {
   );
 }
 
-function AgentAudit({ agents, sample }: { agents: AuditAgent[]; sample?: boolean }) {
+function AgentAudit({
+  agents,
+  sample,
+  role,
+}: {
+  agents: AuditAgent[];
+  sample?: boolean;
+  role?: string;
+}) {
   if (!agents || agents.length === 0) return null;
   const sequenceKey = agents.map((a) => `${a.id}:${a.title}:${a.footer}`).join("|");
   return (
@@ -2660,6 +2666,26 @@ function AgentAudit({ agents, sample }: { agents: AuditAgent[]; sample?: boolean
         Each pass reads the resume and posting in sequence: ATS terms, measurable impact,
         then role fit{sample ? " (sample audit shown)" : ""}. Cards appear as each check finishes.
       </p>
+      {role && (
+        <div
+          style={{
+            marginTop: "12px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "9px 12px",
+            borderRadius: "10px",
+            background: "var(--tm-blue-50)",
+            border: "0.5px solid rgba(67,115,219,.25)",
+          }}
+        >
+          <Briefcase size={14} style={{ color: "var(--tm-blue-600)", flex: "none" }} />
+          <span className="tm-small" style={{ fontSize: "12.5px" }}>
+            Running the agents on your resume for{" "}
+            <strong style={{ fontWeight: 600, color: "var(--tm-ink)" }}>{role}</strong>
+          </span>
+        </div>
+      )}
       <AgentAuditSequence key={sequenceKey} agents={agents} />
     </div>
   );
@@ -2725,7 +2751,7 @@ const DEMO_AGENTS: AuditAgent[] = [
     reads: "Reads your resume like a hiring manager",
     kind: "ranking",
     title: "Your bullets, ranked",
-    subtitle: "taken from your current resume, scored 0/100 for Senior Platform Engineer",
+    subtitle: "bullets taken from existing resume",
     chip: "Hard limit · 2 pages",
     footer: "",
     detail:
@@ -2830,6 +2856,7 @@ function StepResults({
   // so the Summary step can reuse them without a second call.
   const [auditAgents, setAuditAgents] = useState<AuditAgent[] | null>(null);
   const [auditSample, setAuditSample] = useState(false);
+  const [auditRole, setAuditRole] = useState<string | null>(null);
   const [auditLoading, setAuditLoading] = useState(true);
   // Keep the latest onAudited in a ref so it isn't an effect dep (a new inline
   // callback each render must not re-trigger the one-time audit fetch).
@@ -2854,10 +2881,12 @@ function StepResults({
           const agents = d.result.agents as AuditAgent[];
           setAuditAgents(agents);
           setAuditSample(false);
+          setAuditRole(typeof d.result.role === "string" ? d.result.role : null);
           onAuditedRef.current?.(agents, false);
         } else {
           setAuditAgents(DEMO_AGENTS); // demo / rate-limited / error → labeled sample
           setAuditSample(true);
+          setAuditRole("Senior Platform Engineer");
           onAuditedRef.current?.(DEMO_AGENTS, true);
         }
         track("free_audit_completed", { source: useSample ? "sample" : "user" });
@@ -2866,6 +2895,7 @@ function StepResults({
         if (!active) return;
         setAuditAgents(DEMO_AGENTS);
         setAuditSample(true);
+        setAuditRole("Senior Platform Engineer");
         onAuditedRef.current?.(DEMO_AGENTS, true);
       })
       .finally(() => {
@@ -2906,7 +2936,7 @@ function StepResults({
       ) : (
         <>
           <div className="tmF-anim">
-            <AgentAudit agents={auditAgents ?? DEMO_AGENTS} sample={auditSample} />
+            <AgentAudit agents={auditAgents ?? DEMO_AGENTS} sample={auditSample} role={auditRole ?? undefined} />
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button type="button" className="tm-btn tm-btn--primary" onClick={onNext}>
@@ -3014,7 +3044,7 @@ function StepSummary({
   return (
     <div className="flex flex-col gap-[20px]">
       {/* recap */}
-      <div className="tm-card" style={{ padding: "20px 22px" }}>
+      <div className="tm-card" style={{ padding: "20px 22px", textAlign: "center" }}>
         <span className="tmF-p2-label">Your audit summary</span>
         <h3 style={{ fontSize: "18px", fontWeight: 600, color: "var(--tm-ink)", margin: "8px 0 0" }}>
           {name ? `${name}, here’s the verdict` : "Here’s the verdict"}
@@ -3041,26 +3071,26 @@ function StepSummary({
         <div className="tm-card" style={{ padding: "20px 22px", borderColor: "var(--tm-mint-200)" }}>
           <span
             className="tmF-p2-label"
-            style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--tm-mint-600)" }}
+            style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", color: "var(--tm-mint-600)" }}
           >
             <Check size={14} /> What’s strong · keep it
           </span>
-          <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px" }}>
+          <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px", textAlign: "center" }}>
             Already working for this role. Tailoring leaves these alone.
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", marginTop: "12px" }}>
             {strongDims.length > 0 && (
-              <p className="tm-small" style={{ fontSize: "12.5px", color: "var(--tm-ink)" }}>
+              <p className="tm-small" style={{ fontSize: "12.5px", color: "var(--tm-ink)", textAlign: "center" }}>
                 Strong on {strongDims.map((d) => d.label).join(", ")}.
               </p>
             )}
             {quantified > 0 && (
-              <p className="tm-small" style={{ fontSize: "12.5px", color: "var(--tm-ink)" }}>
+              <p className="tm-small" style={{ fontSize: "12.5px", color: "var(--tm-ink)", textAlign: "center" }}>
                 {quantified} bullet{quantified === 1 ? "" : "s"} already carry a hard metric.
               </p>
             )}
             {matchedKw.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "6px" }}>
                 {matchedKw.map((k) => (
                   <span key={k.term} className="tm-pill tm-pill--mint" style={{ fontSize: "11px" }}>
                     <Check size={11} /> {k.term}
@@ -3076,11 +3106,11 @@ function StepSummary({
       <div className="tm-card" style={{ padding: "20px 22px", borderColor: "rgba(45,189,139,.35)" }}>
         <span
           className="tmF-p2-label"
-          style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--tm-mint-600)" }}
+          style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", color: "var(--tm-mint-600)" }}
         >
           <TrendingUp size={14} /> What to quantify
         </span>
-        <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px", color: "var(--tm-ink)" }}>
+        <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px", color: "var(--tm-ink)", textAlign: "center" }}>
           Add a truthful metric where the work supports it: scope, volume, frequency, time saved,
           error reduction, revenue, cost, users, tickets, SLA, team size, budget, conversion,
           latency, uptime, or throughput. Do not invent the number.
@@ -3093,12 +3123,12 @@ function StepSummary({
           <div>
             <span
               className="tmF-p2-label"
-              style={{ display: "flex", alignItems: "center", gap: "8px", color: "#854f0b" }}
+              style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", color: "#854f0b" }}
             >
               <PenLine size={14} /> What to change · {proofPoints.length} fix
               {proofPoints.length === 1 ? "" : "es"}
             </span>
-            <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px" }}>
+            <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px", textAlign: "center" }}>
               Rewrites pulled from your resume. Each shows the section it lives in.
             </p>
           </div>
@@ -3130,16 +3160,16 @@ function StepSummary({
         <div className="tm-card" style={{ padding: "20px 22px" }}>
           <span
             className="tmF-p2-label"
-            style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--tm-blue-600)" }}
+            style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", color: "var(--tm-blue-600)" }}
           >
             <Plus size={14} /> What to add · {missingKw.length} keyword
             {missingKw.length === 1 ? "" : "s"}
           </span>
-          <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px" }}>
+          <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px", textAlign: "center" }}>
             The posting screens for these and your resume misses them. Tailoring adds them only where
             your experience genuinely backs them.
           </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "12px" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "6px", marginTop: "12px" }}>
             {missingKw.map((k) => (
               <span
                 key={k.term}
@@ -3181,10 +3211,11 @@ function StepSummary({
         <span className="tm-pill tm-pill--mint">
           <Check size={12} /> free · no card required
         </span>
-        <h3>Open the editor to make these changes</h3>
+        <h3>Ready to apply the fixes the agents found?</h3>
         <p>
-          Each suggestion above opens next to the section it affects, so you can apply it yourself.
-          Prefer it done for you? Run the full AI tailor below to rewrite every bullet for this posting.
+          Open the editor and each suggestion above sits next to the section it affects, so you can
+          apply it yourself. Prefer it done for you? Run the full AI tailor below to rewrite every
+          bullet for this posting.
         </p>
         <button
           type="button"

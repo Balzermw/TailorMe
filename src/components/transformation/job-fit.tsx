@@ -37,10 +37,10 @@ function FitBars({ title }: { title: string }) {
 
 const JOB_LABEL: React.CSSProperties = {
   fontSize: "11px",
-  fontWeight: 600,
-  letterSpacing: "0.04em",
+  fontWeight: 700,
+  letterSpacing: "0.06em",
   textTransform: "uppercase",
-  color: "var(--tm-zinc)",
+  color: "var(--tm-blue-600)",
   marginBottom: "8px",
 };
 

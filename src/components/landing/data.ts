@@ -2,7 +2,7 @@
 // "ApplyForMeWebDesignv2" design handoff (TailorMe Homepage Final, Direction B).
 
 export const HEADLINE = {
-  pre: "See the score three AI agents give your resume ",
+  pre: "See what three AI agents find in your resume ",
   em: "before recruiters do.",
   post: "",
 };
@@ -72,7 +72,7 @@ export const MICHAEL = {
   name: "Michael",
   title: "Head of Res.Me · Certified Professional Resume Writer",
   blurb:
-    "The three agents run on every application. When you want a human pass, Michael personally reviews your final draft and adds positioning notes for your target role.",
+    "When you want a human pass, Michael personally reviews your final draft and adds positioning notes for your target role.",
   img: "/michael.png",
 };
 
