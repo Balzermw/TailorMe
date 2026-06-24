@@ -187,6 +187,25 @@ export interface VerificationReport {
  * doc). Anchored to {entry,bullet} coordinates into doc.experience, taken after
  * verifyDoc's same-shape guard so the coordinates are stable for the stored row.
  */
+export interface TailorDiagnostics {
+  qualityGate: "passed" | "failed";
+  attempts: number;
+  repairPasses: number;
+  rawRewritePairs: number;
+  changedRewritePairs: number;
+  noOpRewritePairs: number;
+  documentRepairPasses: number;
+  postVerifyRewritePairs: number;
+  verifyCorrections: number;
+  walkedBackPairs: number;
+  finalDocBulletCount: number;
+  matchedBulletDiffs: number;
+  unmatchedRewritePairs: number;
+  bestMatchScores: number[];
+  finalDifferentFromSource: boolean;
+  failureReason?: string;
+}
+
 export interface BulletDiff {
   entry: number;
   bullet: number;
@@ -214,6 +233,7 @@ export interface ApplyResult {
   agents?: AuditAgent[]; // the three personified review cards (full run only)
   doc: TailoredDoc | null; // null for score-only (free preview); current/edited doc
   verification?: VerificationReport; // faithfulness pass over the tailored doc (full run only)
+  tailorDiagnostics?: TailorDiagnostics; // privacy-safe quality gate metrics for paid tailoring
   // ----- editor (added when a user edits a tailored application) -----
   originalDoc?: TailoredDoc; // AI draft snapshot; never overwritten ("reset to AI version")
   bulletDiffs?: BulletDiff[]; // per-bullet before/after for the editor's diff rows

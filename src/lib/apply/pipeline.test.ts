@@ -1,5 +1,17 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+const EXPECTED_BULLETS = [
+  "Built Node.js services for platform teams while cutting p95 latency 38%.",
+  "Maintained Kubernetes jobs supporting reliable platform deployments.",
+  "Improved observability dashboards for faster incident response.",
+];
+
+const REPAIRED_BULLETS = [
+  "Built Node.js services for platform teams while cutting p95 latency 38% with source-safe wording.",
+  "Maintained Kubernetes jobs supporting reliable platform deployments with source-safe wording.",
+  "Improved observability dashboards for faster incident response with source-safe wording.",
+];
+
 // Captures the (tool name, model) of every forced-tool call so tests can assert
 // per-step model routing. Hoisted so the vi.mock factory can close over it.
 const { calls, fixtureOverrides } = vi.hoisted(() => ({
@@ -28,7 +40,20 @@ vi.mock("@anthropic-ai/sdk", () => {
       ],
     },
     tailor_resume: {
-      bullets: [{ before: "Did things", after: "Led migration cutting p95 38%" }],
+      bullets: [
+        {
+          before: "Built Node.js services for platform teams.",
+          after: "Built Node.js services for platform teams while cutting p95 latency 38%.",
+        },
+        {
+          before: "Maintained Kubernetes jobs.",
+          after: "Maintained Kubernetes jobs supporting reliable platform deployments.",
+        },
+        {
+          before: "Improved observability dashboards.",
+          after: "Improved observability dashboards for faster incident response.",
+        },
+      ],
       keywords: ["Distributed systems", "Kubernetes"],
       doc: {
         name: "Alex Mercer",
@@ -36,11 +61,36 @@ vi.mock("@anthropic-ai/sdk", () => {
         contact: "Copenhagen",
         summary: "Platform engineer.",
         experience: [
-          { role: "SSE", company: "Brightline", dates: "2019–now", bullets: ["x"] },
+          {
+            role: "SSE",
+            company: "Brightline",
+            dates: "2019–now",
+            bullets: [
+              "Built Node.js services for platform teams while cutting p95 latency 38%.",
+              "Maintained Kubernetes jobs supporting reliable platform deployments.",
+              "Improved observability dashboards for faster incident response.",
+            ],
+          },
         ],
         skills: ["Node.js"],
         coverLetter: "Dear team,\n\nHello.\n\nSincerely.",
       },
+    },
+    repair_rewrite_evidence: {
+      bullets: [
+        {
+          before: "Built Node.js services for platform teams.",
+          after: "Built Node.js services for platform teams while cutting p95 latency 38%.",
+        },
+        {
+          before: "Maintained Kubernetes jobs.",
+          after: "Maintained Kubernetes jobs supporting reliable platform deployments.",
+        },
+        {
+          before: "Improved observability dashboards.",
+          after: "Improved observability dashboards for faster incident response.",
+        },
+      ],
     },
     agent_review: {
       notes: [
@@ -85,7 +135,16 @@ vi.mock("@anthropic-ai/sdk", () => {
     verify_faithfulness: {
       summary: "Platform engineer.",
       experience: [
-        { role: "SSE", company: "Brightline", dates: "2019–now", bullets: ["x"] },
+        {
+          role: "SSE",
+          company: "Brightline",
+          dates: "2019–now",
+          bullets: [
+            "Built Node.js services for platform teams while cutting p95 latency 38%.",
+            "Maintained Kubernetes jobs supporting reliable platform deployments.",
+            "Improved observability dashboards for faster incident response.",
+          ],
+        },
       ],
       corrections: [],
     },
@@ -128,6 +187,25 @@ beforeEach(() => {
   for (const k of Object.keys(fixtureOverrides)) delete fixtureOverrides[k];
 });
 
+function tailoredDocFixture(bullets = EXPECTED_BULLETS) {
+  return {
+    name: "Alex Mercer",
+    headline: "Senior Platform Engineer",
+    contact: "Copenhagen",
+    summary: "Platform engineer.",
+    experience: [
+      {
+        role: "SSE",
+        company: "Brightline",
+        dates: "2019-now",
+        bullets,
+      },
+    ],
+    skills: ["Node.js"],
+    coverLetter: "Dear team.\n\nHello.\n\nSincerely.",
+  };
+}
+
 describe("apply pipeline", () => {
   it("runScore returns fit only, no documents", async () => {
     const r = await runScore("resume", "posting");
@@ -147,6 +225,8 @@ describe("apply pipeline", () => {
     expect(r.keywords).toContain("Kubernetes");
     expect(r.doc?.name).toBe("Alex Mercer");
     expect(r.doc?.experience).toHaveLength(1);
+    expect(r.bulletDiffs).toHaveLength(3);
+    expect(r.tailorDiagnostics?.qualityGate).toBe("passed");
     expect(r.agentNotes.map((n) => n.agent)).toContain("ATS & keywords");
   });
 
@@ -164,6 +244,88 @@ describe("apply pipeline", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].name).toBe("report_fit");
     expect(calls[0].model).toBe("claude-sonnet-4-6");
+  });
+
+  it("repairs missing rewrite evidence before storing the full result", async () => {
+    fixtureOverrides.tailor_resume = {
+      bullets: [],
+      keywords: ["Distributed systems", "Kubernetes"],
+      doc: tailoredDocFixture(),
+    };
+
+    const r = await runFull("resume", "posting");
+
+    expect(r.bulletDiffs).toHaveLength(3);
+    expect(r.tailorDiagnostics?.qualityGate).toBe("passed");
+    expect(r.tailorDiagnostics?.repairPasses).toBe(1);
+    expect(r.tailorDiagnostics?.rawRewritePairs).toBe(0);
+    expect(calls.some((c) => c.name === "repair_rewrite_evidence")).toBe(true);
+  });
+
+  it("repairs incomplete tailor documents before review and storage", async () => {
+    fixtureOverrides.tailor_resume = {
+      bullets: [],
+      keywords: ["Distributed systems"],
+      doc: { name: "Alex Mercer", headline: "Senior Platform Engineer" },
+    };
+    fixtureOverrides.repair_tailored_document = {
+      bullets: [
+        {
+          before: "Built Node.js services for platform teams.",
+          after: EXPECTED_BULLETS[0],
+        },
+        {
+          before: "Maintained Kubernetes jobs.",
+          after: EXPECTED_BULLETS[1],
+        },
+        {
+          before: "Improved observability dashboards.",
+          after: EXPECTED_BULLETS[2],
+        },
+      ],
+      keywords: ["Distributed systems", "Kubernetes"],
+      doc: tailoredDocFixture(),
+    };
+
+    const r = await runFull("resume", "posting");
+
+    expect(r.doc?.experience[0].bullets).toEqual(EXPECTED_BULLETS);
+    expect(r.bulletDiffs).toHaveLength(3);
+    expect(r.tailorDiagnostics?.qualityGate).toBe("passed");
+    expect(r.tailorDiagnostics?.documentRepairPasses).toBe(1);
+    expect(calls.filter((c) => c.name === "tailor_resume")).toHaveLength(2);
+    expect(calls.some((c) => c.name === "repair_tailored_document")).toBe(true);
+    expect(calls.some((c) => c.name === "agent_review")).toBe(true);
+  });
+
+  it("rejects incomplete tailor documents when focused repair still cannot render experience", async () => {
+    fixtureOverrides.tailor_resume = {
+      bullets: [],
+      keywords: ["Distributed systems"],
+      doc: { name: "Alex Mercer", headline: "Senior Platform Engineer" },
+    };
+    fixtureOverrides.repair_tailored_document = {
+      bullets: [],
+      keywords: ["Distributed systems"],
+      doc: { name: "Alex Mercer", headline: "Senior Platform Engineer" },
+    };
+
+    await expect(runFull("resume", "posting")).rejects.toThrow(/incomplete document/);
+    expect(calls.some((c) => c.name === "repair_tailored_document")).toBe(true);
+    expect(calls.some((c) => c.name === "agent_review")).toBe(false);
+  });
+
+  it("rejects full results that cannot produce three anchored rewrite rows", async () => {
+    fixtureOverrides.tailor_resume = {
+      bullets: [],
+      keywords: ["Distributed systems", "Kubernetes"],
+      doc: tailoredDocFixture(),
+    };
+    fixtureOverrides.repair_rewrite_evidence = { bullets: [] };
+
+    await expect(runFull("resume", "posting")).rejects.toThrow(/verifiable bullet rewrites/);
+    expect(calls.filter((c) => c.name === "tailor_resume")).toHaveLength(2);
+    expect(calls.some((c) => c.name === "agent_review")).toBe(false);
   });
 });
 
@@ -242,23 +404,38 @@ describe("faithfulness verification pass (trust-signal integrity)", () => {
     expect(r.verification?.status).toBe("clean");
     expect(r.verification?.corrections).toEqual([]);
     expect(r.verification?.checked).toBeGreaterThan(0);
-    expect(r.doc?.experience[0].bullets).toEqual(["x"]);
+    expect(r.doc?.experience[0].bullets).toEqual(EXPECTED_BULLETS);
   });
 
   it("marks a run with applied repairs 'corrected' and adopts the repaired bullets", async () => {
     fixtureOverrides.verify_faithfulness = {
       summary: "Platform engineer.",
       experience: [
-        { role: "SSE", company: "Brightline", dates: "2019–now", bullets: ["x repaired"] },
+        {
+          role: "SSE",
+          company: "Brightline",
+          dates: "2019–now",
+          bullets: REPAIRED_BULLETS,
+        },
       ],
       corrections: [
         { kind: "inflated-scope", claim: "global team", note: "resume says 'a team'." },
       ],
     };
+    fixtureOverrides.repair_rewrite_evidence = {
+      bullets: REPAIRED_BULLETS.map((after, i) => ({
+        before: [
+          "Built Node.js services for platform teams.",
+          "Maintained Kubernetes jobs.",
+          "Improved observability dashboards.",
+        ][i],
+        after,
+      })),
+    };
     const r = await runFull("resume", "posting");
     expect(r.verification?.status).toBe("corrected");
     expect(r.verification?.corrections).toHaveLength(1);
-    expect(r.doc?.experience[0].bullets).toEqual(["x repaired"]);
+    expect(r.doc?.experience[0].bullets).toEqual(REPAIRED_BULLETS);
   });
 
   it("NEVER claims 'clean' when the verify call throws — status 'unavailable', doc untouched", async () => {
@@ -266,7 +443,7 @@ describe("faithfulness verification pass (trust-signal integrity)", () => {
     const r = await runFull("resume", "posting");
     expect(r.verification?.status).toBe("unavailable");
     expect(r.verification?.corrections).toEqual([]);
-    expect(r.doc?.experience[0].bullets).toEqual(["x"]); // unchanged
+    expect(r.doc?.experience[0].bullets).toEqual(EXPECTED_BULLETS); // unchanged
   });
 
   it("treats a shape mismatch as 'unavailable' and discards the repair + its corrections", async () => {
@@ -278,7 +455,7 @@ describe("faithfulness verification pass (trust-signal integrity)", () => {
     const r = await runFull("resume", "posting");
     expect(r.verification?.status).toBe("unavailable");
     expect(r.verification?.corrections).toEqual([]); // not reported — repair was discarded
-    expect(r.doc?.experience[0].bullets).toEqual(["x"]); // original kept
+    expect(r.doc?.experience[0].bullets).toEqual(EXPECTED_BULLETS); // original kept
   });
 
   it("rejects a repair that empties a bullet to '' (post-filter count guard, not pre-filter)", async () => {
@@ -292,7 +469,7 @@ describe("faithfulness verification pass (trust-signal integrity)", () => {
     };
     const r = await runFull("resume", "posting");
     expect(r.verification?.status).toBe("unavailable");
-    expect(r.doc?.experience[0].bullets).toEqual(["x"]); // bullet not silently dropped
+    expect(r.doc?.experience[0].bullets).toEqual(EXPECTED_BULLETS); // bullet not silently dropped
   });
 
   it("treats a reordered experience array as a shape mismatch (no header/bullet desync)", async () => {
@@ -307,6 +484,6 @@ describe("faithfulness verification pass (trust-signal integrity)", () => {
     const r = await runFull("resume", "posting");
     expect(r.verification?.status).toBe("unavailable");
     expect(r.doc?.experience[0].company).toBe("Brightline");
-    expect(r.doc?.experience[0].bullets).toEqual(["x"]);
+    expect(r.doc?.experience[0].bullets).toEqual(EXPECTED_BULLETS);
   });
 });

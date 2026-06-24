@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import Nav from "@/components/landing/nav";
 import { supabaseConfigured } from "@/lib/config";
 import { getApplication } from "@/lib/db";
+import { E2E_REVISION_APP_ID } from "@/lib/e2e/revision-fixture";
 import { ROUTES } from "@/components/landing/data";
 import EditEditor from "./edit-editor";
+import E2ERevisionEditor from "./e2e-revision-editor";
 import "../print/print.css";
 import "./edit.css";
 
@@ -22,6 +24,17 @@ export default async function EditPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  if (process.env.E2E_TEST_MODE === "1" && id === E2E_REVISION_APP_ID) {
+    return (
+      <div className="tm">
+        <Nav active="Dashboard" />
+        <main>
+          <E2ERevisionEditor id={id} />
+        </main>
+      </div>
+    );
+  }
+
   if (!supabaseConfigured) redirect(ROUTES.dashboard);
 
   const app = await getApplication(id);
