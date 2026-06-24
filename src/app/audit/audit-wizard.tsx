@@ -2032,7 +2032,7 @@ function StepJob({
       <FitResult view={view} shown={shown} />
 
       {note && (
-        <p className="tmS-free" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <p className="tmS-free">
           {note} This is a sample result.{" "}
           <Link href={ROUTES.signIn} style={{ color: "var(--tm-mint-600)", textDecoration: "underline" }}>
             create a free account
@@ -2041,7 +2041,7 @@ function StepJob({
         </p>
       )}
       {demoScore && (
-        <p className="tmS-free" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <p className="tmS-free">
           Demo mode: this is a sample result, not scored from your resume. Add a provider key to score
           real resumes.
         </p>
@@ -3377,10 +3377,8 @@ export default function AuditWizard() {
       <section ref={headRef} className="tm-sec tmF-head" style={{ paddingBottom: 0 }}>
         <h1 className="tm-h1">See what tailoring does to your resume</h1>
         <p className="tm-body">
-          Four steps, about two minutes. Your draft is reviewed by three
-          specialist AI agents (trained on ATS parsing, impact, and role-fit)
-          each returning line-level fixes. First application free, no card
-          required.
+          Three AI agents (ATS, impact, role-fit) score your resume against the
+          role and return line-level fixes. First use is free.
         </p>
         <Stepper step={step} />
       </section>

@@ -8,6 +8,7 @@ import {
   FREE_AUDIT_GLOBAL_RULES,
   FREE_AUDIT_RULES,
   FULL_RUN_RULES,
+  MAX_POSTING_CHARS,
   rateLimitDisabled,
   validateApplyInput,
 } from "@/lib/limits";
@@ -70,7 +71,9 @@ export async function POST(request: Request) {
   const resumeText = body.useSample
     ? SAMPLE_RESUME
     : (body.resumeText ?? "").trim();
-  const postingText = (body.postingText ?? "").trim();
+  // Silently trim overly long postings (full-page LinkedIn pastes, etc.) so the
+  // user still gets a real score instead of seeing the Nordpeak sample fallback.
+  const postingText = (body.postingText ?? "").trim().slice(0, MAX_POSTING_CHARS);
 
   if (!resumeText || !postingText) {
     return NextResponse.json(
@@ -79,7 +82,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // Cap input size → bounds tokens (and cost) per call.
+  // Cap input size — only the resume length can still breach the limit now.
   const sizeError = validateApplyInput(resumeText, postingText);
   if (sizeError) {
     return NextResponse.json({ error: sizeError }, { status: 413 });

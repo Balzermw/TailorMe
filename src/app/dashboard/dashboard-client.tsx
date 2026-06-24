@@ -46,10 +46,10 @@ const APPS: App[] = [
 ];
 
 const STATUS_LABEL: Record<Status, string> = {
-  ready: "Reviewed · ready to download",
+  ready: "Ready to download",
   running: "Running",
-  michael: "Michael reviewing · returns in ~36h",
-  scored: "Scored only · no credit spent",
+  michael: "With Michael",
+  scored: "Scored only",
 };
 
 type Doc = {
@@ -90,7 +90,17 @@ const STATUS_TONE: Record<Status, string> = {
   scored: "scored",
 };
 
+// Per-dimension rationale shown under each fit bar in the drawer.
+const DIM_DETAIL: Record<string, string> = {
+  "Technical skills": "Matched against required technologies and tooling in the posting.",
+  "Experience match": "Seniority, years of experience, and industry context vs. what's asked.",
+  "Culture fit": "Communication style, values signals, and team-structure cues.",
+  "Career alignment": "Trajectory toward this role based on your progression and title history.",
+};
+
 function Drawer({ app, onClose, onRequestReview }: { app: App; onClose: () => void; onRequestReview: () => void }) {
+  const [openDim, setOpenDim] = useState<string | null>(null);
+
   return (
     <div className="tm-card tmD-drawer">
       <div className="tmD-drawer-head">
@@ -110,15 +120,27 @@ function Drawer({ app, onClose, onRequestReview }: { app: App; onClose: () => vo
 
       {app.fit != null && (
         <>
-          <p className="tmD-drawer-sec">Fit breakdown</p>
+          <p className="tmD-drawer-sec">Fit breakdown <span style={{ fontSize: "11px", fontWeight: 400, color: "var(--tm-zinc)", textTransform: "none", letterSpacing: 0 }}>· tap a dimension for detail</span></p>
           <div className="tm-fit">
             {SCORES.map((s) => {
               const v = Math.max(20, s.v - (84 - app.fit!));
+              const isOpen = openDim === s.l;
               return (
-                <div key={s.l} className="tm-fit-row">
-                  <label>{s.l}</label>
-                  <div className="tm-fit-track"><div className="tm-fit-bar" style={{ width: v + "%" }} /></div>
-                  <output>{v}</output>
+                <div key={s.l}>
+                  <div
+                    className="tm-fit-row"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setOpenDim(isOpen ? null : s.l)}
+                  >
+                    <label style={{ cursor: "pointer" }}>{s.l}</label>
+                    <div className="tm-fit-track"><div className="tm-fit-bar" style={{ width: v + "%" }} /></div>
+                    <output>{v}</output>
+                  </div>
+                  {isOpen && (
+                    <p style={{ fontSize: "12px", color: "var(--tm-zinc)", margin: "2px 0 8px", paddingLeft: "2px", lineHeight: 1.5 }}>
+                      {DIM_DETAIL[s.l] ?? ""}
+                    </p>
+                  )}
                 </div>
               );
             })}
