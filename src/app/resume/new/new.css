@@ -31,10 +31,195 @@
   margin-top: 8px;
   max-width: 58ch;
 }
+/* Quiet, compact "you already have a source profile" strip — informational,
+   not an alarm. The confirmation card carries a little more emphasis since it
+   gates a destructive replace, but stays neutral (no orange). */
+.tmB-replace-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 22px;
+  border: 1px solid var(--tm-border);
+  border-radius: 10px;
+  background: var(--tm-gray);
+}
+.tmB-replace-icon {
+  flex: none;
+  color: var(--tm-zinc);
+}
+.tmB-replace-copy {
+  flex: 1;
+  min-width: 0;
+}
+.tmB-replace-copy b {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--tm-ink);
+}
+.tmB-replace-copy p {
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--tm-zinc);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tmB-replace-link {
+  flex: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tm-blue-600);
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+.tmB-replace-link:hover {
+  color: var(--tm-blue-800);
+}
+.tmB-replace-confirm {
+  margin-top: 8px;
+  padding: 16px;
+  border: 1px solid var(--tm-border);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: var(--tm-shadow-soft);
+  transform-origin: top center;
+  animation: tmB-confirm-pop 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.tmB-replace-confirm b {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--tm-ink);
+}
+.tmB-replace-confirm p {
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--tm-zinc);
+}
+/* Facts about the profile being replaced — a compact label/value panel so the
+   user can weigh what they'd overwrite (provenance, length, created, updated). */
+.tmB-replace-facts {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 11px 13px;
+  border: 0.5px solid var(--tm-border);
+  border-radius: 8px;
+  background: var(--tm-gray);
+}
+.tmB-replace-facts > div {
+  display: flex;
+  gap: 10px;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.tmB-replace-facts dt {
+  flex: none;
+  width: 88px;
+  color: var(--tm-zinc);
+  font-weight: 500;
+}
+.tmB-replace-facts dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--tm-ink);
+  font-weight: 500;
+}
+.tmB-replace-confirm > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+@keyframes tmB-confirm-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 .tmB-build-sec {
   padding-top: 22px;
   margin-top: 22px;
   border-top: 0.5px solid var(--tm-border);
+}
+
+/* Smooth add/remove for repeatable rows (experience, education). A new row eases
+   in; removing one collapses + fades out before it's dropped; its remove button
+   slides up. Stable React keys keep this to the changed row only. */
+@keyframes tmB-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tmB-item-out {
+  from {
+    opacity: 1;
+    max-height: 600px;
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-width: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes tmB-btn-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.tmB-item {
+  animation: tmB-item-in 0.26s ease both;
+}
+.tmB-item.is-removing {
+  overflow: hidden;
+  pointer-events: none;
+  animation: tmB-item-out 0.3s ease forwards;
+}
+.tmB-item .tmE-edu-remove {
+  animation: tmB-btn-in 0.3s ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tmB-item,
+  .tmB-item .tmE-edu-remove,
+  .tmB-replace-confirm {
+    animation: none;
+  }
+  /* Keep a near-instant exit so onAnimationEnd still fires and the row is dropped. */
+  .tmB-item.is-removing {
+    animation: tmB-item-out 0.01s linear forwards;
+  }
+}
+@media (max-width: 640px) {
+  .tmB-replace-card {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .tmB-replace-copy {
+    width: 100%;
+  }
 }
 .tmB-build-sec:first-of-type {
   padding-top: 26px;
@@ -54,8 +239,144 @@
 .tmB-build-err {
   margin-top: 18px;
   font-size: 13px;
+  line-height: 1.45;
   color: #b3261e;
+  padding: 12px 14px;
+  border: 1px solid rgba(179, 38, 30, 0.22);
+  border-radius: 8px;
+  background: #fff5f5;
 }
 .tmB-build-actions {
   margin-top: 28px;
+}
+
+/* Import dropzone: upload a PDF/Word resume (or drag it on); the extractor fills
+   the paste box below for review. The hidden input is wrapped by the label, so
+   clicking anywhere on the zone opens the file picker. */
+.tmB-dropzone {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  border: 1.5px dashed var(--tm-border);
+  border-radius: 10px;
+  background: var(--tm-gray);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.tmB-dropzone:hover,
+.tmB-dropzone:focus-within {
+  border-color: var(--tm-blue-400);
+  background: var(--tm-blue-50);
+}
+.tmB-dropzone.is-busy {
+  cursor: wait;
+  opacity: 0.75;
+}
+.tmB-dropzone > svg {
+  flex: none;
+  color: var(--tm-blue-600);
+}
+.tmB-dropzone-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.tmB-dropzone-text b {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tm-ink);
+}
+.tmB-dropzone-text span {
+  font-size: 12.5px;
+  color: var(--tm-zinc);
+  margin-top: 1px;
+}
+/* Roomier paste box on the import/build pages (matches the dropzone padding)
+   without touching the denser editor textareas. */
+.tmB-build .tmE-textarea {
+  padding: 12px 14px;
+}
+
+/* Import processing state: a calm, centered panel while we read the file and
+   structure it (structuring a full resume takes a few seconds). */
+.tmB-processing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 56px 24px;
+  border: 1px solid var(--tm-border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--tm-shadow-soft);
+}
+.tmB-processing-spin {
+  color: var(--tm-blue-600);
+  animation: tmB-spin 0.8s linear infinite;
+}
+@keyframes tmB-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.tmB-processing b {
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--tm-ink);
+}
+.tmB-processing-file {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--tm-slate);
+}
+.tmB-processing .tm-small {
+  max-width: 46ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--tm-zinc);
+}
+/* Indeterminate progress bar — the structuring step has no measurable percent,
+   so a sliding fill communicates "working" without a fake countdown. */
+.tmB-progress {
+  margin-top: 14px;
+  width: 240px;
+  max-width: 80%;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--tm-gray);
+  overflow: hidden;
+}
+.tmB-progress-bar {
+  display: block;
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: var(--tm-blue-600);
+  animation: tmB-progress-slide 1.15s ease-in-out infinite;
+}
+@keyframes tmB-progress-slide {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(360%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tmB-progress-bar {
+    animation: none;
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tmB-processing-spin {
+    animation: none;
+  }
 }

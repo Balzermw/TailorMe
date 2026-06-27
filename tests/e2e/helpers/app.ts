@@ -1,5 +1,9 @@
 import type { Page } from "@playwright/test";
 import type { TailoredDoc } from "@/lib/types";
+import {
+  E2E_REVISION_APP_ID,
+  E2E_REVISION_RESULT,
+} from "@/lib/e2e/revision-fixture";
 
 export const TEST_JOB_POSTING = [
   "Senior Platform Engineer",
@@ -29,11 +33,34 @@ export const STRUCTURED_TEST_DOC: TailoredDoc = {
   coverLetter: "",
 };
 
+export const RAW_SOURCE_PROFILE_TEXT = [
+  "Redon Kalemaj",
+  "RF sensor engineer with implementation, integration, and documentation experience.",
+  "Associate RF Sensor Engineer, Boeing, St. Louis, MO, May 2023 - Jan 2025",
+  "Developed and tested RF sensor systems against detailed hardware requirements.",
+  "Skills: requirements analysis, audits and compliance, Altium Designer, C/C++",
+].join("\n");
+
 export async function clearClientState(page: Page): Promise<void> {
   await page.addInitScript(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
   });
+}
+
+export async function seedRawSourceProfile(page: Page, text: string = RAW_SOURCE_PROFILE_TEXT): Promise<void> {
+  await page.addInitScript((sourceText) => {
+    window.localStorage.setItem(
+      "tm_resume_v1",
+      JSON.stringify({
+        name: "Redon Kalemaj",
+        text: sourceText,
+        stats: null,
+        source: "pasted",
+        savedAt: "2026-06-24T12:00:00.000Z",
+      }),
+    );
+  }, text);
 }
 
 export async function seedLocalResume(page: Page, doc: TailoredDoc = STRUCTURED_TEST_DOC): Promise<void> {
@@ -183,6 +210,17 @@ export async function mockAgentReview(page: Page): Promise<void> {
               },
             ],
           },
+        }),
+      });
+      return;
+    }
+    if (body?.mode === "full") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          result: E2E_REVISION_RESULT,
+          applicationId: E2E_REVISION_APP_ID,
         }),
       });
       return;

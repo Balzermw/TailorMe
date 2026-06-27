@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import Nav from "@/components/landing/nav";
 import { supabaseConfigured } from "@/lib/config";
 import { getApplication } from "@/lib/db";
@@ -8,6 +7,7 @@ import { E2E_REVISION_APP_ID } from "@/lib/e2e/revision-fixture";
 import { ROUTES } from "@/components/landing/data";
 import EditEditor from "./edit-editor";
 import E2ERevisionEditor from "./e2e-revision-editor";
+import LocalApplicationEditLoader from "./local-application-edit-loader";
 import "../print/print.css";
 import "./edit.css";
 
@@ -35,7 +35,16 @@ export default async function EditPage({
     );
   }
 
-  if (!supabaseConfigured) redirect(ROUTES.dashboard);
+  if (!supabaseConfigured) {
+    return (
+      <div className="tm">
+        <Nav active="Dashboard" />
+        <main>
+          <LocalApplicationEditLoader id={id} />
+        </main>
+      </div>
+    );
+  }
 
   const app = await getApplication(id);
   const doc = app?.result?.doc ?? null;

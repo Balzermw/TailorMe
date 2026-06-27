@@ -140,6 +140,15 @@ function AfterDoc() {
         generic team-player headline.
       </p>
 
+      <p className="tmB-pdoc-sec">Skills</p>
+      <p className="tmB-pdoc-skills">
+        <mark className="tm-k">Distributed systems</mark> |{" "}
+        <mark className="tm-k">Node.js at scale</mark> |{" "}
+        <mark className="tm-k">Kubernetes</mark> | PostgreSQL | AWS | Docker |
+        CI/CD pipelines | <mark className="tm-k">Observability</mark> |
+        Mentorship
+      </p>
+
       <p className="tmB-pdoc-sec">Experience</p>
       <div className="tmB-pdoc-entry">
         <span className="tmB-pdoc-role">
@@ -198,12 +207,6 @@ function AfterDoc() {
       <p className="tmB-pdoc-bullet">
         Partnered with support and data teams to turn customer-impact reports
         into measurable reliability goals.
-      </p>
-
-      <p className="tmB-pdoc-sec">Skills</p>
-      <p className="tmB-pdoc-skills">
-        Distributed systems | Node.js at scale | Kubernetes | PostgreSQL | AWS |
-        Docker | CI/CD pipelines | Observability | Mentorship
       </p>
 
       <p className="tmB-pdoc-sec">Education</p>

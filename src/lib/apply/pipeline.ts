@@ -59,6 +59,8 @@ const GUARDRAILS =
   "Never promise jobs, interviews, salary increases, or ATS-bypass; say 'interview-ready' / " +
   "'recruiter-ready'. When writing analysis or review notes, do not quote or repeat contact " +
   "details such as emails, phone numbers, LinkedIn URLs, websites, or street addresses. " +
+  "Resume headlines must be concise role titles, not mini summaries: 3-7 words, no " +
+  "'with ... experience' phrasing, and no keyword-stuffed comma lists. " +
   "Stay strictly faithful to the source resume: do not invent or inflate " +
   "metrics, numbers, percentages, dates, tenure, job titles, technologies, or " +
   "responsibilities, and do not upgrade verbs beyond what the resume supports (e.g. " +
@@ -197,6 +199,9 @@ const PARSE_SYSTEM =
   "ongoing role — NEVER flag it as future-dated, inconsistent, or an error); vague " +
   "responsibility bullets that state " +
   "activity with no outcome; a dense wall-of-text summary; impact that is never quantified; " +
+  "If you flag a dense or hard-to-scan professional summary, the fix is to shorten " +
+  "and sharpen it into a tight 1-2 sentence paragraph. Do NOT recommend converting " +
+  "the summary into bullets. " +
   "clichés and buzzwords; keywords buried in prose instead of scannable. " +
   "Apply professional resume standards: flag empty self-descriptors and buzzwords with no " +
   "proof (e.g. " +
@@ -349,8 +354,8 @@ const STRUCTURE_SYSTEM =
   "You convert a person's raw resume text, LinkedIn export, or rough career notes " +
   "into a STRUCTURED resume. Extract ONLY what is actually in the text — never " +
   "invent employers, job titles, dates, metrics, schools, certifications, or " +
-  "skills. Produce: the candidate's name; a headline (their most recent or stated " +
-  "target title); a single contact line joining phone, email, city/state, and any " +
+  "skills. Produce: the candidate's name; a concise headline (their most recent or stated " +
+  "target title, 3-7 words, never a sentence); a single contact line joining phone, email, city/state, and any " +
   "LinkedIn URL with ' | '; a short professional summary ONLY if the text has one " +
   "(otherwise empty); experience entries (role, company, dates, and the bullet " +
   "points roughly as written); education; projects; certifications; and a " +
@@ -377,7 +382,11 @@ export async function structureResume(
         required: ["name", "headline", "contact", "summary", "experience", "skills"],
         properties: {
           name: { type: "string" },
-          headline: { type: "string" },
+          headline: {
+            type: "string",
+            maxLength: 70,
+            description: "Concise resume headline: target/current role title only, 3-7 words, not a sentence.",
+          },
           contact: { type: "string" },
           summary: { type: "string" },
           experience: {
@@ -945,7 +954,11 @@ async function repairIncompleteTailorResult(
               ],
               properties: {
                 name: { type: "string" },
-                headline: { type: "string" },
+                headline: {
+                  type: "string",
+                  maxLength: 70,
+                  description: "Concise resume headline: target role title only, 3-7 words, not a sentence.",
+                },
                 contact: { type: "string" },
                 summary: { type: "string" },
                 experience: {
@@ -1021,7 +1034,8 @@ async function tailor(
       "relevant roles most-recent-first (at most 6 entries), 3–5 bullets for recent roles and " +
       "2–3 for older ones, a 1–2 sentence summary, and about 10–15 skills — prioritize " +
       "relevance over completeness. Return: a few before/after bullet pairs (the strongest " +
-      "rewrites), the aligned keywords, and a complete tailored document (name, headline, " +
+      "rewrites), the aligned keywords, and a complete tailored document (name, concise headline " +
+      "as a role title only, 3-7 words, no 'with ... experience' phrasing, " +
       "contact line, 1–2 sentence summary, experience entries with rewritten bullets, skills, " +
       "education entries (degree, school, and dates — include ONLY if the resume actually lists " +
       "education; never invent a school or degree), and a 3-paragraph cover letter). Plain text only." +
@@ -1059,7 +1073,11 @@ async function tailor(
             ],
             properties: {
               name: { type: "string" },
-              headline: { type: "string" },
+              headline: {
+                type: "string",
+                maxLength: 70,
+                description: "Concise resume headline: target role title only, 3-7 words, not a sentence.",
+              },
               contact: { type: "string" },
               summary: { type: "string" },
               experience: {
@@ -1508,8 +1526,8 @@ const STAT_STOP = new Set([
 function extractStats(
   text: string,
   max = 4,
-): { value: string; label: string; accent: "blue" | "mint" }[] {
-  const out: { value: string; label: string; accent: "blue" | "mint" }[] = [];
+): { value: string; label: string }[] {
+  const out: { value: string; label: string }[] = [];
   const seen = new Set<string>();
   STAT_VALUE_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
@@ -1546,7 +1564,6 @@ function extractStats(
     out.push({
       value,
       label: label.join(" "),
-      accent: out.length % 2 === 0 ? "blue" : "mint",
     });
   }
   return out;
@@ -1571,11 +1588,16 @@ async function rankLines(
   postingText: string,
   provider?: Provider,
 ): Promise<{
-  lines: { label: string; score: number; status: "kept-top" | "kept" | "trimmed" | "cut" }[];
+  lines: {
+    label: string;
+    score: number;
+    status: "kept-top" | "kept" | "trimmed" | "cut";
+    reason: string;
+  }[];
   impactStats: { value: string; label: string }[];
 }> {
   const data = await callTool<{
-    lines: { label: string; score: number; status: string }[];
+    lines: { label: string; score: number; status: string; reason?: string }[];
     impactStats: { value: string; label: string }[];
   }>(
     "review",
@@ -1587,9 +1609,12 @@ async function rankLines(
       "summary, skills lists, certifications, awards, or contact lines, and never mark any of " +
       "those as 'cut'. Return the 6–8 " +
       "most informative bullets, ranked highest first: a short label (≤9 words) paraphrasing the " +
-      "REAL line (faithful — no new claims), the 0–100 score, and a status — 'kept-top' for " +
+      "REAL line (faithful — no new claims), the 0–100 score, a status — 'kept-top' for " +
       "the single strongest, 'kept' for clearly relevant, 'trimmed' for marginal, 'cut' for " +
-      "low-relevance lines to drop to hold two pages. Cut by RELEVANCE, not age. " +
+      "low-relevance lines to drop to hold two pages — and a 'reason' (≤12 words) stating WHY it " +
+      "earned that score: name the specific posting keyword/responsibility it hits, or what it " +
+      "lacks (e.g. 'Directly matches the posting's Kubernetes + scale focus' or 'No overlap with " +
+      "this role's backend requirements'). Cut by RELEVANCE, not age. " +
       "(2) Extract up to 4 of the candidate's most impressive QUANTIFIED achievements as " +
       "{value,label} pairs: value = the metric exactly as written (e.g. '$45.7M', '38%', " +
       "'250/sec', '25-person'); label = a 2–4 word noun phrase naming what it measured (e.g. " +
@@ -1606,7 +1631,7 @@ async function rankLines(
             type: "array",
             items: {
               type: "object",
-              required: ["label", "score", "status"],
+              required: ["label", "score", "status", "reason"],
               properties: {
                 label: { type: "string" },
                 score: { type: "integer" },
@@ -1614,6 +1639,7 @@ async function rankLines(
                   type: "string",
                   enum: ["kept-top", "kept", "trimmed", "cut"],
                 },
+                reason: { type: "string" },
               },
             },
           },
@@ -1642,6 +1668,7 @@ async function rankLines(
       status: (["kept-top", "kept", "trimmed", "cut"].includes(l.status)
         ? l.status
         : "kept") as "kept-top" | "kept" | "trimmed" | "cut",
+      reason: String(l.reason || "").trim(),
     }))
     // Drop rows with a non-numeric score (would render as a contradictory 0/Kept).
     .filter((l) => l.label && Number.isFinite(l.score))
@@ -1725,6 +1752,7 @@ export async function buildAgents(
       label: l.label,
       score: l.score,
       status: l.status,
+      reason: l.reason,
     }));
     modelStats = ranked.impactStats;
   } catch {
@@ -1734,13 +1762,10 @@ export async function buildAgents(
 
   // Max — impact rewriting (faithful model-extracted wins + a before/after pair).
   const pair = pickImpactPair(bullets);
-  const stats = (modelStats.length ? modelStats : extractStats(resumeText, 4)).map(
-    (s, i) => ({
-      value: s.value,
-      label: s.label,
-      accent: (i % 2 === 0 ? "blue" : "mint") as "blue" | "mint",
-    }),
-  );
+  const stats = (modelStats.length ? modelStats : extractStats(resumeText, 4)).map((s) => ({
+    value: s.value,
+    label: s.label,
+  }));
   // Roughly how many substantive lines carry a hard number (not just a year) —
   // a quick read on how quantified the resume is overall, shown as a meter.
   const quant = (() => {
@@ -2030,8 +2055,29 @@ export async function runFull(
       tailorModel,
     );
     if (prepared.diagnostics.qualityGate === "passed") break;
+    // A short resume (few experience bullets) legitimately can't reach the
+    // ideal rewrite-count target — retrying would only pressure the model to
+    // manufacture rewrites. Once the draft is genuinely tailored and has at
+    // least one tracked change, stop and ship it rather than burning a retry.
+    if (
+      prepared.diagnostics.finalDifferentFromSource &&
+      prepared.diagnostics.matchedBulletDiffs >= 1 &&
+      prepared.diagnostics.finalDocBulletCount <= MIN_EDITOR_REWRITE_DIFFS + 1
+    ) {
+      break;
+    }
   }
-  if (!prepared || prepared.diagnostics.qualityGate !== "passed") {
+  // The rewrite-count target is a quality SIGNAL, not a hard wall: ship the draft
+  // as long as it genuinely differs from the source AND carries at least one
+  // reviewable before/after change. Only refuse when tailoring did effectively
+  // nothing (draft ≈ source, or no tracked rewrites at all) — so a short resume
+  // tailors successfully instead of dead-ending the paid run.
+  if (
+    !prepared ||
+    (prepared.diagnostics.qualityGate !== "passed" &&
+      (!prepared.diagnostics.finalDifferentFromSource ||
+        prepared.diagnostics.matchedBulletDiffs < 1))
+  ) {
     throw new Error(
       `The tailoring step did not produce enough verifiable bullet rewrites (${prepared?.diagnostics.failureReason ?? "quality gate failed"}). Please try again.`,
     );

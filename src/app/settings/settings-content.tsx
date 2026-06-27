@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Lock, Trash2, Upload } from "lucide-react";
 import { ROUTES } from "@/components/landing/data";
-import { useSession } from "@/lib/auth";
+import { isRealAuth, useSession } from "@/lib/auth";
+import {
+  clearResumeDraft,
+  clearSavedResume,
+  clearTargetResume,
+  loadBaseResumeDoc,
+} from "@/lib/resume";
+import type { TailoredDoc } from "@/lib/types";
 
 type DeleteState = "idle" | "confirm" | "done";
 
@@ -14,9 +21,48 @@ type DeleteState = "idle" | "confirm" | "done";
 export default function SettingsContent() {
   const [del, setDel] = useState<DeleteState>("idle"); // idle → confirm → done
   const [exported, setExported] = useState(false);
+  const [baseResume, setBaseResume] = useState<TailoredDoc | null>(null);
   const { user: session } = useSession();
 
-  const email = session?.email || "alex.m@email.com";
+  useEffect(() => {
+    loadBaseResumeDoc().then(setBaseResume);
+  }, []);
+
+  const email = session?.email || "local.user@example.com";
+  const displayName = baseResume?.name || session?.name || "No resume saved";
+  const initials = displayName
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("") || "LU";
+  const roleCount = baseResume?.experience.length ?? 0;
+  const bulletCount =
+    baseResume?.experience.reduce((sum, role) => sum + role.bullets.length, 0) ?? 0;
+  const skillCount = baseResume?.skills.length ?? 0;
+  const profileSummary = baseResume
+    ? [
+        baseResume.headline,
+        `${roleCount} role${roleCount === 1 ? "" : "s"}`,
+        `${bulletCount} bullet${bulletCount === 1 ? "" : "s"}`,
+        `${skillCount} skill${skillCount === 1 ? "" : "s"}`,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "Build or import a resume to create your master profile.";
+
+  async function deleteEverything() {
+    await clearSavedResume();
+    clearResumeDraft();
+    clearTargetResume();
+    try {
+      window.sessionStorage.removeItem("tm_tailor");
+      window.sessionStorage.removeItem("tm_sid");
+    } catch {
+      /* non-fatal */
+    }
+    setBaseResume(null);
+    setDel("done");
+  }
 
   return (
     <section className="tm-sec">
@@ -29,25 +75,29 @@ export default function SettingsContent() {
         <div className="tm-card tmSet-card">
           <div className="tmSet-head">
             <h2>Master profile</h2>
-            <span className="tm-pill tm-pill--mint">
-              <Check size={12} /> parsed
+            <span className={"tm-pill " + (baseResume ? "tm-pill--mint" : "tm-pill--gray")}>
+              {baseResume ? (
+                <>
+                  <Check size={12} /> saved
+                </>
+              ) : (
+                "not set"
+              )}
             </span>
           </div>
           <p className="tm-small">
             The structured profile every application starts from. Re-upload
             anytime; tailoring always uses the latest version.
           </p>
-          <div className="tmF-profile2-id mt-[6px]">
-            <span className="tmC-tst-avatar w-[44px]! h-[44px]!">AM</span>
-            <div>
-              <b className="text-[15px]! font-medium">Alex Mercer</b>
-              <span className="tm-small block">
-                Senior Software Engineer · 2 roles · 14 bullets · 11 skills
-              </span>
+          <div className="tmSet-profile">
+            <span className="tmSet-avatar">{initials}</span>
+            <div className="tmSet-profile-text">
+              <b className="tmSet-profile-name">{displayName}</b>
+              <span className="tm-small block">{profileSummary}</span>
             </div>
-            <span className="tm-btn tm-btn--outline tm-btn--sm ml-auto">
-              <Upload size={14} /> Re-upload resume
-            </span>
+            <Link className="tm-btn tm-btn--outline tm-btn--sm ml-auto" href={ROUTES.resumeImport}>
+              <Upload size={14} /> {baseResume ? "Re-upload resume" : "Add resume"}
+            </Link>
           </div>
         </div>
 
@@ -58,14 +108,21 @@ export default function SettingsContent() {
           </div>
           <div className="tmSet-row">
             <span>
-              <b className="font-medium">7 credits</b> remaining · credits
-              never expire
+              {isRealAuth ? (
+                <>
+                  Credit balance is shown on your dashboard · credits never expire
+                </>
+              ) : (
+                <>
+                  <b className="font-medium">Local workspace</b> · billing is not connected here
+                </>
+              )}
             </span>
             <Link
               className="tm-btn tm-btn--outline tm-btn--sm"
-              href={ROUTES.buyCredits}
+              href={isRealAuth ? ROUTES.buyCredits : ROUTES.pricing}
             >
-              Buy more
+              {isRealAuth ? "Buy more" : "View pricing"}
             </Link>
           </div>
         </div>
@@ -135,7 +192,8 @@ export default function SettingsContent() {
                   <b className="font-medium">
                     This is immediate and irreversible.
                   </b>{" "}
-                  Your 7 unused credits will be refunded.
+                  Your saved local resume, draft handoffs, and active target
+                  resume will be cleared from this browser.
                 </span>
                 <span className="flex flex-wrap gap-[8px]">
                   <button
@@ -148,7 +206,7 @@ export default function SettingsContent() {
                   <button
                     type="button"
                     className="tm-btn tm-btn--sm tmSet-danger-fill"
-                    onClick={() => setDel("done")}
+                    onClick={() => void deleteEverything()}
                   >
                     Yes, delete everything
                   </button>
@@ -157,7 +215,7 @@ export default function SettingsContent() {
             )}
             {del === "done" && (
               <span className="tm-pill tm-pill--gray">
-                <Check size={12} /> deleted · your data is gone (demo state,{" "}
+                <Check size={12} /> deleted · local workspace data cleared ({" "}
                 <button
                   type="button"
                   className="underline cursor-pointer"

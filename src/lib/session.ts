@@ -1,9 +1,13 @@
-// Simulated demo session (client-only) — mirrors the design prototype's
-// localStorage login. Placeholder until real auth (Supabase) lands.
+// Local fallback session (client-only) for running workflows before Supabase
+// auth is configured.
 
 export type DemoSession = { email: string; name: string; at: number };
 
 const KEY = "tm_session_v1";
+const LEGACY_DEMO_EMAILS = new Set([
+  "alex.m@email.com",
+  "alex.mercer@example.com",
+]);
 
 // Fired on signIn/signOut so same-tab subscribers (useDemoSession) update.
 export const SESSION_EVENT = "tm-session-change";
@@ -15,14 +19,21 @@ function notify(): void {
 export function getSession(): DemoSession | null {
   if (typeof window === "undefined") return null;
   try {
-    return JSON.parse(window.localStorage.getItem(KEY) ?? "null");
+    const session = JSON.parse(window.localStorage.getItem(KEY) ?? "null") as
+      | DemoSession
+      | null;
+    if (session && LEGACY_DEMO_EMAILS.has(session.email.toLowerCase())) {
+      window.localStorage.removeItem(KEY);
+      return null;
+    }
+    return session;
   } catch {
     return null;
   }
 }
 
 export function signIn(email: string, name?: string): DemoSession {
-  const cleanEmail = (email || "").trim() || "alex.m@email.com";
+  const cleanEmail = (email || "").trim() || "local.user@example.com";
   const guess = cleanEmail
     .split("@")[0]
     .split(/[._-]/)
@@ -30,7 +41,7 @@ export function signIn(email: string, name?: string): DemoSession {
     .join(" ");
   const s: DemoSession = {
     email: cleanEmail,
-    name: name || guess || "Alex Mercer",
+    name: name || guess || "Local User",
     at: Date.now(),
   };
   window.localStorage.setItem(KEY, JSON.stringify(s));
@@ -44,7 +55,7 @@ export function signOut(): void {
 }
 
 export function initials(name?: string): string {
-  return (name || "A M")
+  return (name || "Local User")
     .split(/\s+/)
     .slice(0, 2)
     .map((p) => p.charAt(0).toUpperCase())

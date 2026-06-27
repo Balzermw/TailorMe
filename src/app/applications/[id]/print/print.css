@@ -96,7 +96,10 @@
   color: var(--mcv-zinc);
   font-weight: 500;
   padding-top: 1px;
-  white-space: nowrap;
+  min-width: 0;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .mcv-entry-role {
   font-size: 13px;
@@ -179,7 +182,77 @@
 
 /* ---- Template skins: approximate each compiled style so switching templates
    visibly changes the live preview. The downloaded PDF is the exact output;
-   default (moderncv-banking) keeps the colored-accent look above. ---- */
+   default (jake) is below; moderncv-banking keeps the colored-accent look above. ---- */
+
+/* Jake's Resume (default) — serif, centered name, uppercase ruled sections, and
+   two-line entries: bold role + right-aligned dates, then italic company. */
+.print-tpl--jake {
+  --mcv-ink: #1a1a1a;
+  font-family: Georgia, "Times New Roman", serif;
+}
+.print-tpl--jake .mcv-head {
+  text-align: center;
+  border-bottom: none;
+  padding: 30px 44px 4px;
+}
+.print-tpl--jake .mcv-name {
+  font-size: 27px;
+  letter-spacing: 0;
+}
+.print-tpl--jake .mcv-name span {
+  color: inherit;
+}
+.print-tpl--jake .mcv-title {
+  color: var(--mcv-ink);
+  font-style: italic;
+  font-weight: 400;
+}
+.print-tpl--jake .mcv-contact {
+  color: var(--mcv-ink);
+  font-size: 12px;
+}
+.print-tpl--jake .mcv-contact a {
+  color: var(--mcv-ink);
+  text-decoration: none;
+}
+.print-tpl--jake .mcv-sec {
+  color: var(--mcv-ink);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 13px;
+  border-bottom: 1px solid var(--mcv-ink);
+  padding-bottom: 2px;
+  margin: 15px 0 8px;
+}
+/* Date moves to the top-right of the role line; company drops below in italics. */
+.print-tpl--jake .mcv-entry {
+  grid-template-columns: 1fr auto;
+  gap: 0 16px;
+  margin-bottom: 12px;
+}
+.print-tpl--jake .mcv-entry-dates {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+  text-align: right;
+  color: var(--mcv-ink);
+  font-style: italic;
+}
+.print-tpl--jake .mcv-entry > div:last-child {
+  grid-column: 1;
+  grid-row: 1;
+}
+.print-tpl--jake .mcv-entry-company {
+  color: var(--mcv-ink);
+  font-style: italic;
+  font-weight: 400;
+}
+.print-tpl--jake .mcv-skills li::before {
+  background: var(--mcv-ink);
+}
+.print-tpl--jake .mcv-skillgroup-label {
+  color: var(--mcv-ink);
+}
 
 /* Classic — serif, centered header, ruled small-caps section titles, no accent. */
 .print-tpl--classic {

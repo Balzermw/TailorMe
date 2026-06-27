@@ -12,10 +12,13 @@ import {
   Info,
   Layers,
   LayoutTemplate,
+  Loader2,
   ListChecks,
+  Mail,
   PenLine,
   Plus,
   RotateCcw,
+  Sparkles,
   Target,
   Trash2,
   Ungroup,
@@ -32,10 +35,18 @@ import { RESUME_TEMPLATES, DEFAULT_TEMPLATE, templateName } from "@/lib/apply/te
 import { feedbackHash } from "@/lib/apply/hash";
 import { track, getSessionId } from "@/lib/track";
 import { ROUTES } from "@/components/landing/data";
-import { bulletKey, diffMap } from "@/lib/apply/redline";
-import { highlight, highlightHits } from "@/lib/highlight";
-import { composeContact, parseContact, type ContactFields } from "@/lib/apply/contact";
+import { bulletKey, diffMap, wordDiff } from "@/lib/apply/redline";
+import { highlightHits } from "@/lib/highlight";
+import {
+  composeContact,
+  normalizeContactFields,
+  normalizeContactLine,
+  parseContact,
+  type ContactFields,
+} from "@/lib/apply/contact";
+import { normalizeHeadline, stripTemplateGuidance } from "@/lib/apply/sanitize-doc";
 import { type Section, SECTION_LABEL, fixSection } from "@/lib/apply/sections";
+import { cleanResumeDate } from "@/lib/apply/dates";
 import PrintDoc from "../print/print-doc";
 
 const SEV: Record<ProofPoint["severity"], { label: string; color: string; bg: string }> = {
@@ -82,6 +93,30 @@ function pruneResolvedFindings(points: ProofPoint[], doc: TailoredDoc): ProofPoi
     // finding is considered resolved and disappears from the panel.
     return hay.includes(q);
   });
+}
+
+function parseSkillInput(value: string): string[] {
+  return value
+    .split(/\n|,/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function skillSignature(skills: string[] | undefined): string {
+  return Array.from(
+    new Set(
+      (skills ?? [])
+        .map((s) => s.replace(/\s+/g, " ").trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  )
+    .sort()
+    .join("|");
+}
+
+function skillContentSignature(doc: TailoredDoc): string {
+  const grouped = (doc.skillGroups ?? []).flatMap((g) => g.skills ?? []);
+  return skillSignature(grouped.length ? grouped : doc.skills);
 }
 
 // Without a targeted posting there are no role keywords, so derive the ATS terms
@@ -153,11 +188,108 @@ type ReviewItem = {
   verdict: Verdict;
   note: string;
 };
+type GroupSkillsResponse = {
+  skillGroups?: { label: string; skills: string[] }[];
+  demo?: boolean;
+  fallback?: boolean;
+  warning?: string;
+  error?: string;
+};
+type EditableSection = Exclude<Section, "fixes">;
+type ManualSuggestionForm = {
+  section: EditableSection;
+  title: string;
+  fix: string;
+};
 const VERDICT_LABEL: Record<Verdict, string> = {
   improved: "Improved",
   okay: "Okay",
   risky: "Risky",
 };
+const REMOVE_CARD_MS = 240;
+type RemoveCardKind = "project" | "certification" | "education" | "skillGroup";
+
+const EDITABLE_SECTIONS: EditableSection[] = [
+  "header",
+  "summary",
+  "experience",
+  "projects",
+  "education",
+  "certifications",
+  "skills",
+];
+
+function suggestionId(p: ProofPoint): string {
+  return [p.ruleId || "feedback", p.title, p.quote ?? "", p.fix].join("|");
+}
+
+function manualSection(p: ProofPoint): EditableSection | null {
+  const raw = p.ruleId?.match(/^manual:(header|summary|experience|projects|education|certifications|skills):/)?.[1];
+  return raw && EDITABLE_SECTIONS.includes(raw as EditableSection)
+    ? (raw as EditableSection)
+    : null;
+}
+
+function suggestionTarget(p: ProofPoint): EditableSection {
+  const manual = manualSection(p);
+  const target = manual ?? fixSection(p);
+  return target === "fixes" ? "experience" : target;
+}
+
+function stripBulletPrefix(value: string): string {
+  return value.replace(/^[\s•*\-–—]+/, "").trim();
+}
+
+function extractQuotedReplacement(fix: string): string | null {
+  const patterns = [
+    /\bto\s+["'“”‘’]([^"'“”‘’]+)["'“”‘’]/i,
+    /\bwith\s+["'“”‘’]([^"'“”‘’]+)["'“”‘’]/i,
+    /\bas\s+["'“”‘’]([^"'“”‘’]+)["'“”‘’]/i,
+  ];
+  for (const pattern of patterns) {
+    const match = fix.match(pattern)?.[1]?.trim();
+    if (match && match.length > 4) return stripBulletPrefix(match);
+  }
+  return null;
+}
+
+function draftFromFinding(p: ProofPoint, target: EditableSection): string {
+  const replacement = extractQuotedReplacement(p.fix);
+  if (replacement) return replacement;
+  const quote = stripBulletPrefix(p.quote ?? "");
+  const fix = p.fix.trim();
+
+  if (target === "experience" && quote) {
+    if (/\b(metric|quantif|number|%,|\$|scope|volume|saved|reduced|increased)\b/i.test(fix)) {
+      return `${quote} by [add truthful metric, scope, or result].`;
+    }
+    if (/\b(action verb|achievement|accomplishment|outcome)\b/i.test(fix)) {
+      return `[Rewrite with a stronger action verb and outcome] ${quote}`;
+    }
+    return quote;
+  }
+
+  if (target === "summary" && quote) return quote;
+  if (target === "header" && replacement) return replacement;
+  if (target === "projects") return "Project name: [Name]\nResult: [Tool, audience, and measurable result]";
+  if (target === "education") return "[Degree or credential], [School], [Dates]";
+  if (target === "certifications") return "[Certification], [Issuer], [Year]";
+  if (target === "skills") return fix.replace(/^add\s+/i, "").replace(/\.$/, "");
+  return fix;
+}
+
+function findQuotedBullet(doc: TailoredDoc, quote: string | undefined): { ei: number; bi: number } | null {
+  const q = normForMatch(quote ?? "");
+  if (q.length < 8) return null;
+  for (let ei = 0; ei < doc.experience.length; ei += 1) {
+    const entry = doc.experience[ei];
+    for (let bi = 0; bi < entry.bullets.length; bi += 1) {
+      const bullet = normForMatch(entry.bullets[bi]);
+      if (bullet.includes(q) || q.includes(bullet)) return { ei, bi };
+    }
+  }
+  return null;
+}
 
 function normalizeReviewVerdict(value: unknown): Verdict {
   if (value === "improved" || value === "good") return "improved";
@@ -182,20 +314,21 @@ function fmtMonth(v: string): string {
 // Best-effort parse of a free-text date range ("2019 – present", "Jan 2019 –
 // Mar 2023") into the two native month inputs (YYYY-MM) + a "present" flag.
 function parseDates(value: string): { start: string; end: string; present: boolean } {
+  const cleanValue = cleanResumeDate(value);
   const toMonth = (s: string): string => {
     const yr = /(?:19|20)\d{2}/.exec(s)?.[0];
     if (!yr) return "";
     const mi = MONTHS.findIndex((m) => new RegExp(`\\b${m}`, "i").test(s));
     return `${yr}-${String(mi >= 0 ? mi + 1 : 1).padStart(2, "0")}`;
   };
-  const parts = value
+  const parts = cleanValue
     .split(/\s*(?:–|—|-|\bto\b)\s*/i)
     .map((s) => s.trim())
     .filter(Boolean);
   const endRaw = parts[1] ?? "";
   const present =
     /present|current|now|ongoing/i.test(endRaw) ||
-    (parts.length < 2 && /present|current/i.test(value));
+    (parts.length < 2 && /present|current/i.test(cleanValue));
   return { start: toMonth(parts[0] ?? ""), end: present ? "" : toMonth(endRaw), present };
 }
 
@@ -207,36 +340,61 @@ function DateRange({ value, onChange }: { value: string; onChange: (v: string) =
     [fmtMonth(s), p ? "Present" : fmtMonth(e)].filter(Boolean).join(" – ");
   return (
     <div className="tmE-daterange">
-      <input
-        type="month"
-        className="tmE-input"
-        value={start}
-        aria-label="Start month"
-        onChange={(ev) => onChange(compose(ev.target.value, end, present))}
-      />
-      <span className="tmE-daterange-sep">to</span>
-      {present ? (
-        <span className="tmE-input tmE-daterange-present">Present</span>
-      ) : (
+      <div className="tmE-daterange-row">
         <input
           type="month"
           className="tmE-input"
-          value={end}
-          aria-label="End month"
-          onChange={(ev) => onChange(compose(start, ev.target.value, false))}
+          value={start}
+          aria-label="Start month"
+          onChange={(ev) => onChange(compose(ev.target.value, end, present))}
         />
-      )}
-      <button
-        type="button"
-        role="switch"
-        aria-checked={present}
-        className={"tmE-daterange-toggle" + (present ? " is-on" : "")}
-        onClick={() => onChange(compose(start, end, !present))}
-      >
-        {present && <Check size={13} />} Present
-      </button>
+        <span className="tmE-daterange-sep">to</span>
+        {/* Both end states share the .tmE-input width so toggling never reflows the row. */}
+        {present ? (
+          <span className="tmE-input tmE-daterange-present" aria-label="End date: Present">
+            <Check size={13} /> Present
+          </span>
+        ) : (
+          <input
+            type="month"
+            className="tmE-input"
+            value={end}
+            aria-label="End month"
+            onChange={(ev) => onChange(compose(start, ev.target.value, false))}
+          />
+        )}
+      </div>
+      {/* The toggle lives on its own row below, so it never moves as the end field
+          swaps — a plain checkbox, not a position-shifting inline switch. */}
+      <label className="tmE-daterange-check">
+        <input
+          type="checkbox"
+          checked={present}
+          onChange={(ev) => onChange(compose(start, end, ev.target.checked))}
+        />
+        <span>This is my current role (Present)</span>
+      </label>
     </div>
   );
+}
+
+function cloneDoc(doc: TailoredDoc): TailoredDoc {
+  return JSON.parse(JSON.stringify(doc)) as TailoredDoc;
+}
+
+// Fixed on-screen width of the live-preview "paper" (px). The preview is scaled
+// to fit the panel from this width, so wrapping + pagination stay window-stable.
+const PREVIEW_DOC_WIDTH = 760;
+
+function normalizeEditorDoc(doc: TailoredDoc, targetRole: string): TailoredDoc {
+  const contact = normalizeContactLine(doc.contact);
+  const headline = normalizeHeadline(doc.headline, targetRole);
+  // Drop leftover résumé-template guidance (e.g. "Add a concise 1-2 sentence
+  // professional summary…") that an imported PDF can carry into the summary.
+  const summary = stripTemplateGuidance(doc.summary);
+  return contact === doc.contact && headline === doc.headline && summary === doc.summary
+    ? doc
+    : { ...doc, contact, headline, summary };
 }
 
 export default function EditEditor({
@@ -284,25 +442,60 @@ export default function EditEditor({
   // Base resume: send this resume into the job-targeting flow.
   onTargetJob?: (doc: TailoredDoc) => void;
 }) {
-  const [doc, setDoc] = useState<TailoredDoc>(initialDoc);
+  const normalizedInitialDoc = normalizeEditorDoc(initialDoc, role);
+  const initialDocNormalized =
+    normalizedInitialDoc.contact !== initialDoc.contact ||
+    normalizedInitialDoc.headline !== initialDoc.headline;
+  const [doc, setDoc] = useState<TailoredDoc>(normalizedInitialDoc);
   const [decisions, setDecisions] = useState<Record<string, EditDecision>>(initialDecisions);
-  const [section, setSection] = useState<Section>("header");
+  // Deep link: the dashboard "View feedback" link lands here as
+  // /resume/edit#feedback — open the Feedback section directly, not the header.
+  const [section, setSection] = useState<Section>(() =>
+    typeof window !== "undefined" && window.location.hash === "#feedback" ? "fixes" : "header",
+  );
   const [saving, setSaving] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [coverOpen, setCoverOpen] = useState(false);
+  const [coverEditing, setCoverEditing] = useState(false);
   const [msg, setMsg] = useState<{ text: string; err: boolean } | null>(null);
-  const [dirty, setDirty] = useState(false);
+  const [dirty, setDirty] = useState(initialDocNormalized);
   const [review, setReview] = useState<{ items: ReviewItem[] } | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [grouping, setGrouping] = useState(false);
   const [groupMsg, setGroupMsg] = useState<string | null>(null);
+  const [lastGroupedSkillSignature, setLastGroupedSkillSignature] = useState<string | null>(() =>
+    normalizedInitialDoc.skillGroups?.length ? skillContentSignature(normalizedInitialDoc) : null,
+  );
   const [proofPoints, setProofPoints] = useState<ProofPoint[]>(initialProofPoints);
+  const [manualProofPoints, setManualProofPoints] = useState<ProofPoint[]>([]);
+  const [appliedSuggestionIds, setAppliedSuggestionIds] = useState<Set<string>>(() => new Set());
+  const [suggestionDrafts, setSuggestionDrafts] = useState<Record<string, string>>({});
+  const [manualSuggestionOpen, setManualSuggestionOpen] = useState(false);
+  const [manualSuggestion, setManualSuggestion] = useState<ManualSuggestionForm>({
+    section: "experience",
+    title: "",
+    fix: "",
+  });
   // What the panel actually shows: findings whose quoted text still exists in the
   // doc. Derived (not stored) so it updates live as the user edits — applying a
   // suggested change drops its finding, and structuring-fixed ones never surface.
-  const shownPoints = useMemo(() => pruneResolvedFindings(proofPoints, doc), [proofPoints, doc]);
+  const allProofPoints = useMemo(
+    () => [...proofPoints, ...manualProofPoints],
+    [manualProofPoints, proofPoints],
+  );
+  const shownPoints = useMemo(
+    () =>
+      pruneResolvedFindings(allProofPoints, doc).filter(
+        (p) => !appliedSuggestionIds.has(suggestionId(p)),
+      ),
+    [allProofPoints, appliedSuggestionIds, doc],
+  );
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [removingCards, setRemovingCards] = useState<Set<string>>(() => new Set());
+  const removingCardsRef = useRef<Set<string>>(new Set());
+  const removeTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   // Hash of the résumé when feedback was last fetched — lets us show "up to date"
   // and skip a redundant (token-spending) re-review when nothing changed.
   const [lastFeedbackHash, setLastFeedbackHash] = useState<string | null>(null);
@@ -314,23 +507,98 @@ export default function EditEditor({
   // Approximate US Letter page boundaries in the live preview, so the user can see
   // where the résumé spills onto page 2+ (the downloaded PDF is the exact split).
   const docWrapRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const [pageBreaks, setPageBreaks] = useState<number[]>([]);
+  // The preview renders at a fixed document width and is scaled to fit the panel,
+  // so the page layout (and therefore the page breaks) never change with the
+  // window — only the on-screen zoom does. The PDF is the exact split.
+  const [docScale, setDocScale] = useState(1);
+  const [docHeight, setDocHeight] = useState<number | null>(null);
+  useEffect(
+    () => () => {
+      removeTimers.current.forEach(clearTimeout);
+      removeTimers.current = [];
+    },
+    [],
+  );
   useEffect(() => {
-    const page = docWrapRef.current?.querySelector(".print-page") as HTMLElement | null;
-    if (!page) return;
+    const scaler = docWrapRef.current;
+    const viewport = viewportRef.current;
+    const page = scaler?.querySelector(".print-page") as HTMLElement | null;
+    if (!scaler || !viewport || !page) return;
     const measure = () => {
-      const w = page.getBoundingClientRect().width;
-      const h = page.getBoundingClientRect().height;
-      const sheet = (w * 11) / 8.5; // a US Letter page at this on-screen width
-      if (!sheet || h <= sheet + 6) {
+      // Scale the fixed-width document to FILL the panel (zoom-to-fit-width, like
+      // a word processor) — up or down — so the preview uses the whole section
+      // while the layout/pagination stay fixed. Capped so it never zooms absurdly.
+      const scale = Math.min(1.5, viewport.clientWidth / PREVIEW_DOC_WIDTH);
+      setDocScale((prev) => (Math.abs(prev - scale) > 0.001 ? scale : prev));
+      setDocHeight(Math.round(scaler.offsetHeight * scale));
+      // offsetWidth is the pre-transform layout width, so one sheet's height is
+      // computed on the true (fixed) document size, not the scaled-down view.
+      const w = page.offsetWidth;
+      const sheet = (w * 11) / 8.5; // a US Letter page at the document's true width
+      // Markers live inside the scaler, so positions are measured in the scaler's
+      // own (pre-transform) coordinates. getBoundingClientRect is post-transform;
+      // dividing the gap from the scaler's top edge by `scale` converts back. The
+      // print-wrap padding above the sheet is preview chrome, so anchor to the page
+      // top, not the scaler top.
+      const scalerTop = scaler.getBoundingClientRect().top;
+      const localY = (el: Element) =>
+        (el.getBoundingClientRect().top - scalerTop) / scale;
+      const pageTop = localY(page);
+      const docBottom = scaler.offsetHeight;
+      if (!sheet || docBottom - pageTop <= sheet + 6) {
         setPageBreaks((prev) => (prev.length ? [] : prev));
         return;
       }
-      const n = Math.ceil(h / sheet);
-      setPageBreaks(Array.from({ length: n - 1 }, (_, i) => Math.round((i + 1) * sheet)));
+      // The print engine never splits a block (a section header, a dated entry, a
+      // skills line): a block that would cross the page edge is pushed whole to the
+      // next page, leaving white space below. So break at the TOP of the first
+      // block that straddles each sheet boundary, not at a flat line through it.
+      const blocks = Array.from(page.querySelectorAll(".mcv-head, .mcv-body > *")).map(
+        (el) => {
+          const top = localY(el);
+          return {
+            top,
+            bottom: top + (el as HTMLElement).offsetHeight,
+            // A section heading shouldn't be stranded at the foot of a page away
+            // from the entries it titles (print's break-after: avoid).
+            heading: el.classList.contains("mcv-sec"),
+          };
+        },
+      );
+      const breaks: number[] = [];
+      let pageStart = pageTop;
+      // The guards (block must start below pageStart; cap at 12) keep a single
+      // block taller than a sheet from looping forever.
+      while (docBottom - pageStart > sheet + 6 && breaks.length < 12) {
+        const boundary = pageStart + sheet;
+        const idx = blocks.findIndex(
+          (b) => b.top > pageStart + 1 && b.top < boundary && b.bottom > boundary,
+        );
+        let breakY = boundary;
+        if (idx >= 0) {
+          // Pull the break up past an immediately-preceding heading so it travels
+          // to the next page with its content instead of being orphaned.
+          const prev = blocks[idx - 1];
+          breakY =
+            prev && prev.heading && prev.top > pageStart + 1
+              ? prev.top
+              : blocks[idx].top;
+        }
+        breakY = Math.round(breakY);
+        breaks.push(breakY);
+        pageStart = breakY;
+      }
+      setPageBreaks((prev) =>
+        prev.length === breaks.length && prev.every((v, i) => v === breaks[i])
+          ? prev
+          : breaks,
+      );
     };
     measure();
     const ro = new ResizeObserver(measure);
+    ro.observe(viewport);
     ro.observe(page);
     return () => ro.disconnect();
   }, [doc]);
@@ -350,10 +618,10 @@ export default function EditEditor({
     });
   }
   const [contactFields, setContactFields] = useState<ContactFields>(() =>
-    parseContact(initialDoc.contact),
+    parseContact(normalizedInitialDoc.contact),
   );
   function updateContact(part: Partial<ContactFields>) {
-    const next = { ...contactFields, ...part };
+    const next = normalizeContactFields({ ...contactFields, ...part });
     setContactFields(next);
     patch({ contact: composeContact(next) });
   }
@@ -397,6 +665,40 @@ export default function EditEditor({
       ),
     }));
     touch();
+  }
+  function removeCardKey(kind: RemoveCardKind, i: number) {
+    return `${kind}:${i}`;
+  }
+  function removeCardClass(key: string) {
+    return "tmE-edu" + (removingCards.has(key) ? " is-removing" : "");
+  }
+  function removeAfterAnimation(
+    kind: RemoveCardKind,
+    i: number,
+    remove: () => void,
+    trigger?: HTMLElement | null,
+  ) {
+    const key = removeCardKey(kind, i);
+    if (removingCardsRef.current.has(key)) return;
+    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      remove();
+      return;
+    }
+    const card = trigger?.closest<HTMLElement>(".tmE-edu");
+    if (card) {
+      card.style.setProperty("--tmE-remove-height", `${Math.ceil(card.getBoundingClientRect().height)}px`);
+      // Force the measured height to commit before React adds the removing class.
+      void card.offsetHeight;
+    }
+    removingCardsRef.current.add(key);
+    setRemovingCards(new Set(removingCardsRef.current));
+    const timer = setTimeout(() => {
+      remove();
+      removingCardsRef.current.delete(key);
+      setRemovingCards(new Set(removingCardsRef.current));
+    }, REMOVE_CARD_MS);
+    removeTimers.current.push(timer);
   }
   function setEdu(i: number, p: Partial<{ school: string; degree: string; dates: string }>) {
     setDoc((d) => ({
@@ -483,10 +785,168 @@ export default function EditEditor({
   }
   function ungroupSkills() {
     setDoc((d) => ({ ...d, skillGroups: undefined }));
+    setLastGroupedSkillSignature(null);
     touch();
   }
+
+  function openSuggestionDraft(p: ProofPoint, target: EditableSection) {
+    const id = suggestionId(p);
+    setSuggestionDrafts((drafts) => ({
+      ...drafts,
+      [id]: drafts[id] ?? draftFromFinding(p, target),
+    }));
+  }
+
+  function updateSuggestionDraft(id: string, text: string) {
+    setSuggestionDrafts((drafts) => ({ ...drafts, [id]: text }));
+  }
+
+  function closeSuggestionDraft(id: string) {
+    setSuggestionDrafts((drafts) => {
+      const next = { ...drafts };
+      delete next[id];
+      return next;
+    });
+  }
+
+  function markSuggestionApplied(id: string) {
+    setAppliedSuggestionIds((ids) => {
+      const next = new Set(ids);
+      next.add(id);
+      return next;
+    });
+    closeSuggestionDraft(id);
+  }
+
+  function applySuggestionDraft(p: ProofPoint, target: EditableSection, draft: string) {
+    const text = draft.trim();
+    if (!text) return;
+    const id = suggestionId(p);
+    if (target === "experience") {
+      const hit = findQuotedBullet(doc, p.quote);
+      setDoc((d) => {
+        if (hit && d.experience[hit.ei]?.bullets[hit.bi] != null) {
+          return {
+            ...d,
+            experience: d.experience.map((entry, ei) =>
+              ei === hit.ei
+                ? {
+                    ...entry,
+                    bullets: entry.bullets.map((bullet, bi) => (bi === hit.bi ? text : bullet)),
+                  }
+                : entry,
+            ),
+          };
+        }
+        if (d.experience.length) {
+          return {
+            ...d,
+            experience: d.experience.map((entry, ei) =>
+              ei === 0 ? { ...entry, bullets: [...entry.bullets, text] } : entry,
+            ),
+          };
+        }
+        return {
+          ...d,
+          experience: [
+            {
+              role: d.headline || "Role",
+              company: "",
+              dates: "",
+              bullets: [text],
+            },
+          ],
+        };
+      });
+      setOpenEntries((open) => {
+        const next = new Set(open);
+        next.add(hit?.ei ?? 0);
+        return next;
+      });
+    } else if (target === "summary") {
+      setDoc((d) => {
+        const quote = p.quote?.trim();
+        if (quote && d.summary.includes(quote)) {
+          return { ...d, summary: d.summary.replace(quote, text) };
+        }
+        return { ...d, summary: d.summary.trim() ? `${d.summary.trim()}\n\n${text}` : text };
+      });
+    } else if (target === "header") {
+      setDoc((d) => ({ ...d, headline: normalizeHeadline(text.split(/\r?\n/)[0], role) || d.headline }));
+    } else if (target === "skills") {
+      const skills = parseSkillInput(text);
+      setDoc((d) => {
+        const merged = Array.from(new Set([...(d.skills ?? []), ...skills].map((s) => s.trim()).filter(Boolean)));
+        if (d.skillGroups?.length) {
+          return {
+            ...d,
+            skills: merged,
+            skillGroups: [
+              ...d.skillGroups,
+              { label: "Suggested additions", skills: skills.length ? skills : [text] },
+            ],
+          };
+        }
+        return { ...d, skills: merged.length ? merged : [...(d.skills ?? []), text] };
+      });
+    } else if (target === "projects") {
+      const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+      const name = (lines[0] ?? "Suggested project").replace(/^project name:\s*/i, "");
+      const description = (lines.slice(1).join(" ") || lines[0] || text).replace(/^result:\s*/i, "");
+      setDoc((d) => ({
+        ...d,
+        projects: [...(d.projects ?? []), { name, description }],
+      }));
+    } else if (target === "education") {
+      const [degree = text, school = "", dates = ""] = text.split(/,\s*/);
+      setDoc((d) => ({
+        ...d,
+        education: [...(d.education ?? []), { degree, school, dates }],
+      }));
+    } else if (target === "certifications") {
+      const [name = text, issuer = "", date = ""] = text.split(/,\s*/);
+      setDoc((d) => ({
+        ...d,
+        certifications: [...(d.certifications ?? []), { name, issuer, date }],
+      }));
+    }
+    track("resume_feedback_suggestion_applied", {
+      rule_id: p.ruleId,
+      category: p.category,
+      severity: p.severity,
+      section: target,
+    });
+    setSection(target);
+    markSuggestionApplied(id);
+    touch();
+  }
+
+  function addManualSuggestion() {
+    const fix = manualSuggestion.fix.trim();
+    if (!fix) return;
+    const sectionKey = manualSuggestion.section;
+    const title =
+      manualSuggestion.title.trim() || `${SECTION_LABEL[sectionKey]} suggestion`;
+    const p: ProofPoint = {
+      title,
+      summary: `User-added suggestion for ${SECTION_LABEL[sectionKey].toLowerCase()}.`,
+      why: "Added manually while reviewing this resume.",
+      fix,
+      severity: "medium",
+      category: "manual",
+      ruleId: `manual:${sectionKey}:${Date.now()}`,
+    };
+    setManualProofPoints((points) => [p, ...points]);
+    setManualSuggestion({ section: sectionKey, title: "", fix: "" });
+    setManualSuggestionOpen(false);
+  }
+
   async function groupWithAI() {
     if (grouping) return;
+    if (doc.skillGroups?.length && !skillsChangedSinceGrouping) {
+      setGroupMsg("Add or change skills before re-grouping with AI.");
+      return;
+    }
     setGrouping(true);
     setGroupMsg(null);
     try {
@@ -495,22 +955,25 @@ export default function EditEditor({
         headers: { "Content-Type": "application/json", "x-tm-session": getSessionId() ?? "" },
         body: JSON.stringify({ skills: doc.skills }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((data && data.error) || "failed");
+      const data = (await res.json().catch(() => ({}))) as GroupSkillsResponse;
+      if (!res.ok) throw new Error(data.error || "failed");
       const groups: { label: string; skills: string[] }[] = Array.isArray(data.skillGroups)
         ? data.skillGroups
         : [];
       if (!groups.length) {
-        setGroupMsg(
-          data.demo
-            ? "AI grouping isn't available in demo mode."
-            : "Couldn't group these skills. Try editing them first.",
-        );
+        setGroupMsg(data.error || "Couldn't group these skills. Try editing them first.");
       } else {
         mutateGroups(() => groups);
+        setLastGroupedSkillSignature(skillSignature(groups.flatMap((g) => g.skills ?? [])));
+        setGroupMsg(
+          data.fallback
+            ? data.warning || "AI grouping had trouble, so these were grouped locally instead."
+            : "Grouped into categories. Review the labels before saving.",
+        );
       }
-    } catch {
-      setGroupMsg("Couldn't group your skills. Try again.");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "";
+      setGroupMsg(message && message !== "failed" ? message : "Couldn't group your skills. Try again.");
     } finally {
       setGrouping(false);
     }
@@ -625,8 +1088,9 @@ export default function EditEditor({
       setLastFeedbackHash(feedbackHash(doc));
       track("feedback_click", { result: "ran", findings: pts.length });
       if (!pts.length) setFeedbackError("Looks solid. No major issues found.");
-    } catch {
-      setFeedbackError("Couldn't get feedback. Try again.");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "";
+      setFeedbackError(message && message !== "failed" ? message : "Couldn't get feedback. Try again.");
     } finally {
       setFeedbackLoading(false);
     }
@@ -641,8 +1105,9 @@ export default function EditEditor({
   }
   function resetToAi() {
     if (!originalDoc) return;
-    setDoc(JSON.parse(JSON.stringify(originalDoc)) as TailoredDoc);
-    setContactFields(parseContact(originalDoc.contact));
+    const normalizedOriginalDoc = normalizeEditorDoc(originalDoc, role);
+    setDoc(cloneDoc(normalizedOriginalDoc));
+    setContactFields(parseContact(normalizedOriginalDoc.contact));
     setDecisions({});
     setReview(null);
     setReviewError(null);
@@ -653,7 +1118,7 @@ export default function EditEditor({
 
   async function save(override?: TailoredDoc) {
     if (saving) return;
-    const docToSave = override ?? doc;
+    const docToSave = normalizeEditorDoc(override ?? doc, role);
     setSaving(true);
     setMsg(null);
     try {
@@ -728,6 +1193,10 @@ export default function EditEditor({
   const previewHits = highlightHits(previewText, previewKeywords);
   // True when the saved feedback already matches the current résumé (no re-run needed).
   const feedbackUpToDate = proofPoints.length > 0 && lastFeedbackHash === feedbackHash(doc);
+  const currentSkillSignature = useMemo(() => skillContentSignature(doc), [doc]);
+  const hasGroupedSkills = Boolean(doc.skillGroups?.length);
+  const skillsChangedSinceGrouping =
+    hasGroupedSkills && lastGroupedSkillSignature !== null && currentSkillSignature !== lastGroupedSkillSignature;
 
   // Spotlight the line a feedback finding references in the live preview. Match
   // the finding's verbatim quote to a rendered element (bullet, skill, role,
@@ -789,9 +1258,16 @@ export default function EditEditor({
   }
 
   const reviewableChangeCount = collectChanges().length;
+  const wideEditMode =
+    section === "experience" ||
+    section === "projects" ||
+    section === "education" ||
+    section === "certifications" ||
+    section === "skills" ||
+    section === "fixes";
 
   return (
-    <div className="tmE-wrap">
+    <div className={"tmE-wrap" + (wideEditMode ? " is-workmode" : "")}>
       <div className="tmE-head">
         <Link className="tmE-back" href={backHref}>
           <ArrowLeft size={15} /> {backLabel}
@@ -801,16 +1277,41 @@ export default function EditEditor({
           {company && <span className="tmE-head-co"> at {company}</span>}
         </h1>
         <div className="tmE-head-right">
-          {bulletDiffs.length > 0 && (
-            <span className="tmE-progress" data-testid="revision-reviewed-count">
-              {bulletDiffs.length - totalPending}/{bulletDiffs.length} changes reviewed
-            </span>
+          {/* Doc-status cluster: what this document is + how much you've reviewed. */}
+          {(kind === "application" || bulletDiffs.length > 0) && (
+            <div className="tmE-status">
+              {kind === "application" && (
+                <span
+                  className="tmE-tailored"
+                  title="This resume was auto-generated by AI and tailored to this role. Review the highlighted changes below, then download your PDF."
+                >
+                  <Sparkles size={12} /> AI-tailored for this role
+                </span>
+              )}
+              {bulletDiffs.length > 0 && (
+                <span
+                  className={"tmE-reviewprog" + (totalPending === 0 ? " is-done" : "")}
+                  data-testid="revision-reviewed-count"
+                  title={`${bulletDiffs.length - totalPending} of ${bulletDiffs.length} AI changes reviewed`}
+                >
+                  {totalPending === 0 ? <Check size={13} /> : <ListChecks size={13} />}
+                  <span className="tmE-reviewprog-dots" aria-hidden="true">
+                    {bulletDiffs.map((d, i) => (
+                      <i
+                        key={bulletKey(d.entry, d.bullet)}
+                        className={i < bulletDiffs.length - totalPending ? "is-done" : ""}
+                      />
+                    ))}
+                  </span>
+                  {/* Kept for screen readers (and the visible string the e2e suite asserts). */}
+                  <span className="tmE-sr">
+                    {bulletDiffs.length - totalPending}/{bulletDiffs.length} changes reviewed
+                  </span>
+                </span>
+              )}
+            </div>
           )}
-          {msg && (
-            <span className={"tmE-saved" + (msg.err ? " is-err" : "")}>
-              {!msg.err && <Check size={14} />} {msg.text}
-            </span>
-          )}
+          {msg?.err && <span className="tmE-save-status is-err">{msg.text}</span>}
           {reviewableChangeCount > 0 && originalDoc && (
             <button
               type="button"
@@ -889,6 +1390,16 @@ export default function EditEditor({
               </>
             )}
           </div>
+          {(doc.coverLetter ?? "").trim() && (
+            <button
+              type="button"
+              className="tm-btn tm-btn--outline tm-btn--sm"
+              onClick={() => setCoverOpen(true)}
+              title="Review the cover letter generated for this role."
+            >
+              <Mail size={14} /> Cover letter
+            </button>
+          )}
           <a
             className="tm-btn tm-btn--outline tm-btn--sm"
             href={pdfUrl ?? pdfHref(id)}
@@ -1036,12 +1547,12 @@ export default function EditEditor({
               <h2 className="tmE-panel-title">Experience</h2>
               <p className="tmE-panel-sub">
                 {bulletDiffs.length > 0
-                  ? "Accept, reject, or edit each AI rewrite. Highlighted text shows posting keywords and metrics."
-                  : "Edit any line. Highlighted text shows posting keywords and metrics."}
+                  ? "Accept, reject, or edit each AI rewrite. Struck-through words were removed; green words were added."
+                  : "Edit any line. Highlighted text in the preview shows posting keywords and metrics."}
               </p>
               {doc.experience.map((e, ei) => {
                 const open = openEntries.has(ei);
-                const meta = [e.company, e.dates].filter(Boolean).join(" · ");
+                const meta = [e.company, cleanResumeDate(e.dates)].filter(Boolean).join(" · ");
                 return (
                 <div key={ei} className={"tmE-entry" + (open ? " is-open" : "")}>
                   <button
@@ -1064,19 +1575,19 @@ export default function EditEditor({
                   <div className="tmE-entry-bodywrap">
                     <div className="tmE-entry-body">
                       <div className="tmE-entry-body-inner">
-                  <div className="tmE-row2">
-                    <div className="tmE-field" style={{ marginBottom: 0 }}>
+                  <div className="tmE-entry-fields">
+                    <div className="tmE-field">
                       <label>Role</label>
                       <input className="tmE-input" value={e.role} onChange={(ev) => setEntry(ei, { role: ev.target.value })} />
                     </div>
-                    <div className="tmE-field" style={{ marginBottom: 0 }}>
+                    <div className="tmE-field">
                       <label>Company</label>
                       <input className="tmE-input" value={e.company} onChange={(ev) => setEntry(ei, { company: ev.target.value })} />
                     </div>
-                  </div>
-                  <div className="tmE-field" style={{ marginTop: 12, marginBottom: 0 }}>
-                    <label>Dates</label>
-                    <DateRange value={e.dates} onChange={(v) => setEntry(ei, { dates: v })} />
+                    <div className="tmE-field tmE-field--dates">
+                      <label>Dates</label>
+                      <DateRange value={e.dates} onChange={(v) => setEntry(ei, { dates: v })} />
+                    </div>
                   </div>
 
                   <div className="tmE-bullets">
@@ -1101,14 +1612,17 @@ export default function EditEditor({
                           className={"tmE-diff" + (decision ? " is-decided" : " is-pending")}
                           data-testid={`revision-diff-${ei}-${bi}`}
                         >
-                          <div className="tmE-diff-line tmE-diff-before">
-                            <span className="tmE-diff-tag">Original</span>
-                            <span>{highlight(diff.before, keywords)}</span>
-                          </div>
-                          <div className="tmE-diff-line tmE-diff-after">
-                            <span className="tmE-diff-tag is-after">AI rewrite</span>
-                            <span>{highlight(diff.after, keywords)}</span>
-                          </div>
+                          <p className="tmE-diff-redline" aria-label={`Suggested rewrite. Original: ${diff.before}. New: ${diff.after}`}>
+                            {wordDiff(diff.before, diff.after).map((seg, si) =>
+                              seg.type === "equal" ? (
+                                <span key={si}>{seg.text}</span>
+                              ) : seg.type === "removed" ? (
+                                <del key={si} className="tmE-diff-del">{seg.text}</del>
+                              ) : (
+                                <ins key={si} className="tmE-diff-ins">{seg.text}</ins>
+                              ),
+                            )}
+                          </p>
                           {decision === "edited" && (
                             <textarea
                               className="tmE-textarea"
@@ -1147,7 +1661,6 @@ export default function EditEditor({
                             >
                               <PenLine size={13} /> Edit
                             </button>
-                            {!decision && <span className="tmE-diff-hint">choose one</span>}
                           </div>
                         </div>
                       );
@@ -1169,21 +1682,31 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Projects</h2>
               <p className="tmE-panel-sub">Side projects, portfolio, or open source: the name plus what you did and any result.</p>
-              {(doc.projects ?? []).map((p, i) => (
-                <div key={i} className="tmE-edu">
-                  <div className="tmE-field">
-                    <label>Project</label>
-                    <input className="tmE-input" value={p.name} placeholder="Inventory dashboard" onChange={(e) => setProject(i, { name: e.target.value })} />
+              {(doc.projects ?? []).map((p, i) => {
+                const key = removeCardKey("project", i);
+                return (
+                  <div key={i} className={removeCardClass(key)}>
+                      <div className="tmE-field">
+                        <label>Project</label>
+                        <input className="tmE-input" value={p.name} placeholder="Inventory dashboard" onChange={(e) => setProject(i, { name: e.target.value })} />
+                      </div>
+                      <div className="tmE-field" style={{ marginBottom: 0 }}>
+                        <label>What you did</label>
+                        <textarea className="tmE-textarea" value={p.description} placeholder="Built a React dashboard that cut stock-checks 30%." onChange={(e) => setProject(i, { description: e.target.value })} />
+                      </div>
+                      <button
+                        type="button"
+                        className="tmE-edu-remove"
+                        onClick={(ev) =>
+                          removeAfterAnimation("project", i, () => removeProject(i), ev.currentTarget)
+                        }
+                        disabled={removingCards.has(key)}
+                      >
+                        <Trash2 size={13} /> Remove
+                      </button>
                   </div>
-                  <div className="tmE-field" style={{ marginBottom: 0 }}>
-                    <label>What you did</label>
-                    <textarea className="tmE-textarea" value={p.description} placeholder="Built a React dashboard that cut stock-checks 30%." onChange={(e) => setProject(i, { description: e.target.value })} />
-                  </div>
-                  <button type="button" className="tmE-edu-remove" onClick={() => removeProject(i)}>
-                    <Trash2 size={13} /> Remove
-                  </button>
-                </div>
-              ))}
+                );
+              })}
               {(doc.projects ?? []).length === 0 && (
                 <p className="tmE-note">
                   <Info size={14} /> No projects yet. Great for students or career changers
@@ -1200,27 +1723,37 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Certifications</h2>
               <p className="tmE-panel-sub">Licenses and certifications: name, who issued it, and when.</p>
-              {(doc.certifications ?? []).map((c, i) => (
-                <div key={i} className="tmE-edu">
-                  <div className="tmE-field">
-                    <label>Certification</label>
-                    <input className="tmE-input" value={c.name} placeholder="AWS Solutions Architect" onChange={(e) => setCert(i, { name: e.target.value })} />
+              {(doc.certifications ?? []).map((c, i) => {
+                const key = removeCardKey("certification", i);
+                return (
+                  <div key={i} className={removeCardClass(key)}>
+                      <div className="tmE-field">
+                        <label>Certification</label>
+                        <input className="tmE-input" value={c.name} placeholder="AWS Solutions Architect" onChange={(e) => setCert(i, { name: e.target.value })} />
+                      </div>
+                      <div className="tmE-row2">
+                        <div className="tmE-field" style={{ marginBottom: 0 }}>
+                          <label>Issuer</label>
+                          <input className="tmE-input" value={c.issuer} placeholder="Amazon Web Services" onChange={(e) => setCert(i, { issuer: e.target.value })} />
+                        </div>
+                        <div className="tmE-field" style={{ marginBottom: 0 }}>
+                          <label>Date</label>
+                          <input className="tmE-input" value={c.date} placeholder="2024" onChange={(e) => setCert(i, { date: e.target.value })} />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="tmE-edu-remove"
+                        onClick={(ev) =>
+                          removeAfterAnimation("certification", i, () => removeCert(i), ev.currentTarget)
+                        }
+                        disabled={removingCards.has(key)}
+                      >
+                        <Trash2 size={13} /> Remove
+                      </button>
                   </div>
-                  <div className="tmE-row2">
-                    <div className="tmE-field" style={{ marginBottom: 0 }}>
-                      <label>Issuer</label>
-                      <input className="tmE-input" value={c.issuer} placeholder="Amazon Web Services" onChange={(e) => setCert(i, { issuer: e.target.value })} />
-                    </div>
-                    <div className="tmE-field" style={{ marginBottom: 0 }}>
-                      <label>Date</label>
-                      <input className="tmE-input" value={c.date} placeholder="2024" onChange={(e) => setCert(i, { date: e.target.value })} />
-                    </div>
-                  </div>
-                  <button type="button" className="tmE-edu-remove" onClick={() => removeCert(i)}>
-                    <Trash2 size={13} /> Remove
-                  </button>
-                </div>
-              ))}
+                );
+              })}
               {(doc.certifications ?? []).length === 0 && (
                 <p className="tmE-note">
                   <Info size={14} /> No certifications yet. Optional, but a relevant license or
@@ -1237,8 +1770,10 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Education</h2>
               <p className="tmE-panel-sub">Degrees, schools, and dates. Add anything the tailoring missed.</p>
-              {(doc.education ?? []).map((ed, i) => (
-                <div key={i} className="tmE-edu">
+              {(doc.education ?? []).map((ed, i) => {
+                const key = removeCardKey("education", i);
+                return (
+                  <div key={i} className={removeCardClass(key)}>
                   <div className="tmE-field">
                     <label>Degree</label>
                     <input className="tmE-input" value={ed.degree} placeholder="BSc Computer Science" onChange={(e) => setEdu(i, { degree: e.target.value })} />
@@ -1261,11 +1796,19 @@ export default function EditEditor({
                       <input className="tmE-input" value={ed.dates} placeholder="2012 – 2016" onChange={(e) => setEdu(i, { dates: e.target.value })} />
                     </div>
                   </div>
-                  <button type="button" className="tmE-edu-remove" onClick={() => removeEdu(i)}>
-                    <Trash2 size={13} /> Remove
-                  </button>
-                </div>
-              ))}
+                      <button
+                        type="button"
+                        className="tmE-edu-remove"
+                        onClick={(ev) =>
+                          removeAfterAnimation("education", i, () => removeEdu(i), ev.currentTarget)
+                        }
+                        disabled={removingCards.has(key)}
+                      >
+                        <Trash2 size={13} /> Remove
+                      </button>
+                  </div>
+                );
+              })}
               {(doc.education ?? []).length === 0 && (
                 <p className="tmE-note">
                   <Info size={14} /> No education on file yet. Add a degree so it shows on your
@@ -1284,33 +1827,42 @@ export default function EditEditor({
               {doc.skillGroups?.length ? (
                 <>
                   <p className="tmE-panel-sub">
-                    Grouped into categories. This is how they show on your resume. Edit a
-                    label or its skills, or re-group after big changes.
+                    Grouped into categories. Edit labels directly; add or change skills before re-grouping with AI.
                   </p>
-                  {doc.skillGroups.map((g, i) => (
-                    <div key={i} className="tmE-edu">
-                      <div className="tmE-field">
-                        <label>Category</label>
-                        <input
-                          className="tmE-input"
-                          value={g.label}
-                          placeholder="Cloud & DevOps"
-                          onChange={(e) => setGroupLabel(i, e.target.value)}
-                        />
+                  {doc.skillGroups.map((g, i) => {
+                    const key = removeCardKey("skillGroup", i);
+                    return (
+                      <div key={i} className={removeCardClass(key)}>
+                          <div className="tmE-field">
+                            <label>Category</label>
+                            <input
+                              className="tmE-input"
+                              value={g.label}
+                              placeholder="Cloud & DevOps"
+                              onChange={(e) => setGroupLabel(i, e.target.value)}
+                            />
+                          </div>
+                          <div className="tmE-field" style={{ marginBottom: 0 }}>
+                            <label>Skills (one per line)</label>
+                            <textarea
+                              className="tmE-textarea"
+                              value={g.skills.join("\n")}
+                              onChange={(e) => setGroupSkills(i, e.target.value)}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            className="tmE-edu-remove"
+                            onClick={(ev) =>
+                              removeAfterAnimation("skillGroup", i, () => removeGroup(i), ev.currentTarget)
+                            }
+                            disabled={removingCards.has(key)}
+                          >
+                            <Trash2 size={13} /> Remove
+                          </button>
                       </div>
-                      <div className="tmE-field" style={{ marginBottom: 0 }}>
-                        <label>Skills (one per line)</label>
-                        <textarea
-                          className="tmE-textarea"
-                          value={g.skills.join("\n")}
-                          onChange={(e) => setGroupSkills(i, e.target.value)}
-                        />
-                      </div>
-                      <button type="button" className="tmE-edu-remove" onClick={() => removeGroup(i)}>
-                        <Trash2 size={13} /> Remove
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <button type="button" className="tmE-add" onClick={addGroup}>
                       <Plus size={14} /> Add category
@@ -1319,9 +1871,11 @@ export default function EditEditor({
                       type="button"
                       className="tmE-add"
                       onClick={groupWithAI}
-                      disabled={grouping}
+                      disabled={grouping || !skillsChangedSinceGrouping}
+                      title={!skillsChangedSinceGrouping ? "Add or change skills before re-grouping." : undefined}
                     >
-                      <Layers size={14} /> {grouping ? "Re-grouping…" : "Re-group with AI"}
+                      {grouping ? <Loader2 className="tmE-spin" size={14} /> : <Layers size={14} />}{" "}
+                      {grouping ? "Re-grouping..." : "Re-group with AI"}
                     </button>
                     <button type="button" className="tmE-add" onClick={ungroupSkills}>
                       <Ungroup size={14} /> Ungroup
@@ -1338,7 +1892,7 @@ export default function EditEditor({
                     <textarea
                       className="tmE-textarea tmE-textarea--lg"
                       value={doc.skills.join("\n")}
-                      onChange={(e) => patch({ skills: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+                      onChange={(e) => patch({ skills: parseSkillInput(e.target.value) })}
                     />
                   </div>
                   <button
@@ -1347,7 +1901,8 @@ export default function EditEditor({
                     onClick={groupWithAI}
                     disabled={grouping || doc.skills.length < 4}
                   >
-                    <Layers size={14} /> {grouping ? "Grouping…" : "Group into categories with AI"}
+                    {grouping ? <Loader2 className="tmE-spin" size={14} /> : <Layers size={14} />}{" "}
+                    {grouping ? "Grouping..." : "Group into categories with AI"}
                   </button>
                 </>
               )}
@@ -1376,6 +1931,14 @@ export default function EditEditor({
                           : "Run a review to see suggestions here."}
                   </p>
                 </div>
+                <div className="tmE-fix-top-actions">
+                  <button
+                    type="button"
+                    className="tm-btn tm-btn--outline tm-btn--sm"
+                    onClick={() => setManualSuggestionOpen((open) => !open)}
+                  >
+                    <Plus size={13} /> Add suggestion
+                  </button>
                 {onGetFeedback && (
                   <button
                     type="button"
@@ -1394,9 +1957,74 @@ export default function EditEditor({
                           : "Refresh"}
                   </button>
                 )}
+                </div>
               </div>
               {feedbackLoading && <ReviewProgress />}
               {feedbackError && <p className="tmE-fix-status">{feedbackError}</p>}
+              {manualSuggestionOpen && (
+                <div className="tmE-manual-suggestion">
+                  <div className="tmE-row2">
+                    <div className="tmE-field" style={{ marginBottom: 0 }}>
+                      <label>Section</label>
+                      <select
+                        className="tmE-input"
+                        value={manualSuggestion.section}
+                        onChange={(e) =>
+                          setManualSuggestion((s) => ({
+                            ...s,
+                            section: e.target.value as EditableSection,
+                          }))
+                        }
+                      >
+                        {EDITABLE_SECTIONS.map((key) => (
+                          <option key={key} value={key}>
+                            {SECTION_LABEL[key]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="tmE-field" style={{ marginBottom: 0 }}>
+                      <label>Title</label>
+                      <input
+                        className="tmE-input"
+                        value={manualSuggestion.title}
+                        placeholder="Add stronger support metric"
+                        onChange={(e) =>
+                          setManualSuggestion((s) => ({ ...s, title: e.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="tmE-field" style={{ marginTop: 10, marginBottom: 0 }}>
+                    <label>Suggestion</label>
+                    <textarea
+                      className="tmE-textarea"
+                      value={manualSuggestion.fix}
+                      placeholder="Managed 3 enterprise accounts and reduced response backlog 28%."
+                      onChange={(e) =>
+                        setManualSuggestion((s) => ({ ...s, fix: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="tmE-fix-card-actions">
+                    <button
+                      type="button"
+                      className="tmE-fix-apply"
+                      onClick={addManualSuggestion}
+                      disabled={!manualSuggestion.fix.trim()}
+                    >
+                      <Plus size={13} /> Add card
+                    </button>
+                    <button
+                      type="button"
+                      className="tmE-fix-goto"
+                      onClick={() => setManualSuggestionOpen(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
               {(["high", "medium", "low"] as const).map((sev) => {
                 const group = shownPoints.filter((p) => p.severity === sev);
                 if (group.length === 0) return null;
@@ -1417,7 +2045,9 @@ export default function EditEditor({
                       <span style={{ background: SEV[sev].bg, color: SEV[sev].color }}>{group.length}</span>
                     </p>
                     {group.map((p, i) => {
-                      const target = fixSection(p);
+                      const target = suggestionTarget(p);
+                      const id = suggestionId(p);
+                      const draft = suggestionDrafts[id];
                       return (
                         <div
                           key={i}
@@ -1440,25 +2070,71 @@ export default function EditEditor({
                             </p>
                           )}
                           {p.fix && <p className="tmE-fix-fix"><span>Fix:</span> {p.fix}</p>}
-                          <button
-                            type="button"
-                            className="tmE-fix-goto"
-                            onClick={() => {
-                              // Per-suggestion telemetry — counts/ids/categories
-                              // only, never résumé content. rule_id is present
-                              // only for rules-engine findings; sanitizeProps
-                              // drops it when undefined (legacy LLM points).
-                              track("resume_feedback_suggestion_clicked", {
-                                rule_id: p.ruleId,
-                                category: p.category,
-                                severity: p.severity,
-                                section: target,
-                              });
-                              setSection(target);
-                            }}
-                          >
-                            Edit {SECTION_LABEL[target]} →
-                          </button>
+                          <div className="tmE-fix-card-actions">
+                            <button
+                              type="button"
+                              className="tmE-fix-apply"
+                              onClick={() => openSuggestionDraft(p, target)}
+                            >
+                              <PenLine size={13} /> {draft == null ? "Draft fix" : "Edit draft"}
+                            </button>
+                            <button
+                              type="button"
+                              className="tmE-fix-goto"
+                              onClick={() => {
+                                // Per-suggestion telemetry — counts/ids/categories
+                                // only, never résumé content. rule_id is present
+                                // only for rules-engine findings; sanitizeProps
+                                // drops it when undefined (legacy LLM points).
+                                track("resume_feedback_suggestion_clicked", {
+                                  rule_id: p.ruleId,
+                                  category: p.category,
+                                  severity: p.severity,
+                                  section: target,
+                                });
+                                setSection(target);
+                              }}
+                            >
+                              Edit {SECTION_LABEL[target]} →
+                            </button>
+                          </div>
+                          {draft != null && (
+                            <div className="tmE-suggestion-draft">
+                              <label>Draft</label>
+                              {/\[[^\]]+\]/.test(draft) && (
+                                <p className="tmE-draft-hint">
+                                  <span className="tmE-draft-token">[ ]</span>
+                                  Replace anything in brackets with your own
+                                  details before applying.
+                                </p>
+                              )}
+                              <textarea
+                                className={
+                                  "tmE-textarea" +
+                                  (/\[[^\]]+\]/.test(draft) ? " tmE-textarea--hasplaceholder" : "")
+                                }
+                                value={draft}
+                                onChange={(e) => updateSuggestionDraft(id, e.target.value)}
+                              />
+                              <div className="tmE-fix-card-actions">
+                                <button
+                                  type="button"
+                                  className="tmE-fix-apply is-primary"
+                                  onClick={() => applySuggestionDraft(p, target, draft)}
+                                  disabled={!draft.trim()}
+                                >
+                                  <Check size={13} /> Apply to {SECTION_LABEL[target]}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="tmE-fix-goto"
+                                  onClick={() => closeSuggestionDraft(id)}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1501,22 +2177,33 @@ export default function EditEditor({
                   : "Highlights mark the metrics in your resume."}
               </p>
               <span className="tmE-preview-disclaimer">
-                <Info size={13} /> Preview only. These colors aren&apos;t in your PDF.
+                <Info size={13} /> Preview only. Keyword and metric tags aren&apos;t added to your
+                resume or PDF.
               </span>
             </>
           )}
-          <div ref={docWrapRef} style={{ position: "relative" }}>
-            <PrintDoc doc={doc} id={id} resumeOnly hideToolbar highlightKeywords={previewKeywords} />
-            {pageBreaks.map((y, i) => (
-              <div
-                key={i}
-                className="tmE-pagebreak"
-                style={{ top: `${y}px` }}
-                aria-hidden="true"
-              >
-                <span>Page {i + 2}</span>
-              </div>
-            ))}
+          <div
+            className="tmE-doc-viewport"
+            ref={viewportRef}
+            style={docHeight != null ? { height: `${docHeight}px` } : undefined}
+          >
+            <div
+              ref={docWrapRef}
+              className="tmE-doc-scaler"
+              style={{ transform: `scale(${docScale})` }}
+            >
+              <PrintDoc doc={doc} id={id} resumeOnly hideToolbar highlightKeywords={previewKeywords} />
+              {pageBreaks.map((y, i) => (
+                <div
+                  key={i}
+                  className="tmE-pagebreak"
+                  style={{ top: `${y}px` }}
+                  aria-hidden="true"
+                >
+                  <span>Page {i + 2}</span>
+                </div>
+              ))}
+            </div>
           </div>
           {hlDir === "down" && (
             <div className="tmE-hl-arrow tmE-hl-arrow--down" aria-hidden="true">
@@ -1525,6 +2212,86 @@ export default function EditEditor({
           )}
         </div>
       </div>
+
+      {/* Cover letter — review-first (read by default), light edit behind a toggle. */}
+      {coverOpen && (
+        <div
+          className="tmE-cover-backdrop"
+          onClick={() => setCoverOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="tmE-cover-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Cover letter"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="tmE-cover-head">
+              <div>
+                <b>
+                  <Mail size={15} /> Cover letter
+                </b>
+                <span>
+                  AI-generated for {role}
+                  {company ? ` at ${company}` : ""}. Review it. Light edits are optional.
+                </span>
+              </div>
+              <button
+                type="button"
+                className="tmE-cover-x"
+                onClick={() => setCoverOpen(false)}
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="tmE-cover-body">
+              {coverEditing ? (
+                <textarea
+                  className="tmE-textarea"
+                  value={doc.coverLetter}
+                  onChange={(e) => patch({ coverLetter: e.target.value })}
+                  style={{ minHeight: 320 }}
+                />
+              ) : (
+                (doc.coverLetter || "")
+                  .split(/\n{2,}/)
+                  .filter((p) => p.trim())
+                  .map((p, i) => (
+                    <p key={i} className="tmE-cover-para">
+                      {p}
+                    </p>
+                  ))
+              )}
+            </div>
+            <div className="tmE-cover-foot">
+              <button
+                type="button"
+                className="tm-btn tm-btn--outline tm-btn--sm"
+                onClick={() => setCoverEditing((v) => !v)}
+              >
+                {coverEditing ? (
+                  <>
+                    <Check size={13} /> Done editing
+                  </>
+                ) : (
+                  <>
+                    <PenLine size={13} /> Edit
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                className="tm-btn tm-btn--primary tm-btn--sm"
+                onClick={() => setCoverOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

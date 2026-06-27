@@ -39,4 +39,58 @@ describe("contact parse/compose", () => {
       }),
     ).toBe("612-227-1149 | you@email.com | Portland, OR");
   });
+
+  it("normalizes malformed US phone punctuation", () => {
+    expect(composeContact(parseContact("314) 898-7073 | redonkale@gmail.com | St. Louis, Missouri"))).toBe(
+      "314-898-7073 | redonkale@gmail.com | St. Louis, Missouri",
+    );
+  });
+
+  it("normalizes common US phone variants before composing", () => {
+    expect(
+      composeContact({
+        phone: "(314) 898-7073",
+        email: "redonkale@gmail.com",
+        location: "St. Louis, Missouri",
+        linkedin: "",
+      }),
+    ).toBe("314-898-7073 | redonkale@gmail.com | St. Louis, Missouri");
+  });
+
+  it("moves a LinkedIn URL embedded in city/state into the LinkedIn field", () => {
+    const fields = parseContact(
+      "1222-121-2323 | fdfffgdg@gmail.com | dfdfamento, CA, linkedin.com/2332323",
+    );
+
+    expect(fields.location).toBe("dfdfamento, CA");
+    expect(fields.linkedin).toBe("linkedin.com/2332323");
+    expect(composeContact(fields)).toBe(
+      "1222-121-2323 | fdfffgdg@gmail.com | dfdfamento, CA | linkedin.com/2332323",
+    );
+  });
+
+  it("treats a linkedgin.com typo as LinkedIn contact info without rewriting it", () => {
+    const fields = parseContact(
+      "1222-121-2323 | fdfffgdg@gmail.com | dfdfamento, CA, linkedgin.com/2332323",
+    );
+
+    expect(fields.location).toBe("dfdfamento, CA");
+    expect(fields.linkedin).toBe("linkedgin.com/2332323");
+    expect(composeContact(fields)).toBe(
+      "1222-121-2323 | fdfffgdg@gmail.com | dfdfamento, CA | linkedgin.com/2332323",
+    );
+  });
+
+  it("normalizes a pasted LinkedIn URL before composing scratch-builder fields", () => {
+    expect(
+      composeContact({
+        phone: "612-227-1149",
+        email: "you@email.com",
+        location: "Sacramento, CA, LinkedIn: https://www.linkedin.com/in/michael",
+        linkedin: "",
+      }),
+    ).toBe(
+      "612-227-1149 | you@email.com | Sacramento, CA | https://www.linkedin.com/in/michael",
+    );
+  });
 });

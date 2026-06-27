@@ -2,9 +2,9 @@
 // server-only latex.ts; this file holds just the metadata the picker UI needs
 // plus the id type/allowlist, so it can be imported from client components.
 
-export type TemplateId = "moderncv-banking" | "classic" | "modern";
+export type TemplateId = "jake" | "moderncv-banking" | "classic" | "modern";
 
-export const DEFAULT_TEMPLATE: TemplateId = "moderncv-banking";
+export const DEFAULT_TEMPLATE: TemplateId = "jake";
 
 export interface ResumeTemplateMeta {
   id: TemplateId;
@@ -16,6 +16,12 @@ export interface ResumeTemplateMeta {
 }
 
 export const RESUME_TEMPLATES: ResumeTemplateMeta[] = [
+  {
+    id: "jake",
+    name: "Jake's Resume",
+    blurb: "Popular single column: centered name, ruled sections, bold roles.",
+    ats: "safe",
+  },
   {
     id: "moderncv-banking",
     name: "ModernCV",
@@ -41,5 +47,5 @@ export function isTemplateId(value: unknown): value is TemplateId {
 }
 
 export function templateName(id: string | undefined): string {
-  return RESUME_TEMPLATES.find((t) => t.id === id)?.name ?? "ModernCV";
+  return RESUME_TEMPLATES.find((t) => t.id === id)?.name ?? "Jake's Resume";
 }

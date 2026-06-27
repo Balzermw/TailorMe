@@ -123,8 +123,8 @@ vi.mock("@anthropic-ai/sdk", () => {
     },
     rank_lines: {
       lines: [
-        { label: "Built platform services", score: 91, status: "kept-top" },
-        { label: "Email alex@example.com", score: 12, status: "cut" },
+        { label: "Built platform services", score: 91, status: "kept-top", reason: "Matches the posting's platform focus" },
+        { label: "Email alex@example.com", score: 12, status: "cut", reason: "Not a relevant experience bullet" },
       ],
       impactStats: [
         { value: "38%", label: "lower p95 latency" },
@@ -390,10 +390,10 @@ describe("public audit output hygiene", () => {
     expect(publicText).toMatch(/truthful metric/i);
     expect(publicText).toMatch(/Do not invent the number/i);
     expect(result.agents?.find((a) => a.id === "impact")?.stats).toEqual([
-      { value: "38%", label: "lower p95 latency", accent: "blue" },
+      { value: "38%", label: "lower p95 latency" },
     ]);
     expect(result.agents?.find((a) => a.id === "rolefit")?.lines).toEqual([
-      { rank: 1, label: "Built platform services", score: 91, status: "kept-top" },
+      { rank: 1, label: "Built platform services", score: 91, status: "kept-top", reason: "Matches the posting's platform focus" },
     ]);
   });
 });

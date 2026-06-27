@@ -2,7 +2,7 @@
 // so every detector (deterministic, heuristic, legacy adapter) produces the same
 // shape with stable ids + dedupe fingerprints.
 
-import type { ResumeAdviceRule, ResumeRuleFinding } from "./resumeAdviceRule.types";
+import type { ResumeAdviceRule, ResumeRuleFinding, ResumeTargetSection } from "./resumeAdviceRule.types";
 import { makeFindingId, makeDedupeFingerprint } from "./stableId";
 
 export interface FindingInput {
@@ -12,6 +12,7 @@ export interface FindingInput {
   message?: string; // overrides rule.feedbackTemplate
   suggestedFix?: string; // overrides rule.rewriteInstruction
   suggestedRewrite?: string;
+  targetSection?: ResumeTargetSection;
   confidence?: number; // overrides rule.confidence
   occurrences?: number;
   /** Override which rule ids are credited (for merged/legacy findings). */
@@ -43,7 +44,7 @@ export function makeFinding(rule: ResumeAdviceRule, input: FindingInput = {}): R
     whyItMatters: rule.whyItMatters,
     suggestedFix: input.suggestedFix ?? rule.rewriteInstruction ?? rule.feedbackTemplate,
     suggestedRewrite: input.suggestedRewrite ?? rule.exampleAfter,
-    targetSection: rule.ui.targetSection,
+    targetSection: input.targetSection ?? rule.ui.targetSection,
     fixActionLabel: rule.ui.fixActionLabel,
     uiSeverityLabel: rule.ui.severityLabel,
     dedupeFingerprint: makeDedupeFingerprint({

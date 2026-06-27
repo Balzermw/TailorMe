@@ -193,10 +193,13 @@ body {
   font-size: 14px;
   border-radius: 8px;
 }
+/* Large CTA — a touch bigger than default for emphasis, but not heavy. Keeping
+   the font at the base 15px keeps hero/final CTAs consistent with the rest of
+   the UI; the extra padding alone carries the prominence. */
 .tm-btn--lg {
-  padding: 15px 28px;
-  font-size: 16px;
-  border-radius: 12px;
+  padding: 13px 24px;
+  font-size: 15px;
+  border-radius: 11px;
 }
 
 /* ---------- pills / marks ---------- */
@@ -215,6 +218,10 @@ body {
 .tm-pill--mint {
   background: var(--tm-mint-50);
   color: var(--tm-mint-600);
+}
+.tm-pill--amber {
+  background: #fdf6ec;
+  color: #946218;
 }
 .tm-pill--gray {
   background: var(--tm-gray);
@@ -275,7 +282,7 @@ body {
 .tm-nav-links {
   display: flex;
   align-items: center;
-  gap: 26px;
+  gap: 22px;
 }
 .tm-nav-links a:not(.tm-btn) {
   font-size: 14.5px;
@@ -294,6 +301,10 @@ body {
   gap: 8px;
   font-weight: 500;
   color: var(--tm-ink) !important;
+  /* separate the account cluster (you + sign out) from the site-nav links */
+  margin-left: 2px;
+  padding-left: 22px;
+  border-left: 0.5px solid var(--tm-border);
 }
 .tm-nav-avatar {
   width: 26px;
@@ -525,6 +536,9 @@ body {
 .tm-cta p {
   max-width: 52ch;
 }
+.tmT-cta-copy span {
+  display: block;
+}
 
 /* ============================================================
    Direction B — hero art (scanning doc + pipeline rail)
@@ -677,7 +691,9 @@ body {
   background: var(--tm-mint-500);
 }
 .tmH-bar-ic--deep {
-  background: var(--tm-blue-800);
+  /* Remy — violet so the three agents read as three distinct colors
+     (Ada blue, Max green, Remy violet) instead of two blues + a green. */
+  background: #6d5ae6;
 }
 .tmH-bar-main {
   flex: 1;
@@ -699,7 +715,7 @@ body {
   color: var(--tm-zinc);
 }
 .tmH-bar-label {
-  color: var(--tm-blue-600);
+  color: var(--tm-ink);
   font-weight: 500;
 }
 .tmH-bar-val {
@@ -728,7 +744,7 @@ body {
   background: var(--tm-mint-500);
 }
 .tmH-bar-fill--deep {
-  background: var(--tm-blue-800);
+  background: #6d5ae6;
 }
 @keyframes tmH-fill {
   to {
@@ -839,7 +855,6 @@ body {
 }
 .tmH-human-blurb {
   margin-top: 8px;
-  max-width: 80ch;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1684,7 +1699,8 @@ body {
   align-items: center;
   gap: 12px;
 }
-.tm-fit-row label {
+.tm-fit-row label,
+.tm-fit-row span {
   font-size: var(--small);
   color: var(--tm-zinc);
 }
@@ -1893,7 +1909,7 @@ body {
   margin: 18px auto 0;
 }
 .tmP-head .tm-body {
-  max-width: 54ch;
+  max-width: 78ch;
   margin: 18px auto 0;
 }
 
@@ -2192,17 +2208,19 @@ body {
   border: 0.5px solid var(--tm-mint-400);
 }
 .tmC-pkg-name {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 500;
+  letter-spacing: -0.01em;
 }
 .tmC-pkg-price {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 7px;
+  /* sits right under its package name — they read as one unit */
+  margin-top: 6px;
 }
 .tmC-pkg-price strong {
-  font-size: 36px;
+  font-size: 33px;
   font-weight: 500;
   letter-spacing: -0.02em;
 }
@@ -2213,26 +2231,27 @@ body {
 .tmC-pkg-items {
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  margin-top: 16px;
-  padding-top: 16px;
+  gap: 11px;
+  margin-top: 18px;
+  padding-top: 18px;
   border-top: 0.5px solid var(--tm-border);
 }
 .tmC-pkg-items span {
   display: flex;
-  gap: 8px;
+  gap: 9px;
   align-items: flex-start;
-  font-size: 13px;
-  color: var(--tm-zinc);
-  line-height: 1.45;
+  font-size: 13.5px;
+  color: var(--tm-slate);
+  line-height: 1.5;
 }
 .tmC-pkg-items svg {
   color: var(--tm-mint-600);
   flex: none;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 .tmC-pkg .tm-btn {
-  margin-top: 22px;
+  /* pin to the bottom edge so all three CTAs line up across cards */
+  margin-top: 24px;
   justify-content: center;
 }
 .tmC-pkg-chip {
@@ -3337,6 +3356,38 @@ body {
   font-weight: 500;
   letter-spacing: -0.01em;
 }
+.tmSet-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 13px 16px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tm-blue-50) 70%, #fff);
+  border: 0.5px solid var(--tm-blue-200);
+}
+.tmSet-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--tm-blue-50);
+  color: var(--tm-blue-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+}
+.tmSet-profile-text {
+  min-width: 0;
+}
+.tmSet-profile-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tm-ink);
+}
 .tmSet-row {
   display: flex;
   align-items: center;
@@ -3435,7 +3486,7 @@ body {
   color: var(--tm-ink);
 }
 .tmF-why-line.is-minus svg {
-  color: var(--tm-blue-600);
+  color: #d99b3a;
 }
 .tmF-verdict {
   margin-top: 18px;
@@ -3448,6 +3499,12 @@ body {
 }
 .tmF-verdict b {
   font-weight: 500;
+}
+.tmF-manual-cta {
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  gap: 7px;
 }
 @media (max-width: 600px) {
   .tmF-why {
@@ -3520,9 +3577,10 @@ body {
   flex-wrap: wrap;
 }
 .tmD-head h1 {
-  font-size: clamp(26px, 2.8vw, 34px);
+  font-size: 32px;
+  line-height: 1.1;
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 .tmD-head-right {
   margin-left: auto;
@@ -3553,13 +3611,26 @@ body {
   color: var(--tm-zinc);
   margin-top: 4px;
 }
-/* base resume banner */
+.tmD-notice {
+  margin-top: 16px;
+  padding: 11px 14px;
+  border: 0.5px solid var(--tm-blue-200);
+  border-radius: 8px;
+  background: var(--tm-blue-50);
+  color: var(--tm-blue-800);
+  font-size: 13px;
+  line-height: 1.45;
+}
+/* source profile banner — the primary anchor everything else derives from, so it
+   carries a soft blue tint + accent border to sit above the neutral panels below. */
 .tmD-base-resume {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 11px 16px;
+  padding: 13px 16px;
   margin-top: 18px;
+  background: color-mix(in srgb, var(--tm-blue-50) 70%, #fff);
+  border-color: var(--tm-blue-200);
 }
 .tmD-base-thumb {
   width: 34px;
@@ -3593,59 +3664,42 @@ body {
   align-items: center;
   gap: 8px;
   flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
-.tmD-filters {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 28px;
-  flex-wrap: wrap;
-}
-.tmD-chip {
-  font-size: 13px;
-  font-weight: 500;
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 0.5px solid var(--tm-border);
-  background: #fff;
-  color: var(--tm-zinc);
-  cursor: pointer;
-  transition: border-color 140ms ease, color 140ms ease;
-}
-.tmD-chip:hover {
-  border-color: var(--tm-ink);
-  color: var(--tm-ink);
-}
-.tmD-chip.is-on {
-  background: var(--tm-blue-600);
-  border-color: var(--tm-blue-600);
-  color: #fff;
-}
-.tmD-sort {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--tm-zinc);
-}
-.tmD-sort span {
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-.tmD-sort span.is-on {
-  color: var(--tm-blue-600);
-  font-weight: 500;
-  background: var(--tm-blue-50);
+.tmD-tab:focus-visible,
+.tmD-row:focus-visible,
+.tmD-drawer-x:focus-visible {
+  outline: 2px solid var(--tm-blue-400);
+  outline-offset: 2px;
 }
 
 .tmD-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 10px;
+}
+.tmD-sectionbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+.tmD-sectionbar > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tmD-sectionbar b {
+  font-size: 15px;
+  font-weight: 500;
+}
+.tmD-sectionbar span {
+  font-size: 12px;
+  color: var(--tm-zinc);
 }
 /* tmD-row defined in dashboard v2 additions below */
 .tmD-row-co b {
@@ -3656,35 +3710,6 @@ body {
 .tmD-row-co span {
   font-size: 12.5px;
   color: var(--tm-zinc);
-}
-.tmD-fit {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.tmD-fit-track {
-  flex: 1;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--tm-gray);
-  overflow: hidden;
-}
-.tmD-fit-bar {
-  height: 100%;
-  border-radius: 3px;
-  background: var(--tm-blue-600);
-}
-.tmD-fit-bar.is-mint {
-  background: var(--tm-mint-400);
-}
-.tmD-fit-bar.is-weak {
-  background: var(--tm-blue-200);
-}
-.tmD-fit output {
-  font-size: 13.5px;
-  font-weight: 500;
-  width: 22px;
-  text-align: right;
 }
 .tmD-status {
   display: flex;
@@ -3725,7 +3750,7 @@ body {
 .tmD-row-date {
   font-size: 12.5px;
   color: var(--tm-zinc);
-  text-align: right;
+  text-align: left;
 }
 
 .tmD-pipe {
@@ -3798,6 +3823,37 @@ body {
 }
 .tmD-drawer .tm-fit-row {
   grid-template-columns: 110px 1fr 30px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+}
+.tmD-fit-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 0.5px solid var(--tm-border);
+  border-radius: 8px;
+  background: var(--tm-gray);
+}
+.tmD-fit-summary b {
+  font-size: 13px;
+  font-weight: 500;
+}
+.tmD-fit-summary span {
+  font-size: 12.5px;
+  color: var(--tm-zinc);
+  line-height: 1.45;
+}
+.tmD-fit-summary[data-tone="mint"] {
+  background: var(--tm-mint-50);
+  border-color: var(--tm-mint-200);
+}
+.tmD-fit-summary[data-tone="amber"] {
+  background: #fdf6ec;
+  border-color: rgba(201, 138, 43, 0.28);
 }
 .tmD-drawer-sec {
   font-size: 12.5px;
@@ -3811,46 +3867,13 @@ body {
   flex-direction: column;
   gap: 8px;
 }
-.tmD-michael {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 14px 16px;
-  border: 0.5px solid var(--tm-border);
-  border-radius: 10px;
-}
-.tmD-michael.is-active {
-  border-color: var(--tm-mint-400);
-  background: var(--tm-mint-50);
-}
-.tmD-michael img {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex: none;
-}
-.tmD-michael b {
-  font-size: 13px;
-  font-weight: 500;
-  display: block;
-}
-.tmD-michael span {
-  font-size: 11.5px;
-  color: var(--tm-zinc);
-}
-.tmD-michael--btn {
-  width: 100%;
-  background: #fff;
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  transition: border-color 140ms ease, background 140ms ease;
-}
-.tmD-michael--btn:hover {
-  border-color: var(--tm-mint-400);
-  background: var(--tm-mint-50);
+/* drawer footer: one or two full-width actions (review/export, or run tailoring) */
+.tmD-drawer-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--tm-border);
 }
 
 .tmD-empty {
@@ -3868,8 +3891,20 @@ body {
 .tmD-empty p {
   font-size: 14px;
   color: var(--tm-zinc);
-  max-width: 44ch;
+  max-width: 58ch;
   line-height: 1.6;
+  text-wrap: balance;
+}
+.tmD-empty--compact {
+  padding: 34px 20px;
+}
+/* New-user entry: import (primary) + build-from-scratch (quiet ghost). */
+.tmD-addchoice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 18px;
 }
 
 @media (max-width: 1080px) {
@@ -3884,6 +3919,31 @@ body {
     display: none;
   }
 }
+@media (max-width: 720px) {
+  .tmD-head {
+    align-items: flex-start;
+  }
+  .tmD-head h1 {
+    font-size: 28px;
+  }
+  .tmD-head-right {
+    width: 100%;
+    margin-left: 0;
+  }
+  .tmD-credits {
+    order: -1;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .tmD-base-resume {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .tmD-base-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
 /* tmD-row responsive handled in dashboard v2 additions */
 
 .tmD-tabs {
@@ -3896,9 +3956,12 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  font: inherit;
   font-size: 14px;
   font-weight: 500;
   color: var(--tm-zinc);
+  background: transparent;
+  border: 0;
   padding: 9px 14px;
   cursor: pointer;
   border-bottom: 2px solid transparent;
@@ -3923,7 +3986,85 @@ body {
 .tmD-docs {
   display: flex;
   flex-direction: column;
+  gap: 22px;
+}
+/* Each document group is a self-contained panel: a white header strip (uppercase
+   label + count) over a recessed content well. The well's tint is what makes the
+   section boundaries legible — white item cards sit clearly *inside* their group
+   instead of floating in one undifferentiated white-on-white stack. */
+.tmD-doc-group {
+  border: 0.5px solid var(--tm-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.04);
+}
+.tmD-doc-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 0.5px solid var(--tm-border);
+}
+.tmD-doc-group-head h2 {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tm-slate);
+}
+.tmD-doc-group-head p {
+  font-size: 12px;
+  color: var(--tm-zinc);
+  line-height: 1.45;
+  margin-top: 3px;
+  max-width: 76ch;
+}
+.tmD-doc-group-head > span {
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tm-slate);
+  background: var(--tm-gray);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.tmD-doc-group-list {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--tm-gray) 42%, #fff);
+}
+/* The applications list reuses the panel well but carries a column header, so it
+   drops the stray top margins the standalone table used and tightens the gap. */
+.tmD-doc-group-list--table {
+  gap: 6px;
+}
+.tmD-doc-group-list--table .tmD-thead {
+  margin-top: 0;
+}
+.tmD-doc-group-list--table .tmD-list {
+  margin-top: 0;
+}
+.tmD-doc-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px dashed var(--tm-border);
+  border-radius: 8px;
+  color: var(--tm-zinc);
+  background: #fff;
+}
+.tmD-doc-empty svg {
+  color: var(--tm-blue-400);
+  flex: none;
+}
+.tmD-doc-empty p {
+  font-size: 13px;
+  line-height: 1.45;
 }
 .tmD-doc {
   display: flex;
@@ -3958,6 +4099,10 @@ body {
   font-size: 12.5px;
   color: var(--tm-zinc);
 }
+.tmD-doc-body .tmD-doc-advice {
+  color: #946218;
+  font-weight: 500;
+}
 .tmD-doc-co {
   white-space: nowrap;
   overflow: hidden;
@@ -3968,8 +4113,14 @@ body {
   align-items: center;
   gap: 12px;
   flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 @media (max-width: 600px) {
+  .tmD-doc-group-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
   .tmD-doc {
     flex-wrap: wrap;
   }
@@ -4007,14 +4158,14 @@ body {
   align-items: center;
   justify-content: center;
   flex: none;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 .tmD-thead {
   display: grid;
-  grid-template-columns: 1fr 150px minmax(170px, 230px) 70px;
+  grid-template-columns: minmax(0, 1fr) 150px 168px 72px;
   gap: 16px;
-  padding: 0 20px 8px;
-  margin-top: 16px;
+  padding: 2px 18px 6px;
+  margin-top: 12px;
 }
 .tmD-thead span {
   font-size: 11px;
@@ -4024,11 +4175,18 @@ body {
   color: var(--tm-zinc);
 }
 .tmD-row {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: #fff;
+  border: 0.5px solid var(--tm-border);
+  border-radius: 12px;
   display: grid;
-  grid-template-columns: 1.6fr 150px 1.2fr 80px;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) 150px 168px 72px;
+  gap: 16px;
   align-items: center;
-  padding: 16px 20px;
+  padding: 14px 18px;
   cursor: pointer;
   transition: border-color 140ms ease, background 140ms ease;
 }
@@ -4141,6 +4299,14 @@ body {
 .tmD-status-label[data-status="human_review"] .tmD-status-dot {
   background: var(--tm-blue-600);
 }
+.tmD-status-label[data-status="running"] {
+  background: var(--tm-blue-50);
+  color: var(--tm-blue-800);
+}
+.tmD-status-label[data-status="running"] .tmD-status-dot {
+  background: var(--tm-blue-600);
+  animation: tmD-pulse 1.2s ease-in-out infinite;
+}
 .tmD-status-label[data-status="scored"] {
   background: #fdf6ec;
   color: #946218;
@@ -4190,27 +4356,110 @@ body {
   color: var(--tm-zinc);
   font-style: italic;
 }
+/* Fit cell: number + plain-language tier on one line, a slim tier-colored bar
+   under it — a self-contained judgement instead of a stray bar + number. */
+.tmD-fit {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.tmD-fit-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.tmD-fit-num {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tm-ink);
+  line-height: 1;
+}
+.tmD-fit-tier {
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.tmD-fit-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--tm-gray);
+  overflow: hidden;
+}
+.tmD-fit-fill {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: 999px;
+  transition: width 320ms ease;
+}
+.tmD-fit[data-tier="strong"] .tmD-fit-tier,
+.tmD-fit[data-tier="good"] .tmD-fit-tier {
+  color: var(--tm-mint-600);
+}
+.tmD-fit[data-tier="strong"] .tmD-fit-fill,
+.tmD-fit[data-tier="good"] .tmD-fit-fill {
+  background: var(--tm-mint-500);
+}
+.tmD-fit[data-tier="fair"] .tmD-fit-tier {
+  color: #b8791f;
+}
+.tmD-fit[data-tier="fair"] .tmD-fit-fill {
+  background: #d99b3a;
+}
+.tmD-fit[data-tier="weak"] .tmD-fit-tier {
+  color: var(--tm-zinc);
+}
+.tmD-fit[data-tier="weak"] .tmD-fit-fill {
+  background: var(--tm-blue-400);
+}
+/* Status as a tinted pill so it reads as a state, not floating text. */
 .tmD-row-status {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 12.5px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--tm-slate);
+  background: var(--tm-gray);
   min-width: 0;
+  max-width: 100%;
   white-space: nowrap;
+}
+.tmD-row-status-label {
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 .tmD-row-status .tmD-status-dot {
   flex: none;
 }
+.tmD-row-status[data-status="ready"] {
+  background: var(--tm-mint-50);
+  color: var(--tm-mint-700);
+}
 .tmD-row-status[data-status="ready"] .tmD-status-dot {
   background: var(--tm-mint-500);
+}
+.tmD-row-status[data-status="human_review"],
+.tmD-row-status[data-status="michael"],
+.tmD-row-status[data-status="running"] {
+  background: var(--tm-blue-50);
+  color: var(--tm-blue-800);
 }
 .tmD-row-status[data-status="human_review"] .tmD-status-dot,
 .tmD-row-status[data-status="michael"] .tmD-status-dot {
   background: var(--tm-blue-600);
+}
+.tmD-row-status[data-status="running"] .tmD-status-dot {
+  background: var(--tm-blue-600);
+  animation: tmD-pulse 1.2s ease-in-out infinite;
+}
+.tmD-row-status[data-status="scored"] {
+  background: #fdf3e7;
+  color: #854f0b;
 }
 .tmD-row-status[data-status="scored"] .tmD-status-dot {
   background: #c98a2b;
@@ -4255,7 +4504,7 @@ body {
     display: none;
   }
   .tmD-row {
-    grid-template-columns: 1fr 120px 70px;
+    grid-template-columns: minmax(0, 1fr) 140px 72px;
   }
   .tmD-row .tmD-row-status {
     display: none;
@@ -4263,7 +4512,7 @@ body {
 }
 @media (max-width: 600px) {
   .tmD-row {
-    grid-template-columns: 1fr 100px;
+    grid-template-columns: minmax(0, 1fr) 120px;
   }
   .tmD-row-date {
     display: none;
@@ -4745,6 +4994,10 @@ body {
   font-size: 12px;
   font-weight: 500;
 }
+.tmF-agent-collect.is-complete {
+  background: var(--tm-mint-50);
+  color: var(--tm-mint-600);
+}
 .tmF-agent-collect-dot {
   width: 7px;
   height: 7px;
@@ -4752,6 +5005,11 @@ body {
   background: var(--tm-blue-600);
   box-shadow: 0 0 0 0 rgba(66, 116, 214, 0.34);
   animation: tmF-agent-pulse 1.15s ease-out infinite;
+}
+.tmF-agent-collect.is-complete .tmF-agent-collect-dot {
+  background: var(--tm-mint-600);
+  box-shadow: none;
+  animation: none;
 }
 @keyframes tmF-agent-pulse {
   70% {

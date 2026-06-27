@@ -3,6 +3,10 @@
   max-width: 1460px;
   margin: 0 auto;
   padding: 22px 24px 96px;
+  transition: max-width 0.2s ease;
+}
+.tmE-wrap.is-workmode {
+  max-width: 1560px;
 }
 .tmE-head {
   display: flex;
@@ -116,14 +120,13 @@
   font-size: 11px;
   color: var(--tm-zinc);
 }
-.tmE-saved {
+.tmE-save-status {
   font-size: 13px;
-  color: var(--tm-mint-600);
   display: inline-flex;
   align-items: center;
   gap: 5px;
 }
-.tmE-saved.is-err {
+.tmE-save-status.is-err {
   color: #b3261e;
 }
 .tmE-back {
@@ -144,6 +147,10 @@
   grid-template-columns: 176px minmax(260px, 0.58fr) minmax(0, 1.85fr);
   gap: 20px;
   align-items: start;
+  transition: grid-template-columns 0.2s ease;
+}
+.tmE-wrap.is-workmode .tmE-grid3 {
+  grid-template-columns: 168px minmax(460px, 0.98fr) minmax(480px, 1.12fr);
 }
 .tmE-main {
   min-width: 0;
@@ -152,10 +159,147 @@
   position: sticky;
   top: 20px;
 }
-.tmE-progress {
+/* "AI-tailored for this role" badge — marks the doc as an auto-generated draft */
+.tmE-tailored {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--tm-blue-800);
+  background: var(--tm-blue-50);
+  border: 0.5px solid var(--tm-blue-200);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+.tmE-tailored svg {
+  color: var(--tm-blue-600);
+}
+/* Groups the doc-status chips (AI-tailored + review progress) and divides them
+   from the action buttons, so the right side reads "status | actions". */
+.tmE-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 12px;
+  border-right: 0.5px solid var(--tm-border);
+}
+@media (max-width: 760px) {
+  .tmE-status {
+    border-right: 0;
+    padding-right: 0;
+  }
+}
+
+/* Review progress — a checklist icon + one dot per AI change (filled when
+   reviewed). The "X/Y changes reviewed" string is kept screen-reader-only. */
+.tmE-reviewprog {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--tm-zinc);
+}
+.tmE-reviewprog.is-done {
+  color: var(--tm-mint-600);
+}
+.tmE-reviewprog-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.tmE-reviewprog-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--tm-gray);
+  border: 1px solid var(--tm-border);
+}
+.tmE-reviewprog-dots i.is-done {
+  background: var(--tm-mint-500);
+  border-color: var(--tm-mint-500);
+}
+.tmE-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Cover letter review modal (review-first; light edit behind a toggle) */
+.tmE-cover-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(24, 24, 27, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.tmE-cover-modal {
+  width: 100%;
+  max-width: 620px;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(24, 24, 27, 0.25);
+  overflow: hidden;
+}
+.tmE-cover-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 0.5px solid var(--tm-border);
+}
+.tmE-cover-head b {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tm-ink);
+}
+.tmE-cover-head span {
+  display: block;
+  margin-top: 3px;
   font-size: 12.5px;
   color: var(--tm-zinc);
-  white-space: nowrap;
+  line-height: 1.45;
+}
+.tmE-cover-x {
+  flex: none;
+  color: var(--tm-zinc);
+  cursor: pointer;
+}
+.tmE-cover-x:hover {
+  color: var(--tm-ink);
+}
+.tmE-cover-body {
+  padding: 20px;
+  overflow-y: auto;
+}
+.tmE-cover-para {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--tm-ink);
+  margin-bottom: 12px;
+  white-space: pre-wrap;
+}
+.tmE-cover-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 0.5px solid var(--tm-border);
 }
 
 .tmE-trust {
@@ -283,7 +427,7 @@
   margin-bottom: 2px;
 }
 
-/* diff row: original / AI rewrite + accept/reject/edit */
+/* diff row: inline word-level redline + accept/reject/edit */
 .tmE-diff {
   border: 0.5px solid var(--tm-border);
   border-radius: 10px;
@@ -295,60 +439,61 @@
   border-color: var(--tm-blue-200);
   background: var(--tm-blue-50);
 }
-.tmE-diff-line {
-  display: flex;
-  gap: 8px;
+/* Only the changed words are marked: removed words are struck (muted red),
+   added words are tinted green. Unchanged text stays plain so a one-word
+   rewrite no longer reads as a whole-sentence change. */
+.tmE-diff-redline {
   font-size: 12.5px;
-  line-height: 1.5;
-  padding: 3px 0;
-}
-.tmE-diff-line span:last-child {
-  flex: 1;
-}
-.tmE-diff-before span:last-child {
-  color: var(--tm-zinc);
-  text-decoration: line-through;
-  text-decoration-color: rgba(217, 84, 77, 0.5);
-}
-.tmE-diff-after span:last-child {
+  line-height: 1.6;
   color: var(--tm-ink);
 }
-.tmE-diff-tag {
-  flex: none;
-  width: 74px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.tmE-diff-del {
+  text-decoration: line-through;
+  text-decoration-color: rgba(217, 84, 77, 0.6);
   color: var(--tm-zinc);
-  padding-top: 1px;
 }
-.tmE-diff-tag.is-after {
+.tmE-diff-ins {
+  text-decoration: none;
   color: var(--tm-mint-600);
+  background: rgba(52, 168, 121, 0.1);
+  border-radius: 3px;
+  padding: 0 1px;
 }
 .tmE-diff-actions {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-top: 9px;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  min-width: 0;
 }
 .tmE-diff-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
+  flex: 0 0 auto;
+  min-width: 0;
   font: inherit;
   font-size: 12px;
   font-weight: 500;
-  padding: 5px 10px;
+  padding: 5px 11px;
   border-radius: 7px;
-  border: 0.5px solid var(--tm-border);
-  background: #fff;
-  color: var(--tm-slate);
+  border: 0.5px solid transparent;
+  background: transparent;
+  color: var(--tm-zinc);
   cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.13s ease, color 0.13s ease, border-color 0.13s ease;
 }
 .tmE-diff-btn:hover {
-  border-color: var(--tm-ink);
   color: var(--tm-ink);
+  background: rgba(24, 24, 27, 0.04);
+}
+/* Accept is the suggested action — give it a quiet outline by default. */
+.tmE-diff-btn.is-accept {
+  border-color: var(--tm-border);
+  color: var(--tm-slate);
 }
 .tmE-diff-btn.is-on.is-accept {
   background: var(--tm-mint-500);
@@ -356,19 +501,12 @@
   color: #fff;
 }
 .tmE-diff-btn.is-on.is-reject {
-  background: #d9544d;
-  border-color: #d9544d;
-  color: #fff;
+  background: rgba(217, 84, 77, 0.12);
+  color: #c0392f;
 }
 .tmE-diff-btn.is-on.is-edit {
-  background: var(--tm-blue-600);
-  border-color: var(--tm-blue-600);
-  color: #fff;
-}
-.tmE-diff-hint {
-  font-size: 11.5px;
-  color: var(--tm-zinc);
-  margin-left: 2px;
+  background: var(--tm-blue-50);
+  color: var(--tm-blue-800);
 }
 .tmE-preview-label {
   font-size: 11px;
@@ -530,8 +668,43 @@
   grid-template-columns: 1fr;
   gap: 12px;
 }
+@media (min-width: 1180px) {
+  .tmE-wrap.is-workmode .tmE-row2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
+/* Experience entry fields: role + company sit side by side (the fields that
+   carry the most text), dates drop to their own row but stay narrow so they
+   don't out-size the identity fields. Replaces per-field inline margin resets. */
+.tmE-entry-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
+}
+.tmE-entry-fields .tmE-field {
+  margin-bottom: 0;
+}
+.tmE-field--dates {
+  grid-column: 1 / -1;
+}
+.tmE-field--dates .tmE-daterange {
+  max-width: 420px;
+}
+@media (max-width: 560px) {
+  .tmE-entry-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Stacked: the start/end inputs on one row, the "Present" toggle fixed below so
+   it never moves as the end field swaps. */
 .tmE-daterange {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.tmE-daterange-row {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -539,46 +712,41 @@
 }
 .tmE-daterange .tmE-input {
   width: auto;
-  flex: 1 1 130px;
+  flex: 0 1 150px;
   min-width: 120px;
 }
 .tmE-daterange-sep {
   font-size: 12.5px;
   color: var(--tm-zinc);
 }
-/* "Present" end state: reads as a quiet, filled-in input (shares .tmE-input box) */
+/* "Present" end state: a calm mint chip that shares the .tmE-input box, so the
+   row keeps the exact same width whether the end is a month or "Present". */
 .tmE-daterange-present {
   display: flex;
   align-items: center;
-  color: var(--tm-slate);
-  background: var(--tm-gray);
+  gap: 6px;
+  font-weight: 500;
+  color: var(--tm-mint-700);
+  background: var(--tm-mint-50);
+  border-color: var(--tm-mint-200);
 }
-/* clean toggle pill instead of a raw checkbox */
-.tmE-daterange-toggle {
-  flex: none;
+/* The toggle: a plain, reliable checkbox on its own row (always visible). */
+.tmE-daterange-check {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font: inherit;
-  font-size: 12.5px;
-  line-height: 1;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 0.5px solid var(--tm-border);
-  background: #fff;
+  gap: 8px;
+  width: fit-content;
+  font-size: 13px;
   color: var(--tm-slate);
-  white-space: nowrap;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  user-select: none;
 }
-.tmE-daterange-toggle:hover {
-  border-color: var(--tm-ink);
-  color: var(--tm-ink);
-}
-.tmE-daterange-toggle.is-on {
-  background: var(--tm-blue-50);
-  border-color: var(--tm-blue-400);
-  color: var(--tm-blue-800);
+.tmE-daterange-check input {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  accent-color: var(--tm-blue-600);
+  cursor: pointer;
 }
 
 .tmE-entry {
@@ -666,13 +834,36 @@
     transition: none;
   }
 }
-/* education entries (simple cards, no collapse) */
+/* education-style entries */
 .tmE-edu {
   border: 0.5px solid var(--tm-border);
   border-radius: 11px;
   padding: 14px;
   margin-bottom: 12px;
   background: #fff;
+  max-height: var(--tmE-remove-height, none);
+  overflow: hidden;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transform-origin: top center;
+  transition:
+    max-height 240ms cubic-bezier(0.4, 0, 0.2, 1),
+    margin-bottom 240ms cubic-bezier(0.4, 0, 0.2, 1),
+    padding-top 240ms cubic-bezier(0.4, 0, 0.2, 1),
+    padding-bottom 240ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 180ms ease,
+    opacity 180ms ease,
+    transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tmE-edu.is-removing {
+  max-height: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-color: transparent;
+  opacity: 0;
+  transform: translateY(-4px) scale(0.985);
+  pointer-events: none;
 }
 .tmE-edu-remove {
   margin-top: 12px;
@@ -691,6 +882,15 @@
 }
 .tmE-edu-remove:hover {
   color: #b3261e;
+}
+.tmE-edu-remove:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tmE-edu {
+    transition: none;
+  }
 }
 .tmE-bullets {
   margin-top: 10px;
@@ -729,6 +929,13 @@
   align-items: center;
   gap: 5px;
   padding: 2px;
+}
+.tmE-add:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+.tmE-spin {
+  animation: tmspin 0.85s linear infinite;
 }
 .tmE-hint {
   font-size: 11.5px;
@@ -912,6 +1119,25 @@
 
 /* résumé preview fills the (wide) column — kills the slim / over-wrapped look.
    Trim the résumé's own left/right padding so the text gets maximum width. */
+/* The preview "paper" is a fixed-width document scaled to fit the panel, so its
+   line-wrapping and page breaks never change with the window — only the zoom
+   does. The viewport clips/centres the scaled doc; its height is set in JS to
+   the scaled height so there's no dead space below. */
+.tmE-doc-viewport {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: hidden;
+  /* take the column's width (not the 760px child's) so the doc scales to fit */
+  width: 100%;
+  min-width: 0;
+}
+.tmE-doc-scaler {
+  position: relative;
+  width: 760px;
+  flex: none;
+  transform-origin: top center;
+}
 .tmE-preview .print-wrap {
   max-width: none;
   padding: 0;
@@ -983,6 +1209,20 @@
 }
 .tmE-fix-group {
   margin-bottom: 16px;
+}
+.tmE-fix-top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tmE-manual-suggestion {
+  border: 0.5px solid var(--tm-border);
+  border-radius: 11px;
+  padding: 12px;
+  margin: 10px 0 14px;
+  background: #fff;
 }
 .tmE-fix-head {
   display: flex;
@@ -1092,8 +1332,41 @@
   font-weight: 600;
   color: var(--tm-mint-700);
 }
-.tmE-fix-goto {
+.tmE-fix-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
   margin-top: 11px;
+}
+.tmE-fix-apply {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 5px 9px;
+  border: 0.5px solid var(--tm-blue-200);
+  border-radius: 8px;
+  background: var(--tm-blue-50);
+  color: var(--tm-blue-700);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tmE-fix-apply:hover {
+  border-color: var(--tm-blue-400);
+}
+.tmE-fix-apply.is-primary {
+  background: var(--tm-blue-600);
+  color: #fff;
+  border-color: var(--tm-blue-600);
+}
+.tmE-fix-apply:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.tmE-fix-goto {
   font: inherit;
   font-size: 12.5px;
   font-weight: 500;
@@ -1106,7 +1379,60 @@
 .tmE-fix-goto:hover {
   text-decoration: underline;
 }
+.tmE-suggestion-draft {
+  margin-top: 11px;
+  padding: 10px;
+  border: 0.5px solid var(--tm-border);
+  border-radius: 9px;
+  background: #fbfdff;
+}
+.tmE-suggestion-draft label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--tm-zinc);
+}
+/* Placeholder cue: the AI draft can contain "[add a metric]" slots the user must
+   fill in. A textarea can't style its own inner text, so flag it with an amber
+   note + matching border so the brackets read as "your turn", not final copy. */
+.tmE-draft-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 7px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #854f0b;
+}
+.tmE-draft-token {
+  flex: none;
+  font-weight: 700;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: #854f0b;
+  background: #fdf3e7;
+  border: 1px solid rgba(133, 79, 11, 0.25);
+  border-radius: 5px;
+  padding: 0 5px;
+  line-height: 1.5;
+}
+.tmE-textarea--hasplaceholder {
+  border-color: rgba(133, 79, 11, 0.4);
+  background: #fffdf9;
+}
 
+@media (max-width: 1180px) {
+  .tmE-wrap.is-workmode .tmE-grid3 {
+    grid-template-columns: 170px minmax(0, 1fr);
+  }
+  .tmE-wrap.is-workmode .tmE-preview {
+    grid-column: 1 / -1;
+    position: static;
+    margin-top: 8px;
+  }
+}
 @media (max-width: 1080px) {
   .tmE-grid3 {
     grid-template-columns: 170px minmax(0, 1fr);

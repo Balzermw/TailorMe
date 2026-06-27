@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ROUTES } from "@/components/landing/data";
 import { editHref } from "@/lib/apply/render";
+import { saveLocalApplication } from "@/lib/local-applications";
+import type { ApplyResult } from "@/lib/types";
 import { track, getSessionId } from "@/lib/track";
 
 // The audit step stashes the run inputs in sessionStorage and navigates here
@@ -13,19 +15,36 @@ import { track, getSessionId } from "@/lib/track";
 // into the editor when the document is ready.
 const STAGES = [
   "Reading your resume and the job posting",
+  "Matching your experience to the role",
   "Rewriting your bullets for this posting",
   "Compiling your resume and cover letter",
   "Running the final faithfulness check",
   "Polishing formatting and layout",
-  "Almost there — longer resumes take a little more time",
+  "Almost there. Longer resumes take a little more time.",
 ];
 
 export default function TailoringRunner() {
   const router = useRouter();
   const [stage, setStage] = useState(0);
-  const [pct, setPct] = useState(6);
+  const [pct, setPct] = useState(12);
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
+
+  // Progress ticker in its OWN effect so React StrictMode's mount→cleanup→mount
+  // cycle re-creates it cleanly. (The work effect below is ref-guarded to run
+  // once; putting the interval there left it cleared-and-never-recreated, which
+  // froze the bar at its starting value while the request kept running.)
+  useEffect(() => {
+    const start = Date.now();
+    const id = window.setInterval(() => {
+      const t = Date.now() - start;
+      // Climb briskly early, then ease toward ~94% and never hit 100% until the
+      // doc is actually ready. (~37% at 2s, ~60% at 5s, ~80% at 12s.)
+      setPct((p) => Math.max(p, Math.round(12 + 82 * (1 - Math.exp(-t / 13000)))));
+      setStage(Math.min(Math.floor(t / 6000), STAGES.length - 1));
+    }, 400);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (started.current) return; // run once (StrictMode double-mount guard)
@@ -48,17 +67,6 @@ export default function TailoringRunner() {
       router.replace(ROUTES.audit);
       return;
     }
-
-    const start = Date.now();
-    const ticker = window.setInterval(() => {
-      const t = Date.now() - start;
-      // Crawl toward ~92% and never hit 100% until the doc is actually ready,
-      // so larger/slower runs keep visibly progressing instead of freezing at
-      // the last step. (6 + 86·(1−e^−t/20s) → 92% asymptotically.)
-      setPct((p) => Math.max(p, Math.round(6 + 86 * (1 - Math.exp(-t / 20000)))));
-      // Advance the reassurance message every ~8s, holding on the last one.
-      setStage(Math.min(Math.floor(t / 8000), STAGES.length - 1));
-    }, 600);
 
     void (async () => {
       try {
@@ -94,16 +102,38 @@ export default function TailoringRunner() {
           router.replace(editHref(data.applicationId as string));
           return;
         }
-        // Demo mode or no persisted application → nothing to open; head back.
-        router.replace(ROUTES.audit);
+        // Local/demo mode (no account DB): persist the finished draft to
+        // localStorage and open the editor, which reads from localStorage here.
+        // (Account mode can't use this — its editor loads from the DB — so an
+        // account persistence failure returns a 500 and falls through to a retry.)
+        if (data.local && data.result?.doc) {
+          const app = saveLocalApplication(
+            data.result as ApplyResult,
+            typeof inputs.resumeId === "string" ? inputs.resumeId : null,
+          );
+          try {
+            sessionStorage.removeItem("tm_tailor");
+          } catch {
+            /* ignore */
+          }
+          router.replace(editHref(app.id));
+          return;
+        }
+        if (data.demo) {
+          setError("AI tailoring is not configured for this environment yet.");
+          return;
+        }
+        // tm_tailor is intentionally NOT cleared here, so the error UI's "Try
+        // again" (a reload) re-runs with the same inputs.
+        setError(
+          typeof data.error === "string"
+            ? data.error
+            : "The tailored draft didn’t come back. Please try again.",
+        );
       } catch {
         setError("Something went wrong. Please try again.");
-      } finally {
-        window.clearInterval(ticker);
       }
     })();
-
-    return () => window.clearInterval(ticker);
   }, [router]);
 
   return (
@@ -126,14 +156,24 @@ export default function TailoringRunner() {
             <h3>That didn’t go through</h3>
             <p>{error}</p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-              <Link className="tm-btn tm-btn--primary" href={ROUTES.audit}>
-                Back to your audit
-              </Link>
-              {/credit/i.test(error) && (
-                <Link className="tm-btn tm-btn--outline" href={ROUTES.buyCredits}>
+              {/credit/i.test(error) ? (
+                <Link className="tm-btn tm-btn--primary" href={ROUTES.buyCredits}>
                   Buy credits
                 </Link>
+              ) : (
+                // tm_tailor is only cleared on success, so a reload re-runs the
+                // same tailoring inputs — a real retry without re-entering the flow.
+                <button
+                  type="button"
+                  className="tm-btn tm-btn--primary"
+                  onClick={() => window.location.reload()}
+                >
+                  Try again
+                </button>
               )}
+              <Link className="tm-btn tm-btn--outline" href={ROUTES.audit}>
+                Back to your audit
+              </Link>
             </div>
           </>
         ) : (
@@ -150,8 +190,8 @@ export default function TailoringRunner() {
                 animation: "tmspin .8s linear infinite",
               }}
             />
-            <h3>Tailoring your application…</h3>
-            <p style={{ minHeight: "1.4em" }}>{STAGES[stage]}…</p>
+            <h3>Building your tailored draft...</h3>
+            <p style={{ minHeight: "1.4em" }}>{STAGES[stage]}...</p>
             <div
               role="progressbar"
               aria-valuenow={pct}
@@ -177,8 +217,8 @@ export default function TailoringRunner() {
               />
             </div>
             <p className="tm-small" style={{ color: "var(--tm-zinc)" }}>
-              We build your resume and cover letter while you wait, then open the editor
-              automatically.
+              We build your role-specific resume draft while you wait, then open the review
+              editor automatically.
             </p>
           </>
         )}

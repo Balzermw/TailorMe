@@ -2,87 +2,26 @@ import { NextResponse } from "next/server";
 import { llmConfigured } from "@/lib/config";
 import { parseResume } from "@/lib/apply/pipeline";
 import { docToResumeText } from "@/lib/apply/serialize";
-import { renderResumeTex } from "@/lib/apply/latex";
 import { sanitizeDoc } from "@/lib/apply/sanitize-doc";
 import { feedbackHash } from "@/lib/apply/hash";
 import { withAiRun, logCachedRun } from "@/lib/apply/ai-telemetry";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { EDIT_REVIEW_RULES, rateLimitDisabled } from "@/lib/limits";
 import { consume, getClientIp, tooManyRequests } from "@/lib/rate-limit";
-import { evaluateResumeRules } from "@/lib/resume-rules/evaluateResumeRules";
-import type { ResumeRuleFinding } from "@/lib/resume-rules/resumeAdviceRule.types";
+import { FEEDBACK_CACHE_VERSION, refineFeedback } from "@/lib/resume-rules/deterministicFeedback";
 import type { ProofPoint } from "@/lib/types";
 
-// First-pass feedback on a structured (built/edited) base resume. Runs the LLM
-// parse (template-aware) AND the deterministic rules engine over the same doc,
-// then dedupes + caps so the editor's Suggestions section shows a focused set
-// (no duplicate "add metrics" from both the rule and the LLM). Returns proof
-// points for the editor's Suggestions section.
-
-// Map a surfaced rules-engine finding back to the editor's ProofPoint shape.
-function findingToProofPoint(f: ResumeRuleFinding): ProofPoint {
-  return {
-    title: f.title,
-    summary: f.message,
-    quote: f.evidenceSnippet || undefined,
-    why: f.whyItMatters,
-    fix: f.suggestedFix,
-    severity: f.uiSeverityLabel.toLowerCase() as ProofPoint["severity"],
-    // Carry rule provenance so the editor can emit per-suggestion telemetry
-    // (which rules users act on). Safe ids/categories only — never content.
-    ruleId: f.ruleId,
-    category: f.category,
-  };
-}
-
-// Safe, content-free funnel counts for telemetry (rules → candidates →
-// deduped → surfaced). NEVER includes résumé text or evidence snippets.
-interface FeedbackStats {
-  rulesLoaded: number;
-  candidates: number;
-  deduped: number;
-  surfaced: number;
-  suppressed: number;
-}
-
-// Fold the LLM proof points + deterministic rule findings into one deduped,
-// ranked, capped set. Falls back to the raw proof points if the doc can't be
-// rendered to LaTeX (the engine's detectors read LaTeX structure).
-function refineFeedback(
-  doc: Parameters<typeof renderResumeTex>[0],
-  proofPoints: ProofPoint[],
-): { proofPoints: ProofPoint[]; stats: FeedbackStats | null } {
-  try {
-    const latexSource = renderResumeTex(doc);
-    const result = evaluateResumeRules({
-      latexSource,
-      legacyProofPoints: proofPoints,
-      tier: "paid", // the editor is an engaged workspace → allow up to 10
-      templated: true, // base resume renders in our template (it owns layout/ATS)
-    });
-    return {
-      proofPoints: result.surfaced.map(findingToProofPoint),
-      stats: {
-        rulesLoaded: result.stats.rulesLoaded,
-        candidates: result.stats.candidateFindingsCount,
-        deduped: result.stats.dedupedFindingsCount,
-        surfaced: result.stats.surfacedSuggestionsCount,
-        suppressed: result.stats.suppressedCount,
-      },
-    };
-  } catch {
-    return { proofPoints, stats: null };
-  }
-}
+// First-pass feedback on a structured (built/edited) base resume. The LLM parse
+// (template-aware) plus the deterministic rules engine run over the same doc,
+// deduped + capped so the editor's Suggestions section shows a focused set (no
+// duplicate "add metrics" from both the rule and the LLM). The dedup/cap engine
+// lives in `deterministicFeedback` so import-time feedback matches what the
+// editor shows. Pass `mode: "deterministic"` to skip the LLM (used at import).
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
-  if (!llmConfigured) {
-    return NextResponse.json({ demo: true, proofPoints: [] });
-  }
-
   let body: { doc?: unknown };
   try {
     body = await request.json();
@@ -113,10 +52,40 @@ export async function POST(request: Request) {
       .maybeSingle();
     stats = (row?.stats as Record<string, unknown>) ?? {};
     // Same résumé as last time → return the cached review, no tokens spent.
-    if (stats.feedbackHash === hash && Array.isArray(stats.proofPoints)) {
+    if (
+      stats.feedbackHash === hash &&
+      stats.feedbackCacheVersion === FEEDBACK_CACHE_VERSION &&
+      Array.isArray(stats.proofPoints)
+    ) {
       logCachedRun("feedback", { userId: user.id, sessionId }, Date.now() - t0);
       return NextResponse.json({ proofPoints: stats.proofPoints, cached: true });
     }
+  }
+
+  const saveFeedbackCache = async (proofPoints: ProofPoint[]) => {
+    if (!sb || !user) return;
+    const merged = {
+      ...stats,
+      proofPoints,
+      feedbackHash: hash,
+      feedbackCacheVersion: FEEDBACK_CACHE_VERSION,
+    };
+    await sb.from("resumes").update({ stats: merged }).eq("user_id", user.id);
+  };
+
+  // No LLM configured → the deterministic rules engine alone (same engine the
+  // import path uses, so the suggestions match).
+  if (!llmConfigured) {
+    const { proofPoints, stats: funnel } = refineFeedback(doc, []);
+    await saveFeedbackCache(proofPoints);
+    return NextResponse.json({
+      demo: true,
+      fallback: true,
+      proofPoints,
+      cached: false,
+      stats: funnel,
+      warning: "AI feedback is not configured locally, so this review used the resume rules engine.",
+    });
   }
 
   // Only the token-spending path is rate-limited; cache hits above are free.
@@ -140,15 +109,17 @@ export async function POST(request: Request) {
     // Fold the LLM findings + deterministic rules → deduped, capped suggestions.
     const { proofPoints, stats: funnel } = refineFeedback(doc, parsed.proofPoints ?? []);
     // Persist with the hash so the next identical request is a free cache hit.
-    if (sb && user) {
-      const merged = { ...stats, proofPoints, feedbackHash: hash };
-      await sb.from("resumes").update({ stats: merged }).eq("user_id", user.id);
-    }
+    await saveFeedbackCache(proofPoints);
     return NextResponse.json({ proofPoints, cached: false, stats: funnel });
   } catch {
-    return NextResponse.json(
-      { error: "Couldn't review your resume. Try again." },
-      { status: 502 },
-    );
+    const { proofPoints, stats: funnel } = refineFeedback(doc, []);
+    await saveFeedbackCache(proofPoints);
+    return NextResponse.json({
+      fallback: true,
+      proofPoints,
+      cached: false,
+      stats: funnel,
+      warning: "AI feedback had trouble, so this review used the resume rules engine.",
+    });
   }
 }

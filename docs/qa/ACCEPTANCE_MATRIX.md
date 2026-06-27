@@ -80,7 +80,7 @@ Generated from visible interactive controls. Expected behavior starts conservati
 | QA-0074 | /buy-credits | Free audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
 | QA-0075 | /buy-credits | Expert FeedbackOne human review pass · prioritized feedback within 48h+$79 | checkbox | yes | Run the relevant review/generation action with loading, success, and failure states. | not started | - |
 | QA-0076 | /buy-credits | Human RevisionOne hands-on human revision pass for one application+$149 | checkbox | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0077 | /buy-credits | get in touch | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0077 | /buy-credits | Get in touch | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
 | QA-0078 | /buy-credits | Pay $69 | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
 | QA-0079 | /buy-credits | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
 | QA-0080 | /buy-credits | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
@@ -130,170 +130,150 @@ Generated from visible interactive controls. Expected behavior starts conservati
 | QA-0124 | /dashboard-demo | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
 | QA-0125 | /dashboard-demo | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
 | QA-0126 | /dashboard-demo | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0127 | /dashboard-demo | Dashboard | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0128 | /dashboard-demo | AM Alex Mercer | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0129 | /dashboard-demo | Sign out | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0130 | /dashboard-demo | buy more | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0131 | /dashboard-demo | New application | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0132 | /dashboard-demo | Settings | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0133 | /dashboard-demo | Build from scratch | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0134 | /dashboard-demo | Close | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0135 | /dashboard-demo | Resume_Nordpeak.pdf 2 pages | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0136 | /dashboard-demo | Cover_Nordpeak.pdf 1 page | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0137 | /dashboard-demo | Technical skills | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0138 | /dashboard-demo | Technical skills | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0139 | /dashboard-demo | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0140 | /dashboard-demo | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0141 | /dashboard-demo | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0142 | /dashboard-demo | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0143 | /forgot-password | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0144 | /forgot-password | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0145 | /forgot-password | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0146 | /forgot-password | Dashboard | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0147 | /forgot-password | AM Alex Mercer | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0148 | /forgot-password | Sign out | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0149 | /forgot-password | Email | email | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0150 | /forgot-password | Email | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0151 | /forgot-password | ← Back to sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0152 | /forgot-password | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0153 | /forgot-password | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0154 | /forgot-password | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0155 | /forgot-password | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0156 | /pricing | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0157 | /pricing | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0158 | /pricing | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0159 | /pricing | Dashboard | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0160 | /pricing | AM Alex Mercer | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0161 | /pricing | Sign out | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0162 | /pricing | Buy Starter | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0163 | /pricing | Buy Job Hunt | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0164 | /pricing | Buy Campaign | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0165 | /pricing | See coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0166 | /pricing | Unused credits refunded in full within 30 days. | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0167 | /pricing | Do credits expire? | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0168 | /pricing | What counts as one application? | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0169 | /pricing | Can I see the result before spending a credit? | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0170 | /pricing | What is the refund policy? | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0171 | /pricing | Can a human review my resume? | button | yes | Run the relevant review/generation action with loading, success, and failure states. | not started | - |
-| QA-0172 | /pricing | Get a free resume audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0173 | /pricing | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0174 | /pricing | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0175 | /pricing | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0176 | /pricing | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0177 | /privacy | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0178 | /privacy | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0179 | /privacy | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0180 | /privacy | Dashboard | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0181 | /privacy | AM Alex Mercer | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0182 | /privacy | Sign out | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0183 | /privacy | Contact us | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0184 | /privacy | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0185 | /privacy | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0186 | /privacy | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0187 | /privacy | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0188 | /resume/edit | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0189 | /resume/edit | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0190 | /resume/edit | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0191 | /resume/edit | Dashboard | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0192 | /resume/edit | AM Alex Mercer | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0193 | /resume/edit | Sign out | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0194 | /resume/edit | Build one from scratch | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0195 | /resume/import | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0196 | /resume/import | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0197 | /resume/import | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0198 | /resume/import | Dashboard | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0199 | /resume/import | AM Alex Mercer | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0200 | /resume/import | Sign out | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0201 | /resume/import | Your background | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0202 | /resume/import | Your background | textarea | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0203 | /resume/import | Structure my resume | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0204 | /resume/new | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0205 | /resume/new | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0206 | /resume/new | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0207 | /resume/new | Dashboard | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0208 | /resume/new | AM Alex Mercer | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0209 | /resume/new | Sign out | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0210 | /resume/new | Full name | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0211 | /resume/new | Full name | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0212 | /resume/new | Email | email | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0213 | /resume/new | Phone | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0214 | /resume/new | City / State | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0215 | /resume/new | LinkedIn URL | url | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0216 | /resume/new | Target role or headline | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0217 | /resume/new | Role | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0218 | /resume/new | Company | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0219 | /resume/new | Dates | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0220 | /resume/new | What you did (one per line) | textarea | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0221 | /resume/new | Role | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0222 | /resume/new | Add education | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0223 | /resume/new | Skills (one per line, or comma-separated) | textarea | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0224 | /resume/new | Create my resume | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0225 | /resume/print | Build one | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0226 | /security | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0227 | /security | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0228 | /security | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0229 | /security | Dashboard | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0230 | /security | AM Alex Mercer | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0231 | /security | Sign out | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0232 | /security | Contact us | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0233 | /security | Privacy policy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0234 | /security | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0235 | /security | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0236 | /security | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0237 | /security | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0238 | /settings | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0239 | /settings | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0240 | /settings | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0241 | /settings | Dashboard | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0242 | /settings | AM Alex Mercer | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0243 | /settings | Sign out | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0244 | /settings | Buy more | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0245 | /settings | Change password | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0246 | /settings | Export my data | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0247 | /settings | Delete everything | button | yes | Remove only the selected item after the expected confirmation or clear affordance. | not started | - |
-| QA-0248 | /settings | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0249 | /settings | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0250 | /settings | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0251 | /settings | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0252 | /signin | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0253 | /signin | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0254 | /signin | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0255 | /signin | Dashboard | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0256 | /signin | AM Alex Mercer | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0257 | /signin | Sign out | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0258 | /signin | Create account | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0259 | /signin | Sign in | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0260 | /signin | Continue with Google | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0261 | /signin | Continue with LinkedIn | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0262 | /signin | Email | email | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0263 | /signin | Password | password | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0264 | /signin | Email | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
-| QA-0265 | /signin | go to your dashboard | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0266 | /signin | terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0267 | /signin | privacy policy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0268 | /signin | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0269 | /signin | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0270 | /signin | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0271 | /signin | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0272 | /terms | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0273 | /terms | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0274 | /terms | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0275 | /terms | Dashboard | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0276 | /terms | AM Alex Mercer | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0277 | /terms | Sign out | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0278 | /terms | Contact us | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0279 | /terms | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0280 | /terms | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0281 | /terms | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0282 | /terms | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0283 | /transformation | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0284 | /transformation | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0285 | /transformation | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0286 | /transformation | Dashboard | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0287 | /transformation | AM Alex Mercer | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0288 | /transformation | Sign out | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0289 | /transformation | Get a free resume audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0290 | /transformation | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0291 | /transformation | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0292 | /transformation | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
-| QA-0293 | /transformation | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0127 | /dashboard-demo | Sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0128 | /dashboard-demo | Free audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0129 | /dashboard-demo | Sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0130 | /dashboard-demo | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0131 | /dashboard-demo | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0132 | /dashboard-demo | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0133 | /dashboard-demo | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0134 | /forgot-password | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0135 | /forgot-password | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0136 | /forgot-password | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0137 | /forgot-password | Sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0138 | /forgot-password | Free audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0139 | /forgot-password | Email | email | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0140 | /forgot-password | Email | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0141 | /forgot-password | ← Back to sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0142 | /forgot-password | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0143 | /forgot-password | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0144 | /forgot-password | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0145 | /forgot-password | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0146 | /pricing | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0147 | /pricing | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0148 | /pricing | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0149 | /pricing | Sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0150 | /pricing | Free audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0151 | /pricing | Buy Starter | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0152 | /pricing | Buy Job Hunt | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0153 | /pricing | Buy Campaign | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0154 | /pricing | Compare human options | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0155 | /pricing | Unused credits refunded in full within 30 days. | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0156 | /pricing | Do credits expire? | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0157 | /pricing | What counts as one application? | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0158 | /pricing | Can I see the result before spending a credit? | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0159 | /pricing | What is the refund policy? | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0160 | /pricing | Can a human review my resume? | button | yes | Run the relevant review/generation action with loading, success, and failure states. | not started | - |
+| QA-0161 | /pricing | Get a free resume audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0162 | /pricing | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0163 | /pricing | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0164 | /pricing | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0165 | /pricing | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0166 | /privacy | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0167 | /privacy | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0168 | /privacy | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0169 | /privacy | Sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0170 | /privacy | Free audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0171 | /privacy | Contact us | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0172 | /privacy | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0173 | /privacy | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0174 | /privacy | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0175 | /privacy | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0176 | /resume/edit | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0177 | /resume/edit | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0178 | /resume/edit | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0179 | /resume/edit | Sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0180 | /resume/edit | Free audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0181 | /resume/edit | Build one from scratch | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0182 | /resume/import | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0183 | /resume/import | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0184 | /resume/import | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0185 | /resume/import | Sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0186 | /resume/import | Free audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0187 | /resume/import | Your background | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0188 | /resume/import | Your background | textarea | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0189 | /resume/import | Structure my resume | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0190 | /resume/new | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0191 | /resume/new | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0192 | /resume/new | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0193 | /resume/new | Sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0194 | /resume/new | Free audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0195 | /resume/new | Full name | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0196 | /resume/new | Full name | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0197 | /resume/new | Email | email | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0198 | /resume/new | Phone | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0199 | /resume/new | City / State | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0200 | /resume/new | LinkedIn URL | url | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0201 | /resume/new | Target role or headline | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0202 | /resume/new | Role | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0203 | /resume/new | Company | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0204 | /resume/new | Dates | text | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0205 | /resume/new | What you did (one per line) | textarea | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0206 | /resume/new | Role | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0207 | /resume/new | Add education | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0208 | /resume/new | Skills (one per line, or comma-separated) | textarea | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0209 | /resume/new | Create my resume | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0210 | /resume/print | Build one | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0211 | /security | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0212 | /security | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0213 | /security | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0214 | /security | Sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0215 | /security | Free audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0216 | /security | Contact us | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0217 | /security | Privacy policy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0218 | /security | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0219 | /security | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0220 | /security | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0221 | /security | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0222 | /settings | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0223 | /settings | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0224 | /settings | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0225 | /settings | Sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0226 | /settings | Free audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0227 | /settings | Re-upload resume | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0228 | /settings | View pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0229 | /settings | Change password | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0230 | /settings | Export my data | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0231 | /settings | Delete everything | button | yes | Remove only the selected item after the expected confirmation or clear affordance. | not started | - |
+| QA-0232 | /settings | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0233 | /settings | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0234 | /settings | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0235 | /settings | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0236 | /signin | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0237 | /signin | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0238 | /signin | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0239 | /signin | Sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0240 | /signin | Free audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0241 | /signin | Create account | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0242 | /signin | Sign in | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0243 | /signin | Continue with Google | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0244 | /signin | Continue with LinkedIn | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0245 | /signin | Email | email | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0246 | /signin | Password | password | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0247 | /signin | Email | button | yes | Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op. | not started | - |
+| QA-0248 | /signin | terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0249 | /signin | privacy policy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0250 | /signin | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0251 | /signin | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0252 | /signin | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0253 | /signin | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0254 | /terms | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0255 | /terms | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0256 | /terms | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0257 | /terms | Sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0258 | /terms | Free audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0259 | /terms | Contact us | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0260 | /terms | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0261 | /terms | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0262 | /terms | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0263 | /terms | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0264 | /transformation | TailorMe by Res.Me | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0265 | /transformation | Pricing | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0266 | /transformation | Coaching | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0267 | /transformation | Sign in | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0268 | /transformation | Free audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0269 | /transformation | Get a free resume audit | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0270 | /transformation | Security | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0271 | /transformation | Privacy | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0272 | /transformation | Terms | link | yes | Navigate to the linked route or open the expected external target. | not started | - |
+| QA-0273 | /transformation | Contact | link | yes | Navigate to the linked route or open the expected external target. | not started | - |

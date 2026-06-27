@@ -1,4 +1,5 @@
 import type { TailoredDoc } from "@/lib/types";
+import { cleanResumeDate } from "./dates";
 
 // Serialize a structured TailoredDoc back into plain resume prose. Used to keep
 // resumes.raw_text in sync with a built/edited doc, and (later) to feed the
@@ -17,7 +18,8 @@ export function docToResumeText(doc: TailoredDoc): string {
     lines.push("", "Experience");
     for (const e of doc.experience) {
       const head = [e.role, e.company].filter(Boolean).join(" — ");
-      lines.push(`${head}${e.dates ? ` (${e.dates})` : ""}`.trim());
+      const dates = cleanResumeDate(e.dates);
+      lines.push(`${head}${dates ? ` (${dates})` : ""}`.trim());
       for (const b of e.bullets ?? []) {
         if (b.trim()) lines.push(`- ${b.trim()}`);
       }
@@ -28,7 +30,8 @@ export function docToResumeText(doc: TailoredDoc): string {
     lines.push("", "Education");
     for (const ed of doc.education) {
       const head = [ed.degree, ed.school].filter(Boolean).join(", ");
-      lines.push(`${head}${ed.dates ? ` (${ed.dates})` : ""}`.trim());
+      const dates = cleanResumeDate(ed.dates);
+      lines.push(`${head}${dates ? ` (${dates})` : ""}`.trim());
     }
   }
 
@@ -43,7 +46,7 @@ export function docToResumeText(doc: TailoredDoc): string {
   if (doc.certifications?.length) {
     lines.push("", "Certifications");
     for (const c of doc.certifications) {
-      const tail = [c.issuer, c.date].filter(Boolean).join(", ");
+      const tail = [c.issuer, cleanResumeDate(c.date)].filter(Boolean).join(", ");
       lines.push(`${c.name}${tail ? ` (${tail})` : ""}`.trim());
     }
   }

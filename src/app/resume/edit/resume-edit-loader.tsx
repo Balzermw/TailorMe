@@ -10,6 +10,8 @@ import {
   clearResumeDraft,
   hasResumeDraft,
   loadDraftProofPoints,
+  loadSavedProofPoints,
+  loadResumeDraftOptions,
   setTargetResume,
 } from "@/lib/resume";
 import { docToResumeText } from "@/lib/apply/serialize";
@@ -41,20 +43,30 @@ export default function ResumeEditLoader({
   useEffect(() => {
     let active = true;
     const fromDraft = hasResumeDraft();
+    const draftOptions = loadResumeDraftOptions();
+    const draftPoints = fromDraft ? loadDraftProofPoints() : [];
     loadBaseResumeDoc().then((d) => {
       if (!active) return;
       const resolved = d ?? serverDoc ?? null;
       setDoc(resolved);
-      // A freshly built/imported résumé (draft) has no prior feedback, unless
-      // the audit handed advice over with it; a reload of the saved résumé shows
-      // the last review persisted server-side.
-      setProofPoints(fromDraft ? loadDraftProofPoints() : serverProofPoints);
+      // A freshly built/imported résumé (draft) carries its own feedback (the
+      // import now runs the rules engine up front). A reopen shows the feedback
+      // persisted with the saved résumé — account (live) or browser (demo).
+      setProofPoints(
+        fromDraft
+          ? draftPoints
+          : serverProofPoints.length
+            ? serverProofPoints
+            : loadSavedProofPoints(),
+      );
       clearResumeDraft(); // consume the one-time handoff so reloads use the saved copy
       setLoaded(true);
       // The draft lives only in sessionStorage. Persist it (account when signed
-      // in, else the browser) so a reload, the print view, and the PDF endpoint
-      // all find the résumé instead of showing "no resume yet".
-      if (fromDraft && resolved) void saveResumeDoc(resolved);
+      // in, else the browser) so a reload, the print view, the PDF endpoint, AND
+      // a later reopen all find the résumé and its feedback.
+      if (fromDraft && resolved && draftOptions.persistOnLoad) {
+        void saveResumeDoc(resolved, undefined, draftPoints.length ? draftPoints : undefined);
+      }
     });
     return () => {
       active = false;
@@ -123,7 +135,7 @@ export default function ResumeEditLoader({
         setTargetResume(docToResumeText(current), serverResumeId ?? undefined);
         router.push(`${ROUTES.audit}?from=base`);
       }}
-      pdfUrl={supabaseConfigured ? "/api/resume/pdf" : ROUTES.resumePrint}
+      pdfUrl={supabaseConfigured ? "/api/resume/pdf" : `${ROUTES.resumePrint}?print=1`}
       backHref={ROUTES.dashboard}
       backLabel="Dashboard"
     />

@@ -93,6 +93,7 @@ export async function getApplication(id: string): Promise<ApplicationRow | null>
 export async function getSavedResumeDoc(): Promise<{
   id: string;
   name: string;
+  text: string;
   doc: TailoredDoc | null;
   source: string;
   proofPoints: ProofPoint[];
@@ -113,6 +114,7 @@ export async function getSavedResumeDoc(): Promise<{
   return {
     id: data.id,
     name: data.name,
+    text: data.raw_text ?? "",
     doc: (data.doc ?? null) as TailoredDoc | null,
     source: (data.source ?? "uploaded") as string,
     proofPoints:

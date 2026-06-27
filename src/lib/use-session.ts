@@ -4,6 +4,10 @@ import { useSyncExternalStore } from "react";
 import { SESSION_EVENT, type DemoSession } from "./session";
 
 const KEY = "tm_session_v1";
+const LEGACY_DEMO_EMAILS = new Set([
+  "alex.m@email.com",
+  "alex.mercer@example.com",
+]);
 
 // Cache the parsed snapshot so getSnapshot returns a stable reference for an
 // unchanged raw value (useSyncExternalStore requirement).
@@ -16,6 +20,11 @@ function getSnapshot(): DemoSession | null {
     cachedRaw = raw;
     try {
       cachedValue = raw ? (JSON.parse(raw) as DemoSession) : null;
+      if (cachedValue && LEGACY_DEMO_EMAILS.has(cachedValue.email.toLowerCase())) {
+        window.localStorage.removeItem(KEY);
+        cachedRaw = null;
+        cachedValue = null;
+      }
     } catch {
       cachedValue = null;
     }

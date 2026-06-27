@@ -28,6 +28,7 @@ export const SECTION_LABEL: Record<Section, string> = {
 // Route a finding to the section the user edits to act on it, so each piece of
 // feedback links straight to where the change is made.
 export function fixSection(p: ProofPoint): Section {
+  if (p.targetSection && p.targetSection !== "formatting") return p.targetSection;
   const t = `${p.title} ${p.summary} ${p.quote ?? ""} ${p.fix}`.toLowerCase();
   if (/summary|objective|profile/.test(t)) return "summary";
   if (/certif|credential|license/.test(t)) return "certifications";

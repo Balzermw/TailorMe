@@ -16,9 +16,10 @@ export default function FinalCta() {
         <h2 className="tm-h2" style={{ maxWidth: "32ch" }}>
           Your bullets can do this too.
         </h2>
-        <p className="tm-body">
-          Run the same pipeline on your own resume. The first application is
-          free.
+        <p className="tm-body tmT-cta-copy">
+          <span>Run the same pipeline on your own resume.</span>
+          {" "}
+          <span>The first application is free.</span>
         </p>
         <Link className="tm-btn tm-btn--primary tm-btn--lg" href={ROUTES.audit}>
           Get a free resume audit

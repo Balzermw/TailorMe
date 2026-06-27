@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   analyze,
+  collapseLetterSpacing,
   looksScanned,
   reconstructReadingOrder,
   type PdfTextItem,
@@ -90,6 +91,45 @@ describe("multi-column reading-order reconstruction", () => {
 
   it("returns empty string for no runs", () => {
     expect(reconstructReadingOrder([], 600)).toBe("");
+  });
+
+  it("collapses letter-spacing inside runs, keeping between-run word breaks", () => {
+    // Real PDF shape: each word is a run whose text is single letters joined by
+    // spaces ("M D", "M O N I R"); the word break is a standalone space run.
+    const items = [
+      run("M D", 222, 700, 45),
+      run(" ", 267, 700, 24),
+      run("M O N I R", 285, 700, 104),
+    ];
+    expect(reconstructReadingOrder(items, 600)).toBe("MD MONIR");
+  });
+
+  it("splits letter-spaced words separated by an x-gap (no space run)", () => {
+    const items = [run("S O F T W A R E", 50, 700, 70), run("E N G I N E E R", 140, 700, 70)];
+    expect(reconstructReadingOrder(items, 600)).toBe("SOFTWARE ENGINEER");
+  });
+});
+
+describe("letter-spacing collapse", () => {
+  it("collapses spaced glyphs, preserving word breaks at wider gaps", () => {
+    expect(collapseLetterSpacing("J E S S I C A   H E D S T R O M")).toBe(
+      "JESSICA HEDSTROM",
+    );
+    expect(collapseLetterSpacing("P R O F E S S I O N A L   S U M M A R Y")).toBe(
+      "PROFESSIONAL SUMMARY",
+    );
+  });
+
+  it("collapses a uniform-spaced run into a single token (no boundary to keep)", () => {
+    expect(collapseLetterSpacing("M D M O N I R")).toBe("MDMONIR");
+  });
+
+  it("leaves ordinary prose and short letter pairs untouched", () => {
+    const prose = "Led a team of 8 engineers to ship the A B testing platform.";
+    expect(collapseLetterSpacing(prose)).toBe(prose);
+    expect(collapseLetterSpacing("Built CI/CD with C and Go")).toBe(
+      "Built CI/CD with C and Go",
+    );
   });
 });
 

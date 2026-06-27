@@ -10,14 +10,52 @@ import { consume, getClientIp, tooManyRequests } from "@/lib/rate-limit";
 // layout. Called on-demand from the editor ("Group with AI"). categorizeSkills is
 // faithful by construction — it never invents or drops a skill.
 
+type SkillGroup = { label: string; skills: string[] };
+
+const FALLBACK_BUCKETS: { label: string; pattern: RegExp }[] = [
+  {
+    label: "Project & Program Management",
+    pattern: /project|program|roadmap|scope|timeline|requirement|quality|risk|planning/i,
+  },
+  {
+    label: "Agile & Delivery",
+    pattern: /agile|scrum|kanban|sprint|workflow|automation|process|sop|delivery/i,
+  },
+  {
+    label: "Communication & Stakeholders",
+    pattern:
+      /communication|presentation|client|executive|verbal|written|negotiation|public speaking|conflict|training|documentation|stakeholder/i,
+  },
+  {
+    label: "Operations & Supply Chain",
+    pattern: /procurement|logistics|supply chain|forecasting|kpi|tracking|reporting|inventory|vendor|compliance|assurance/i,
+  },
+  {
+    label: "Tools & Platforms",
+    pattern:
+      /jira|confluence|asana|monday|smartsheet|excel|salesforce|sap|sql|tableau|power bi|aws|azure|python|react|codex/i,
+  },
+];
+
+function fallbackCategorizeSkills(skills: string[]): SkillGroup[] {
+  const buckets = new Map<string, string[]>();
+  for (const { label } of FALLBACK_BUCKETS) buckets.set(label, []);
+  buckets.set("Additional Skills", []);
+
+  for (const skill of skills) {
+    const bucket = FALLBACK_BUCKETS.find(({ pattern }) => pattern.test(skill));
+    buckets.get(bucket?.label ?? "Additional Skills")?.push(skill);
+  }
+
+  return Array.from(buckets.entries())
+    .map(([label, items]) => ({ label, skills: items }))
+    .filter((group) => group.skills.length > 0);
+}
+
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
-  if (!llmConfigured) {
-    return NextResponse.json({ demo: true, skillGroups: [] });
-  }
-
   let body: { skills?: unknown };
   try {
     body = await request.json();
@@ -33,6 +71,16 @@ export async function POST(request: Request) {
       { error: "Add at least four skills to group them." },
       { status: 400 },
     );
+  }
+
+  const fallbackGroups = fallbackCategorizeSkills(skills);
+  if (!llmConfigured) {
+    return NextResponse.json({
+      demo: true,
+      fallback: true,
+      skillGroups: fallbackGroups,
+      warning: "AI grouping is not configured locally, so these were grouped with a local fallback.",
+    });
   }
 
   const sb = await getServerSupabase();
@@ -52,11 +100,12 @@ export async function POST(request: Request) {
       { userId: user?.id ?? null, sessionId: request.headers.get("x-tm-session") },
       () => categorizeSkills(skills),
     );
-    return NextResponse.json({ skillGroups });
+    return NextResponse.json({ skillGroups: skillGroups.length ? skillGroups : fallbackGroups });
   } catch {
-    return NextResponse.json(
-      { error: "Couldn't group your skills. Try again." },
-      { status: 502 },
-    );
+    return NextResponse.json({
+      fallback: true,
+      skillGroups: fallbackGroups,
+      warning: "AI grouping had trouble, so these were grouped locally instead.",
+    });
   }
 }

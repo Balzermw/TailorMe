@@ -67,3 +67,7 @@ next-env.d.ts
 
 # Rule Lab generated debug output
 /debug/
+
+# codex dev-server logs / probes (transient, never commit)
+.codex-*.log
+.codex-net-probe.txt

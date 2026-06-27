@@ -33,6 +33,7 @@ export interface ProofPoint {
   // points). Safe telemetry primitives — ids/categories only, never content.
   ruleId?: string;
   category?: string;
+  targetSection?: "header" | "summary" | "experience" | "projects" | "skills" | "formatting";
 }
 
 export interface FitBreakdown {
@@ -98,7 +99,7 @@ export interface TailoredDoc {
   projects?: { name: string; description: string }[];
   certifications?: { name: string; issuer: string; date: string }[];
   coverLetter: string; // plain paragraphs joined by \n\n
-  template?: string; // résumé style id (see lib/apply/templates.ts); default moderncv-banking
+  template?: string; // résumé style id (see lib/apply/templates.ts); default jake
 }
 
 export interface ResumeStats {
@@ -142,7 +143,7 @@ export interface AuditAgent {
   // kind: "impact"
   before?: string;
   after?: string;
-  stats?: { value: string; label: string; accent: "blue" | "mint" }[];
+  stats?: { value: string; label: string }[];
   quantified?: { count: number; total: number }; // experience lines carrying a hard number, of total
   // kind: "ranking"
   lines?: {
@@ -150,6 +151,7 @@ export interface AuditAgent {
     label: string;
     score: number; // 0–100 relevance to the posting
     status: "kept-top" | "kept" | "trimmed" | "cut";
+    reason?: string; // short why: what drove this line's relevance score
   }[];
 }
 

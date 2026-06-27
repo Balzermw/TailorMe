@@ -1903,9 +1903,9 @@
     "id": "QA-0077",
     "pageRoute": "/buy-credits",
     "sourceFile": "src/app/buy-credits/page.tsx",
-    "controlName": "get in touch",
+    "controlName": "Get in touch",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /get in touch/i })",
+    "selectorStrategy": "getByRole('link', { name: /Get in touch/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -3153,9 +3153,9 @@
     "id": "QA-0127",
     "pageRoute": "/dashboard-demo",
     "sourceFile": "src/app/dashboard-demo/page.tsx",
-    "controlName": "Dashboard",
+    "controlName": "Sign in",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Dashboard/i })",
+    "selectorStrategy": "getByRole('link', { name: /Sign in/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -3178,9 +3178,9 @@
     "id": "QA-0128",
     "pageRoute": "/dashboard-demo",
     "sourceFile": "src/app/dashboard-demo/page.tsx",
-    "controlName": "AM Alex Mercer",
+    "controlName": "Free audit",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /AM Alex Mercer/i })",
+    "selectorStrategy": "getByRole('link', { name: /Free audit/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -3203,9 +3203,9 @@
     "id": "QA-0129",
     "pageRoute": "/dashboard-demo",
     "sourceFile": "src/app/dashboard-demo/page.tsx",
-    "controlName": "Sign out",
+    "controlName": "Sign in",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Sign out/i })",
+    "selectorStrategy": "getByRole('link', { name: /Sign in/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -3226,231 +3226,6 @@
   },
   {
     "id": "QA-0130",
-    "pageRoute": "/dashboard-demo",
-    "sourceFile": "src/app/dashboard-demo/page.tsx",
-    "controlName": "buy more",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /buy more/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0131",
-    "pageRoute": "/dashboard-demo",
-    "sourceFile": "src/app/dashboard-demo/page.tsx",
-    "controlName": "New application",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /New application/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0132",
-    "pageRoute": "/dashboard-demo",
-    "sourceFile": "src/app/dashboard-demo/page.tsx",
-    "controlName": "Settings",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Settings/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0133",
-    "pageRoute": "/dashboard-demo",
-    "sourceFile": "src/app/dashboard-demo/page.tsx",
-    "controlName": "Build from scratch",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Build from scratch/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "yes",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0134",
-    "pageRoute": "/dashboard-demo",
-    "sourceFile": "src/app/dashboard-demo/page.tsx",
-    "controlName": "Close",
-    "controlType": "button",
-    "selectorStrategy": "getByRole('button', { name: /Close/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0135",
-    "pageRoute": "/dashboard-demo",
-    "sourceFile": "src/app/dashboard-demo/page.tsx",
-    "controlName": "Resume_Nordpeak.pdf 2 pages",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Resume_Nordpeak.pdf 2 pages/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "yes",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0136",
-    "pageRoute": "/dashboard-demo",
-    "sourceFile": "src/app/dashboard-demo/page.tsx",
-    "controlName": "Cover_Nordpeak.pdf 1 page",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Cover_Nordpeak.pdf 1 page/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "yes",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0137",
-    "pageRoute": "/dashboard-demo",
-    "sourceFile": "src/app/dashboard-demo/page.tsx",
-    "controlName": "Technical skills",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Technical skills/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0138",
-    "pageRoute": "/dashboard-demo",
-    "sourceFile": "src/app/dashboard-demo/page.tsx",
-    "controlName": "Technical skills",
-    "controlType": "button",
-    "selectorStrategy": "getByRole('button', { name: /Technical skills/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Verify click behavior, keyboard activation, loading/success/error states, and no silent no-op.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0139",
     "pageRoute": "/dashboard-demo",
     "sourceFile": "src/app/dashboard-demo/page.tsx",
     "controlName": "Security",
@@ -3475,7 +3250,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0140",
+    "id": "QA-0131",
     "pageRoute": "/dashboard-demo",
     "sourceFile": "src/app/dashboard-demo/page.tsx",
     "controlName": "Privacy",
@@ -3500,7 +3275,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0141",
+    "id": "QA-0132",
     "pageRoute": "/dashboard-demo",
     "sourceFile": "src/app/dashboard-demo/page.tsx",
     "controlName": "Terms",
@@ -3525,7 +3300,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0142",
+    "id": "QA-0133",
     "pageRoute": "/dashboard-demo",
     "sourceFile": "src/app/dashboard-demo/page.tsx",
     "controlName": "Contact",
@@ -3550,7 +3325,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0143",
+    "id": "QA-0134",
     "pageRoute": "/forgot-password",
     "sourceFile": "src/app/forgot-password/page.tsx",
     "controlName": "TailorMe by Res.Me",
@@ -3575,7 +3350,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0144",
+    "id": "QA-0135",
     "pageRoute": "/forgot-password",
     "sourceFile": "src/app/forgot-password/page.tsx",
     "controlName": "Pricing",
@@ -3600,7 +3375,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0145",
+    "id": "QA-0136",
     "pageRoute": "/forgot-password",
     "sourceFile": "src/app/forgot-password/page.tsx",
     "controlName": "Coaching",
@@ -3625,12 +3400,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0146",
+    "id": "QA-0137",
     "pageRoute": "/forgot-password",
     "sourceFile": "src/app/forgot-password/page.tsx",
-    "controlName": "Dashboard",
+    "controlName": "Sign in",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Dashboard/i })",
+    "selectorStrategy": "getByRole('link', { name: /Sign in/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -3650,12 +3425,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0147",
+    "id": "QA-0138",
     "pageRoute": "/forgot-password",
     "sourceFile": "src/app/forgot-password/page.tsx",
-    "controlName": "AM Alex Mercer",
+    "controlName": "Free audit",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /AM Alex Mercer/i })",
+    "selectorStrategy": "getByRole('link', { name: /Free audit/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -3675,32 +3450,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0148",
-    "pageRoute": "/forgot-password",
-    "sourceFile": "src/app/forgot-password/page.tsx",
-    "controlName": "Sign out",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Sign out/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0149",
+    "id": "QA-0139",
     "pageRoute": "/forgot-password",
     "sourceFile": "src/app/forgot-password/page.tsx",
     "controlName": "Email",
@@ -3725,7 +3475,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0150",
+    "id": "QA-0140",
     "pageRoute": "/forgot-password",
     "sourceFile": "src/app/forgot-password/page.tsx",
     "controlName": "Email",
@@ -3750,7 +3500,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0151",
+    "id": "QA-0141",
     "pageRoute": "/forgot-password",
     "sourceFile": "src/app/forgot-password/page.tsx",
     "controlName": "← Back to sign in",
@@ -3775,7 +3525,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0152",
+    "id": "QA-0142",
     "pageRoute": "/forgot-password",
     "sourceFile": "src/app/forgot-password/page.tsx",
     "controlName": "Security",
@@ -3800,7 +3550,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0153",
+    "id": "QA-0143",
     "pageRoute": "/forgot-password",
     "sourceFile": "src/app/forgot-password/page.tsx",
     "controlName": "Privacy",
@@ -3825,7 +3575,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0154",
+    "id": "QA-0144",
     "pageRoute": "/forgot-password",
     "sourceFile": "src/app/forgot-password/page.tsx",
     "controlName": "Terms",
@@ -3850,7 +3600,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0155",
+    "id": "QA-0145",
     "pageRoute": "/forgot-password",
     "sourceFile": "src/app/forgot-password/page.tsx",
     "controlName": "Contact",
@@ -3875,7 +3625,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0156",
+    "id": "QA-0146",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "TailorMe by Res.Me",
@@ -3900,7 +3650,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0157",
+    "id": "QA-0147",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Pricing",
@@ -3925,7 +3675,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0158",
+    "id": "QA-0148",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Coaching",
@@ -3950,12 +3700,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0159",
+    "id": "QA-0149",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
-    "controlName": "Dashboard",
+    "controlName": "Sign in",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Dashboard/i })",
+    "selectorStrategy": "getByRole('link', { name: /Sign in/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -3975,12 +3725,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0160",
+    "id": "QA-0150",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
-    "controlName": "AM Alex Mercer",
+    "controlName": "Free audit",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /AM Alex Mercer/i })",
+    "selectorStrategy": "getByRole('link', { name: /Free audit/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -4000,32 +3750,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0161",
-    "pageRoute": "/pricing",
-    "sourceFile": "src/app/pricing/page.tsx",
-    "controlName": "Sign out",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Sign out/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0162",
+    "id": "QA-0151",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Buy Starter",
@@ -4050,7 +3775,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0163",
+    "id": "QA-0152",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Buy Job Hunt",
@@ -4075,7 +3800,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0164",
+    "id": "QA-0153",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Buy Campaign",
@@ -4100,12 +3825,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0165",
+    "id": "QA-0154",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
-    "controlName": "See coaching",
+    "controlName": "Compare human options",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /See coaching/i })",
+    "selectorStrategy": "getByRole('link', { name: /Compare human options/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -4125,7 +3850,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0166",
+    "id": "QA-0155",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Unused credits refunded in full within 30 days.",
@@ -4150,7 +3875,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0167",
+    "id": "QA-0156",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Do credits expire?",
@@ -4175,7 +3900,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0168",
+    "id": "QA-0157",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "What counts as one application?",
@@ -4200,7 +3925,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0169",
+    "id": "QA-0158",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Can I see the result before spending a credit?",
@@ -4225,7 +3950,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0170",
+    "id": "QA-0159",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "What is the refund policy?",
@@ -4250,7 +3975,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0171",
+    "id": "QA-0160",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Can a human review my resume?",
@@ -4275,7 +4000,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0172",
+    "id": "QA-0161",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Get a free resume audit",
@@ -4300,7 +4025,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0173",
+    "id": "QA-0162",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Security",
@@ -4325,7 +4050,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0174",
+    "id": "QA-0163",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Privacy",
@@ -4350,7 +4075,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0175",
+    "id": "QA-0164",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Terms",
@@ -4375,7 +4100,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0176",
+    "id": "QA-0165",
     "pageRoute": "/pricing",
     "sourceFile": "src/app/pricing/page.tsx",
     "controlName": "Contact",
@@ -4400,7 +4125,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0177",
+    "id": "QA-0166",
     "pageRoute": "/privacy",
     "sourceFile": "src/app/privacy/page.tsx",
     "controlName": "TailorMe by Res.Me",
@@ -4425,7 +4150,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0178",
+    "id": "QA-0167",
     "pageRoute": "/privacy",
     "sourceFile": "src/app/privacy/page.tsx",
     "controlName": "Pricing",
@@ -4450,7 +4175,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0179",
+    "id": "QA-0168",
     "pageRoute": "/privacy",
     "sourceFile": "src/app/privacy/page.tsx",
     "controlName": "Coaching",
@@ -4475,12 +4200,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0180",
+    "id": "QA-0169",
     "pageRoute": "/privacy",
     "sourceFile": "src/app/privacy/page.tsx",
-    "controlName": "Dashboard",
+    "controlName": "Sign in",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Dashboard/i })",
+    "selectorStrategy": "getByRole('link', { name: /Sign in/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -4500,12 +4225,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0181",
+    "id": "QA-0170",
     "pageRoute": "/privacy",
     "sourceFile": "src/app/privacy/page.tsx",
-    "controlName": "AM Alex Mercer",
+    "controlName": "Free audit",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /AM Alex Mercer/i })",
+    "selectorStrategy": "getByRole('link', { name: /Free audit/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -4525,32 +4250,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0182",
-    "pageRoute": "/privacy",
-    "sourceFile": "src/app/privacy/page.tsx",
-    "controlName": "Sign out",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Sign out/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0183",
+    "id": "QA-0171",
     "pageRoute": "/privacy",
     "sourceFile": "src/app/privacy/page.tsx",
     "controlName": "Contact us",
@@ -4575,7 +4275,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0184",
+    "id": "QA-0172",
     "pageRoute": "/privacy",
     "sourceFile": "src/app/privacy/page.tsx",
     "controlName": "Security",
@@ -4600,7 +4300,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0185",
+    "id": "QA-0173",
     "pageRoute": "/privacy",
     "sourceFile": "src/app/privacy/page.tsx",
     "controlName": "Privacy",
@@ -4625,7 +4325,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0186",
+    "id": "QA-0174",
     "pageRoute": "/privacy",
     "sourceFile": "src/app/privacy/page.tsx",
     "controlName": "Terms",
@@ -4650,7 +4350,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0187",
+    "id": "QA-0175",
     "pageRoute": "/privacy",
     "sourceFile": "src/app/privacy/page.tsx",
     "controlName": "Contact",
@@ -4675,7 +4375,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0188",
+    "id": "QA-0176",
     "pageRoute": "/resume/edit",
     "sourceFile": "src/app/resume/edit/page.tsx",
     "controlName": "TailorMe by Res.Me",
@@ -4700,7 +4400,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0189",
+    "id": "QA-0177",
     "pageRoute": "/resume/edit",
     "sourceFile": "src/app/resume/edit/page.tsx",
     "controlName": "Pricing",
@@ -4725,7 +4425,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0190",
+    "id": "QA-0178",
     "pageRoute": "/resume/edit",
     "sourceFile": "src/app/resume/edit/page.tsx",
     "controlName": "Coaching",
@@ -4750,12 +4450,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0191",
+    "id": "QA-0179",
     "pageRoute": "/resume/edit",
     "sourceFile": "src/app/resume/edit/page.tsx",
-    "controlName": "Dashboard",
+    "controlName": "Sign in",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Dashboard/i })",
+    "selectorStrategy": "getByRole('link', { name: /Sign in/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -4775,12 +4475,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0192",
+    "id": "QA-0180",
     "pageRoute": "/resume/edit",
     "sourceFile": "src/app/resume/edit/page.tsx",
-    "controlName": "AM Alex Mercer",
+    "controlName": "Free audit",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /AM Alex Mercer/i })",
+    "selectorStrategy": "getByRole('link', { name: /Free audit/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -4800,32 +4500,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0193",
-    "pageRoute": "/resume/edit",
-    "sourceFile": "src/app/resume/edit/page.tsx",
-    "controlName": "Sign out",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Sign out/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/resume-editor.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0194",
+    "id": "QA-0181",
     "pageRoute": "/resume/edit",
     "sourceFile": "src/app/resume/edit/page.tsx",
     "controlName": "Build one from scratch",
@@ -4850,7 +4525,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0195",
+    "id": "QA-0182",
     "pageRoute": "/resume/import",
     "sourceFile": "src/app/resume/import/page.tsx",
     "controlName": "TailorMe by Res.Me",
@@ -4875,7 +4550,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0196",
+    "id": "QA-0183",
     "pageRoute": "/resume/import",
     "sourceFile": "src/app/resume/import/page.tsx",
     "controlName": "Pricing",
@@ -4900,7 +4575,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0197",
+    "id": "QA-0184",
     "pageRoute": "/resume/import",
     "sourceFile": "src/app/resume/import/page.tsx",
     "controlName": "Coaching",
@@ -4925,12 +4600,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0198",
+    "id": "QA-0185",
     "pageRoute": "/resume/import",
     "sourceFile": "src/app/resume/import/page.tsx",
-    "controlName": "Dashboard",
+    "controlName": "Sign in",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Dashboard/i })",
+    "selectorStrategy": "getByRole('link', { name: /Sign in/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -4950,12 +4625,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0199",
+    "id": "QA-0186",
     "pageRoute": "/resume/import",
     "sourceFile": "src/app/resume/import/page.tsx",
-    "controlName": "AM Alex Mercer",
+    "controlName": "Free audit",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /AM Alex Mercer/i })",
+    "selectorStrategy": "getByRole('link', { name: /Free audit/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -4975,32 +4650,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0200",
-    "pageRoute": "/resume/import",
-    "sourceFile": "src/app/resume/import/page.tsx",
-    "controlName": "Sign out",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Sign out/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0201",
+    "id": "QA-0187",
     "pageRoute": "/resume/import",
     "sourceFile": "src/app/resume/import/page.tsx",
     "controlName": "Your background",
@@ -5025,7 +4675,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0202",
+    "id": "QA-0188",
     "pageRoute": "/resume/import",
     "sourceFile": "src/app/resume/import/page.tsx",
     "controlName": "Your background",
@@ -5050,7 +4700,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0203",
+    "id": "QA-0189",
     "pageRoute": "/resume/import",
     "sourceFile": "src/app/resume/import/page.tsx",
     "controlName": "Structure my resume",
@@ -5075,7 +4725,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0204",
+    "id": "QA-0190",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "TailorMe by Res.Me",
@@ -5100,7 +4750,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0205",
+    "id": "QA-0191",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Pricing",
@@ -5125,7 +4775,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0206",
+    "id": "QA-0192",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Coaching",
@@ -5150,12 +4800,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0207",
+    "id": "QA-0193",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
-    "controlName": "Dashboard",
+    "controlName": "Sign in",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Dashboard/i })",
+    "selectorStrategy": "getByRole('link', { name: /Sign in/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -5175,12 +4825,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0208",
+    "id": "QA-0194",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
-    "controlName": "AM Alex Mercer",
+    "controlName": "Free audit",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /AM Alex Mercer/i })",
+    "selectorStrategy": "getByRole('link', { name: /Free audit/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -5200,32 +4850,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0209",
-    "pageRoute": "/resume/new",
-    "sourceFile": "src/app/resume/new/page.tsx",
-    "controlName": "Sign out",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Sign out/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/resume-start-from-scratch.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0210",
+    "id": "QA-0195",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Full name",
@@ -5250,7 +4875,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0211",
+    "id": "QA-0196",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Full name",
@@ -5275,7 +4900,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0212",
+    "id": "QA-0197",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Email",
@@ -5300,7 +4925,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0213",
+    "id": "QA-0198",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Phone",
@@ -5325,7 +4950,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0214",
+    "id": "QA-0199",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "City / State",
@@ -5350,7 +4975,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0215",
+    "id": "QA-0200",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "LinkedIn URL",
@@ -5375,7 +5000,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0216",
+    "id": "QA-0201",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Target role or headline",
@@ -5400,7 +5025,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0217",
+    "id": "QA-0202",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Role",
@@ -5425,7 +5050,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0218",
+    "id": "QA-0203",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Company",
@@ -5450,7 +5075,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0219",
+    "id": "QA-0204",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Dates",
@@ -5475,7 +5100,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0220",
+    "id": "QA-0205",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "What you did (one per line)",
@@ -5500,7 +5125,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0221",
+    "id": "QA-0206",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Role",
@@ -5525,7 +5150,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0222",
+    "id": "QA-0207",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Add education",
@@ -5550,7 +5175,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0223",
+    "id": "QA-0208",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Skills (one per line, or comma-separated)",
@@ -5575,7 +5200,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0224",
+    "id": "QA-0209",
     "pageRoute": "/resume/new",
     "sourceFile": "src/app/resume/new/page.tsx",
     "controlName": "Create my resume",
@@ -5600,7 +5225,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0225",
+    "id": "QA-0210",
     "pageRoute": "/resume/print",
     "sourceFile": "src/app/resume/print/page.tsx",
     "controlName": "Build one",
@@ -5625,7 +5250,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0226",
+    "id": "QA-0211",
     "pageRoute": "/security",
     "sourceFile": "src/app/security/page.tsx",
     "controlName": "TailorMe by Res.Me",
@@ -5650,7 +5275,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0227",
+    "id": "QA-0212",
     "pageRoute": "/security",
     "sourceFile": "src/app/security/page.tsx",
     "controlName": "Pricing",
@@ -5675,7 +5300,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0228",
+    "id": "QA-0213",
     "pageRoute": "/security",
     "sourceFile": "src/app/security/page.tsx",
     "controlName": "Coaching",
@@ -5700,12 +5325,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0229",
+    "id": "QA-0214",
     "pageRoute": "/security",
     "sourceFile": "src/app/security/page.tsx",
-    "controlName": "Dashboard",
+    "controlName": "Sign in",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Dashboard/i })",
+    "selectorStrategy": "getByRole('link', { name: /Sign in/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -5725,12 +5350,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0230",
+    "id": "QA-0215",
     "pageRoute": "/security",
     "sourceFile": "src/app/security/page.tsx",
-    "controlName": "AM Alex Mercer",
+    "controlName": "Free audit",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /AM Alex Mercer/i })",
+    "selectorStrategy": "getByRole('link', { name: /Free audit/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -5750,32 +5375,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0231",
-    "pageRoute": "/security",
-    "sourceFile": "src/app/security/page.tsx",
-    "controlName": "Sign out",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Sign out/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0232",
+    "id": "QA-0216",
     "pageRoute": "/security",
     "sourceFile": "src/app/security/page.tsx",
     "controlName": "Contact us",
@@ -5800,7 +5400,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0233",
+    "id": "QA-0217",
     "pageRoute": "/security",
     "sourceFile": "src/app/security/page.tsx",
     "controlName": "Privacy policy",
@@ -5825,7 +5425,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0234",
+    "id": "QA-0218",
     "pageRoute": "/security",
     "sourceFile": "src/app/security/page.tsx",
     "controlName": "Security",
@@ -5850,7 +5450,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0235",
+    "id": "QA-0219",
     "pageRoute": "/security",
     "sourceFile": "src/app/security/page.tsx",
     "controlName": "Privacy",
@@ -5875,7 +5475,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0236",
+    "id": "QA-0220",
     "pageRoute": "/security",
     "sourceFile": "src/app/security/page.tsx",
     "controlName": "Terms",
@@ -5900,7 +5500,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0237",
+    "id": "QA-0221",
     "pageRoute": "/security",
     "sourceFile": "src/app/security/page.tsx",
     "controlName": "Contact",
@@ -5925,7 +5525,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0238",
+    "id": "QA-0222",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
     "controlName": "TailorMe by Res.Me",
@@ -5950,7 +5550,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0239",
+    "id": "QA-0223",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
     "controlName": "Pricing",
@@ -5975,7 +5575,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0240",
+    "id": "QA-0224",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
     "controlName": "Coaching",
@@ -6000,12 +5600,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0241",
+    "id": "QA-0225",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
-    "controlName": "Dashboard",
+    "controlName": "Sign in",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Dashboard/i })",
+    "selectorStrategy": "getByRole('link', { name: /Sign in/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -6025,12 +5625,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0242",
+    "id": "QA-0226",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
-    "controlName": "AM Alex Mercer",
+    "controlName": "Free audit",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /AM Alex Mercer/i })",
+    "selectorStrategy": "getByRole('link', { name: /Free audit/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -6050,12 +5650,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0243",
+    "id": "QA-0227",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
-    "controlName": "Sign out",
+    "controlName": "Re-upload resume",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Sign out/i })",
+    "selectorStrategy": "getByRole('link', { name: /Re-upload resume/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -6067,7 +5667,7 @@
     "errorState": "TBD",
     "disabledStateExpected": "unknown",
     "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
+    "telemetryEventExpected": "yes",
     "expectedTelemetryEventName": "",
     "testFile": "tests/e2e/specs/controls.spec.ts",
     "testStatus": "not started",
@@ -6075,12 +5675,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0244",
+    "id": "QA-0228",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
-    "controlName": "Buy more",
+    "controlName": "View pricing",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Buy more/i })",
+    "selectorStrategy": "getByRole('link', { name: /View pricing/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -6092,7 +5692,7 @@
     "errorState": "TBD",
     "disabledStateExpected": "unknown",
     "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
+    "telemetryEventExpected": "yes",
     "expectedTelemetryEventName": "",
     "testFile": "tests/e2e/specs/controls.spec.ts",
     "testStatus": "not started",
@@ -6100,7 +5700,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0245",
+    "id": "QA-0229",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
     "controlName": "Change password",
@@ -6125,7 +5725,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0246",
+    "id": "QA-0230",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
     "controlName": "Export my data",
@@ -6150,7 +5750,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0247",
+    "id": "QA-0231",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
     "controlName": "Delete everything",
@@ -6175,7 +5775,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0248",
+    "id": "QA-0232",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
     "controlName": "Security",
@@ -6200,7 +5800,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0249",
+    "id": "QA-0233",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
     "controlName": "Privacy",
@@ -6225,7 +5825,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0250",
+    "id": "QA-0234",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
     "controlName": "Terms",
@@ -6250,7 +5850,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0251",
+    "id": "QA-0235",
     "pageRoute": "/settings",
     "sourceFile": "src/app/settings/page.tsx",
     "controlName": "Contact",
@@ -6275,7 +5875,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0252",
+    "id": "QA-0236",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "TailorMe by Res.Me",
@@ -6300,7 +5900,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0253",
+    "id": "QA-0237",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "Pricing",
@@ -6325,7 +5925,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0254",
+    "id": "QA-0238",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "Coaching",
@@ -6350,12 +5950,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0255",
+    "id": "QA-0239",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
-    "controlName": "Dashboard",
+    "controlName": "Sign in",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Dashboard/i })",
+    "selectorStrategy": "getByRole('link', { name: /Sign in/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -6375,12 +5975,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0256",
+    "id": "QA-0240",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
-    "controlName": "AM Alex Mercer",
+    "controlName": "Free audit",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /AM Alex Mercer/i })",
+    "selectorStrategy": "getByRole('link', { name: /Free audit/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -6400,32 +6000,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0257",
-    "pageRoute": "/signin",
-    "sourceFile": "src/app/signin/page.tsx",
-    "controlName": "Sign out",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Sign out/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0258",
+    "id": "QA-0241",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "Create account",
@@ -6450,7 +6025,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0259",
+    "id": "QA-0242",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "Sign in",
@@ -6475,7 +6050,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0260",
+    "id": "QA-0243",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "Continue with Google",
@@ -6500,7 +6075,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0261",
+    "id": "QA-0244",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "Continue with LinkedIn",
@@ -6525,7 +6100,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0262",
+    "id": "QA-0245",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "Email",
@@ -6550,7 +6125,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0263",
+    "id": "QA-0246",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "Password",
@@ -6575,7 +6150,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0264",
+    "id": "QA-0247",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "Email",
@@ -6600,32 +6175,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0265",
-    "pageRoute": "/signin",
-    "sourceFile": "src/app/signin/page.tsx",
-    "controlName": "go to your dashboard",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /go to your dashboard/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0266",
+    "id": "QA-0248",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "terms",
@@ -6650,7 +6200,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0267",
+    "id": "QA-0249",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "privacy policy",
@@ -6675,7 +6225,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0268",
+    "id": "QA-0250",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "Security",
@@ -6700,7 +6250,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0269",
+    "id": "QA-0251",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "Privacy",
@@ -6725,7 +6275,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0270",
+    "id": "QA-0252",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "Terms",
@@ -6750,7 +6300,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0271",
+    "id": "QA-0253",
     "pageRoute": "/signin",
     "sourceFile": "src/app/signin/page.tsx",
     "controlName": "Contact",
@@ -6775,7 +6325,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0272",
+    "id": "QA-0254",
     "pageRoute": "/terms",
     "sourceFile": "src/app/terms/page.tsx",
     "controlName": "TailorMe by Res.Me",
@@ -6800,7 +6350,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0273",
+    "id": "QA-0255",
     "pageRoute": "/terms",
     "sourceFile": "src/app/terms/page.tsx",
     "controlName": "Pricing",
@@ -6825,7 +6375,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0274",
+    "id": "QA-0256",
     "pageRoute": "/terms",
     "sourceFile": "src/app/terms/page.tsx",
     "controlName": "Coaching",
@@ -6850,12 +6400,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0275",
+    "id": "QA-0257",
     "pageRoute": "/terms",
     "sourceFile": "src/app/terms/page.tsx",
-    "controlName": "Dashboard",
+    "controlName": "Sign in",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Dashboard/i })",
+    "selectorStrategy": "getByRole('link', { name: /Sign in/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -6875,12 +6425,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0276",
+    "id": "QA-0258",
     "pageRoute": "/terms",
     "sourceFile": "src/app/terms/page.tsx",
-    "controlName": "AM Alex Mercer",
+    "controlName": "Free audit",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /AM Alex Mercer/i })",
+    "selectorStrategy": "getByRole('link', { name: /Free audit/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -6900,32 +6450,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0277",
-    "pageRoute": "/terms",
-    "sourceFile": "src/app/terms/page.tsx",
-    "controlName": "Sign out",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Sign out/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0278",
+    "id": "QA-0259",
     "pageRoute": "/terms",
     "sourceFile": "src/app/terms/page.tsx",
     "controlName": "Contact us",
@@ -6950,7 +6475,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0279",
+    "id": "QA-0260",
     "pageRoute": "/terms",
     "sourceFile": "src/app/terms/page.tsx",
     "controlName": "Security",
@@ -6975,7 +6500,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0280",
+    "id": "QA-0261",
     "pageRoute": "/terms",
     "sourceFile": "src/app/terms/page.tsx",
     "controlName": "Privacy",
@@ -7000,7 +6525,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0281",
+    "id": "QA-0262",
     "pageRoute": "/terms",
     "sourceFile": "src/app/terms/page.tsx",
     "controlName": "Terms",
@@ -7025,7 +6550,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0282",
+    "id": "QA-0263",
     "pageRoute": "/terms",
     "sourceFile": "src/app/terms/page.tsx",
     "controlName": "Contact",
@@ -7050,7 +6575,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0283",
+    "id": "QA-0264",
     "pageRoute": "/transformation",
     "sourceFile": "src/app/transformation/page.tsx",
     "controlName": "TailorMe by Res.Me",
@@ -7075,7 +6600,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0284",
+    "id": "QA-0265",
     "pageRoute": "/transformation",
     "sourceFile": "src/app/transformation/page.tsx",
     "controlName": "Pricing",
@@ -7100,7 +6625,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0285",
+    "id": "QA-0266",
     "pageRoute": "/transformation",
     "sourceFile": "src/app/transformation/page.tsx",
     "controlName": "Coaching",
@@ -7125,12 +6650,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0286",
+    "id": "QA-0267",
     "pageRoute": "/transformation",
     "sourceFile": "src/app/transformation/page.tsx",
-    "controlName": "Dashboard",
+    "controlName": "Sign in",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Dashboard/i })",
+    "selectorStrategy": "getByRole('link', { name: /Sign in/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -7150,12 +6675,12 @@
     "bugId": ""
   },
   {
-    "id": "QA-0287",
+    "id": "QA-0268",
     "pageRoute": "/transformation",
     "sourceFile": "src/app/transformation/page.tsx",
-    "controlName": "AM Alex Mercer",
+    "controlName": "Free audit",
     "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /AM Alex Mercer/i })",
+    "selectorStrategy": "getByRole('link', { name: /Free audit/i })",
     "accessibleNamePresent": "yes",
     "expectedBehavior": "Navigate to the linked route or open the expected external target.",
     "requiredInputs": "TBD from test or manual QA",
@@ -7175,32 +6700,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0288",
-    "pageRoute": "/transformation",
-    "sourceFile": "src/app/transformation/page.tsx",
-    "controlName": "Sign out",
-    "controlType": "link",
-    "selectorStrategy": "getByRole('link', { name: /Sign out/i })",
-    "accessibleNamePresent": "yes",
-    "expectedBehavior": "Navigate to the linked route or open the expected external target.",
-    "requiredInputs": "TBD from test or manual QA",
-    "normalState": "visible",
-    "emptyState": "TBD",
-    "invalidState": "TBD",
-    "loadingState": "TBD",
-    "successState": "TBD",
-    "errorState": "TBD",
-    "disabledStateExpected": "unknown",
-    "keyboardActivationExpected": "yes",
-    "telemetryEventExpected": "unknown",
-    "expectedTelemetryEventName": "",
-    "testFile": "tests/e2e/specs/controls.spec.ts",
-    "testStatus": "not started",
-    "notes": "",
-    "bugId": ""
-  },
-  {
-    "id": "QA-0289",
+    "id": "QA-0269",
     "pageRoute": "/transformation",
     "sourceFile": "src/app/transformation/page.tsx",
     "controlName": "Get a free resume audit",
@@ -7225,7 +6725,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0290",
+    "id": "QA-0270",
     "pageRoute": "/transformation",
     "sourceFile": "src/app/transformation/page.tsx",
     "controlName": "Security",
@@ -7250,7 +6750,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0291",
+    "id": "QA-0271",
     "pageRoute": "/transformation",
     "sourceFile": "src/app/transformation/page.tsx",
     "controlName": "Privacy",
@@ -7275,7 +6775,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0292",
+    "id": "QA-0272",
     "pageRoute": "/transformation",
     "sourceFile": "src/app/transformation/page.tsx",
     "controlName": "Terms",
@@ -7300,7 +6800,7 @@
     "bugId": ""
   },
   {
-    "id": "QA-0293",
+    "id": "QA-0273",
     "pageRoute": "/transformation",
     "sourceFile": "src/app/transformation/page.tsx",
     "controlName": "Contact",

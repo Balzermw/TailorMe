@@ -16,6 +16,7 @@ const FIRST_PERSON = /\b(i|my|me|myself)\b/i;
 const METRIC = /(\d|%|\$|\bpercent\b|million|billion|thousand|\bk\b)/i;
 const BUZZWORDS =
   /\b(synergy|team player|hard worker|go-getter|detail-oriented|results-driven|self-starter|think outside the box|hit the ground running|fast learner)\b/i;
+const SCANNABLE_BULLET_SECTIONS = new Set(["experience", "projects"]);
 
 export interface EvaluateOptions {
   /** Optional JD text for keyword-overlap heuristics (no LLM). */
@@ -27,6 +28,14 @@ type Detector = (
   rule: ResumeAdviceRule,
   opts: EvaluateOptions,
 ) => ResumeRuleFinding[];
+
+function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function evidencePreview(text: string): string {
+  return text.length > 220 ? text.slice(0, 220).trim() : text;
+}
 
 // Detectors keyed by canonicalIssueId (= Grok rule_id). Only those whose rule
 // exists in the catalog run. Each returns 0+ findings.
@@ -132,14 +141,27 @@ const DETECTORS: Record<string, Detector> = {
   },
 
   bullet_length_1_to_2_lines(resume, rule) {
-    // ~> 2 lines ≈ 200 chars. Flag if several bullets run long.
-    const long = resume.bullets.filter((b) => b.text.length > 200);
-    if (long.length < 2) return [];
+    // Only cite real experience/project bullets; summaries can be item-like in some templates.
+    const long = resume.bullets
+      .filter(
+        (b) =>
+          SCANNABLE_BULLET_SECTIONS.has(b.section) &&
+          (b.text.length > 220 || wordCount(b.text) > 35),
+      )
+      .sort((a, b) => b.text.length - a.text.length);
+    if (!long.length) return [];
+    const example = long[0];
+    const words = wordCount(example.text);
+    const section = example.section === "projects" ? "projects" : "experience";
     return [
       makeFinding(rule, {
-        section: "experience",
-        evidence: long[0].text.slice(0, 160),
+        section,
+        targetSection: section,
+        evidence: evidencePreview(example.text),
         occurrences: long.length,
+        message:
+          `${long.length} ${long.length === 1 ? "experience/project bullet is" : "experience/project bullets are"} over the 1-2 line target. ` +
+          `The quoted example is ${words} words. Trim it to one idea and put the result first.`,
       }),
     ];
   },
