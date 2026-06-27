@@ -9,6 +9,8 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  Eye,
+  EyeOff,
   Info,
   Layers,
   LayoutTemplate,
@@ -543,6 +545,10 @@ export default function EditEditor({
   // window — only the on-screen zoom does. The PDF is the exact split.
   const [docScale, setDocScale] = useState(1);
   const [docHeight, setDocHeight] = useState<number | null>(null);
+  // Keyword/metric highlights are a review overlay, not document content. The
+  // toggle lets the user drop to the clean resume so it's clear the tags are
+  // never baked into the resume or PDF.
+  const [showMatches, setShowMatches] = useState(true);
   useEffect(
     () => () => {
       removeTimers.current.forEach(clearTimeout);
@@ -2239,6 +2245,19 @@ export default function EditEditor({
           <div className="tmE-preview-head">
             <p className="tmE-preview-label">Live preview</p>
             {(previewHits.kw || previewHits.metric) && (
+              <button
+                type="button"
+                className="tmE-preview-toggle"
+                aria-pressed={showMatches}
+                onClick={() => setShowMatches((v) => !v)}
+              >
+                {showMatches ? <Eye size={13} /> : <EyeOff size={13} />}
+                {showMatches ? "Hide match overlay" : "Show match overlay"}
+              </button>
+            )}
+          </div>
+          {showMatches && (previewHits.kw || previewHits.metric) && (
+            <p className="tmE-preview-note">
               <span className="tmE-preview-legend">
                 {previewHits.kw && (
                   <>
@@ -2251,20 +2270,10 @@ export default function EditEditor({
                   </>
                 )}
               </span>
-            )}
-          </div>
-          {(previewHits.kw || previewHits.metric) && (
-            <>
-              <p className="tmE-preview-note">
-                {previewHits.kw
-                  ? "Highlights mark the posting keywords and metrics your resume hits."
-                  : "Highlights mark the metrics in your resume."}
-              </p>
-              <span className="tmE-preview-disclaimer">
-                <Info size={13} /> Preview only. Keyword and metric tags aren&apos;t added to your
-                resume or PDF.
+              <span className="tmE-preview-overlaynote">
+                <Info size={12} /> A review overlay, not part of your resume or PDF.
               </span>
-            </>
+            </p>
           )}
           <div
             className="tmE-doc-viewport"
@@ -2276,7 +2285,7 @@ export default function EditEditor({
               className="tmE-doc-scaler"
               style={{ transform: `scale(${docScale})` }}
             >
-              <PrintDoc doc={doc} id={id} resumeOnly hideToolbar highlightKeywords={previewKeywords} />
+              <PrintDoc doc={doc} id={id} resumeOnly hideToolbar highlightKeywords={showMatches ? previewKeywords : undefined} />
               {pageBreaks.map((y, i) => (
                 <div
                   key={i}
