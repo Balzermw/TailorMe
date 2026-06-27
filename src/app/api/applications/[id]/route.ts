@@ -72,3 +72,36 @@ export async function PATCH(
   }
   return NextResponse.json({ ok: true });
 }
+
+// Permanently delete one targeted application (resume + cover letter). RLS + the
+// explicit user_id match scope it to the owner. Idempotent: deleting a row that
+// is already gone still returns ok.
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+
+  const sb = await getServerSupabase();
+  const user = sb ? (await sb.auth.getUser()).data.user : null;
+  if (!sb || !user) {
+    return NextResponse.json(
+      { error: "Sign in to delete.", signin: true },
+      { status: 401 },
+    );
+  }
+
+  const { error } = await sb
+    .from("applications")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) {
+    console.error("application delete failed", error);
+    return NextResponse.json(
+      { error: "Couldn't delete this application. Please try again." },
+      { status: 500 },
+    );
+  }
+  return NextResponse.json({ ok: true });
+}

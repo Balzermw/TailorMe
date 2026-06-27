@@ -4,9 +4,11 @@
 // state surfaced here is a Michael hand-off (human review in flight).
 
 import type { ReactNode } from "react";
+import type { FitHistoryEntry } from "@/lib/types";
 import Link from "next/link";
 import { PenLine, Upload } from "lucide-react";
 import { ROUTES } from "@/components/landing/data";
+import { fitTier } from "@/lib/apply/fit-tier";
 
 // New-user entry: lead with bringing an existing resume/LinkedIn (the common
 // case), with build-from-scratch as the quiet secondary — instead of dropping
@@ -121,25 +123,35 @@ export function ApplicationTableHead() {
   );
 }
 
-// Fit number → a plain-language tier, so the score reads as a judgement
-// ("Strong fit") rather than a bare number floating in a column.
-function fitTier(fit: number): { label: string; tone: string } {
-  if (fit >= 80) return { label: "Strong fit", tone: "strong" };
-  if (fit >= 70) return { label: "Good fit", tone: "good" };
-  if (fit >= 55) return { label: "Fair fit", tone: "fair" };
-  return { label: "Weak fit", tone: "weak" };
-}
-
-/** Compact fit cell: number + tier word over a slim bar. `building` = in flight. */
-export function ScoreBar({ fit, building }: { fit: number | null; building?: boolean }) {
+/**
+ * Compact fit cell: number + tier word over a slim bar. `building` = in flight.
+ * `history` (optional) surfaces a tiny improvement chip once the score has moved
+ * across re-checks (latest vs the initial score).
+ */
+export function ScoreBar({
+  fit,
+  building,
+  history,
+}: {
+  fit: number | null;
+  building?: boolean;
+  history?: FitHistoryEntry[];
+}) {
   if (building) return <span className="tmD-building">Building your documents...</span>;
   if (fit == null) return <span className="tmD-score--empty">Not scored yet</span>;
   const tier = fitTier(fit);
+  const improvement =
+    history && history.length > 1 ? fit - history[0].overall : 0;
   return (
-    <span className="tmD-fit" data-tier={tier.tone} aria-label={`Job fit ${fit} of 100 — ${tier.label}`}>
+    <span className="tmD-fit" data-tier={tier.tone} aria-label={`Job fit ${fit} of 100, ${tier.label}`}>
       <span className="tmD-fit-head">
         <b className="tmD-fit-num">{fit}</b>
         <span className="tmD-fit-tier">{tier.label}</span>
+        {improvement !== 0 && (
+          <span className={"tmD-fit-chip" + (improvement < 0 ? " is-down" : "")}>
+            {improvement > 0 ? `+${improvement}` : improvement}
+          </span>
+        )}
       </span>
       <span className="tmD-fit-track">
         <span className="tmD-fit-fill" style={{ width: `${fit}%` }} />

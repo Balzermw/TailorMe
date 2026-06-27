@@ -4,20 +4,24 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
+  Calendar,
   FileCheck,
   FileText,
   ListChecks,
   Lock,
+  Mail,
   PenLine,
   Settings,
   Target,
+  Trash2,
 } from "lucide-react";
 import { ROUTES } from "@/components/landing/data";
 import { useDemoSession } from "@/lib/use-session";
 import { loadBaseResumeDoc, loadSavedResume, setTargetResume, type SavedResume } from "@/lib/resume";
 import { docToResumeText } from "@/lib/apply/serialize";
 import { editHref, printHref } from "@/lib/apply/render";
-import { listLocalApplications } from "@/lib/local-applications";
+import { deleteLocalApplication, listLocalApplications } from "@/lib/local-applications";
 import type { ApplicationRow, TailoredDoc } from "@/lib/types";
 import {
   AddResumeChoice,
@@ -51,10 +55,12 @@ function DocumentsView({
   baseResume,
   savedResume,
   apps,
+  onDelete,
 }: {
   baseResume: TailoredDoc | null;
   savedResume: SavedResume | null;
   apps: ApplicationRow[];
+  onDelete: (id: string, label: string) => void;
 }) {
   const rawSourceText = baseResume ? "" : (savedResume?.text ?? "").trim();
   const hasSourceProfile = Boolean(baseResume || rawSourceText);
@@ -90,14 +96,14 @@ function DocumentsView({
           count="1 item"
         >
           {baseResume ? (
-            <div className="tm-card tmD-doc">
-              <span className="tmD-doc-thumb"><FileText size={22} strokeWidth={1.5} /></span>
+            <div className="tm-card tmD-doc tmD-doc--source">
+              <span className="tmD-doc-thumb"><FileText size={22} strokeWidth={1.6} /></span>
               <div className="tmD-doc-body">
+                <span className="tmD-doc-eyebrow">Master profile</span>
                 <b>Resume info</b>
                 <span>{sourceLabel}</span>
               </div>
               <div className="tmD-doc-side">
-                <span className="tm-pill">source</span>
                 {feedbackCount > 0 && (
                   <Link className="tm-btn tm-btn--outline tm-btn--sm" href={`${ROUTES.resumeEdit}#feedback`}>
                     <ListChecks size={13} /> Feedback ({feedbackCount})
@@ -109,14 +115,14 @@ function DocumentsView({
               </div>
             </div>
           ) : (
-            <div className="tm-card tmD-doc">
-              <span className="tmD-doc-thumb"><FileText size={22} strokeWidth={1.5} /></span>
+            <div className="tm-card tmD-doc tmD-doc--source">
+              <span className="tmD-doc-thumb"><FileText size={22} strokeWidth={1.6} /></span>
               <div className="tmD-doc-body">
+                <span className="tmD-doc-eyebrow">Master profile</span>
                 <b>Source profile</b>
                 <span>{sourceLabel}</span>
               </div>
               <div className="tmD-doc-side">
-                <span className="tm-pill">source</span>
                 <Link className="tm-btn tm-btn--outline tm-btn--sm" href={ROUTES.resumeImport}>
                   <PenLine size={13} /> Update
                 </Link>
@@ -139,11 +145,17 @@ function DocumentsView({
                 <span className="tmD-doc-thumb"><FileCheck size={20} strokeWidth={1.5} /></span>
                 <div className="tmD-doc-body">
                   <b>{targetLabel(app)}</b>
-                  <span>
-                    Resume{(app.result?.doc?.coverLetter ?? "").trim() ? " + cover letter" : ""} · {formatDate(app.createdAt)}
+                  <span className="tmD-doc-meta">
+                    <span><FileText size={12} strokeWidth={1.8} /> Resume</span>
+                    {(app.result?.doc?.coverLetter ?? "").trim() && (
+                      <span><Mail size={12} strokeWidth={1.8} /> Cover letter</span>
+                    )}
+                    <span><Calendar size={12} strokeWidth={1.8} /> {formatDate(app.createdAt)}</span>
                   </span>
                   {(app.fitScore ?? 100) < 70 && (
-                    <span className="tmD-doc-advice">Needs manual edits or human review.</span>
+                    <span className="tmD-doc-advice">
+                      <AlertTriangle size={12} strokeWidth={2} /> Needs manual edits or human review.
+                    </span>
                   )}
                 </div>
                 <div className="tmD-doc-side">
@@ -154,6 +166,14 @@ function DocumentsView({
                   <Link className="tm-btn tm-btn--outline tm-btn--sm" href={printHref(app.id, true)} target="_blank" rel="noopener noreferrer">
                     PDF
                   </Link>
+                  <button
+                    type="button"
+                    className="tm-btn tm-btn--outline tm-btn--sm tmD-del-btn"
+                    aria-label={`Delete ${targetLabel(app)}`}
+                    onClick={() => onDelete(app.id, targetLabel(app))}
+                  >
+                    <Trash2 size={13} />
+                  </button>
                 </div>
               </div>
             ))
@@ -171,6 +191,16 @@ export default function DashboardClient({ initialView = "apps" }: { initialView?
   const [baseResume, setBaseResume] = useState<TailoredDoc | null>(null);
   const [savedResume, setSavedResume] = useState<SavedResume | null>(null);
   const [apps, setApps] = useState<ApplicationRow[]>([]);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; label: string } | null>(null);
+  function requestDelete(id: string, label: string) {
+    setPendingDelete({ id, label });
+  }
+  function confirmDelete() {
+    if (!pendingDelete) return;
+    deleteLocalApplication(pendingDelete.id);
+    setApps(listLocalApplications());
+    setPendingDelete(null);
+  }
   useEffect(() => {
     let active = true;
     const refreshSource = async () => {
@@ -277,7 +307,7 @@ export default function DashboardClient({ initialView = "apps" }: { initialView?
         </div>
 
         {view === "docs" ? (
-          <DocumentsView baseResume={baseResume} savedResume={savedResume} apps={apps} />
+          <DocumentsView baseResume={baseResume} savedResume={savedResume} apps={apps} onDelete={requestDelete} />
         ) : apps.length > 0 ? (
           <div className="tmD-docs">
             <section className="tmD-doc-group">
@@ -296,15 +326,30 @@ export default function DashboardClient({ initialView = "apps" }: { initialView?
                     .map((app) => {
                       const step = nextStep(app);
                       return (
-                        <Link key={app.id} className="tm-card tmD-row" href={editHref(app.id)}>
-                          <div className="tmD-row-co">
-                            <b>{app.role}</b>
-                            <span>{app.company}</span>
-                          </div>
-                          <ScoreBar fit={app.fitScore ?? null} building={app.status === "running"} />
-                          <RowStatus tone={step.tone} label={step.label} />
-                          <span className="tmD-row-date">{formatDate(app.createdAt)}</span>
-                        </Link>
+                        <div key={app.id} className="tmD-row-wrap">
+                          <Link className="tm-card tmD-row" href={editHref(app.id)}>
+                            <div className="tmD-row-co">
+                              <span className="tmD-row-ico" aria-hidden="true">
+                                <FileText size={17} strokeWidth={1.7} />
+                              </span>
+                              <div className="tmD-row-co-text">
+                                <b>{app.role}</b>
+                                <span>{app.company}</span>
+                              </div>
+                            </div>
+                            <ScoreBar fit={app.fitScore ?? null} building={app.status === "running"} history={app.result?.fitHistory} />
+                            <RowStatus tone={step.tone} label={step.label} />
+                            <span className="tmD-row-date">{formatDate(app.createdAt)}</span>
+                          </Link>
+                          <button
+                            type="button"
+                            className="tmD-row-del"
+                            aria-label={`Delete ${app.role}`}
+                            onClick={() => requestDelete(app.id, app.company ? `${app.role} @ ${app.company}` : app.role)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       );
                     })}
                 </div>
@@ -324,6 +369,44 @@ export default function DashboardClient({ initialView = "apps" }: { initialView?
           </div>
         )}
       </div>
+      {pendingDelete && (
+        <div
+          className="tmD-modal-backdrop"
+          role="presentation"
+          onClick={() => setPendingDelete(null)}
+        >
+          <div
+            className="tm-card tmD-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Delete targeted resume"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>Delete this targeted resume?</h3>
+            <p className="tmD-modal-target">
+              <b>{pendingDelete.label}</b>
+            </p>
+            <p>Will be permanently removed, including its cover letter and fit history.</p>
+            <p className="tmD-modal-warn">This can&apos;t be undone.</p>
+            <div className="tmD-modal-actions">
+              <button
+                type="button"
+                className="tm-btn tm-btn--outline"
+                onClick={() => setPendingDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="tm-btn tmSet-danger-fill"
+                onClick={confirmDelete}
+              >
+                <Trash2 size={14} /> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
