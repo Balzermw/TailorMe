@@ -1192,6 +1192,16 @@ export default function EditEditor({
   // and persists. A successful re-check also saves the scored draft.
   async function runRecheck() {
     if (rechecking) return;
+    // The score should only move when the resume actually changed. Re-checking an
+    // unchanged draft would re-score identical content (and, in demo mode, would
+    // otherwise keep nudging the simulated score up).
+    if (!dirty) {
+      setMsg({
+        text: "No changes since your last check. Edit a line, then re-check.",
+        err: false,
+      });
+      return;
+    }
     setRechecking(true);
     setMsg(null);
     try {
@@ -1525,6 +1535,7 @@ export default function EditEditor({
                 history={fitHistory}
                 onRecheck={canRecheck ? runRecheck : undefined}
                 rechecking={rechecking}
+                pendingChanges={dirty}
               />
             </div>
           )}

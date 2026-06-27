@@ -37,12 +37,16 @@ export function FitPanel({
   history,
   onRecheck,
   rechecking,
+  pendingChanges = true,
   demoNote,
 }: {
   fit: FitBreakdown;
   history: FitHistoryEntry[];
   onRecheck?: () => void;
   rechecking?: boolean;
+  // Whether the draft has unsaved edits to re-score. When false the re-check is
+  // disabled, so the score only moves when the resume actually changed.
+  pendingChanges?: boolean;
   demoNote?: boolean;
 }) {
   const tier = fitTier(fit.overall);
@@ -86,13 +90,15 @@ export function FitPanel({
             type="button"
             className="tm-btn tm-btn--primary tm-btn--sm"
             onClick={onRecheck}
-            disabled={rechecking}
+            disabled={rechecking || !pendingChanges}
           >
             {rechecking ? <Loader2 size={14} className="tmFit-spin" /> : <RefreshCw size={14} />}
             {rechecking ? "Re-checking..." : "Re-check fit"}
           </button>
           <span className="tm-small tmFit-hint">
-            Re-scores your current draft against this job and saves it. Free, no credit.
+            {pendingChanges
+              ? "Re-scores your current draft against this job and saves it. Free, no credit."
+              : "Edit a line to improve your resume, then re-check to move your fit."}
           </span>
         </div>
       )}
