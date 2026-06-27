@@ -6,11 +6,16 @@ import { ROUTES } from "@/components/landing/data";
 import { printHref } from "@/lib/apply/render";
 import {
   loadLocalApplication,
+  recheckLocalApplication,
   updateLocalApplicationResult,
 } from "@/lib/local-applications";
+import { simulateRecheckScore } from "@/lib/apply/fit-history";
+import { fitTier } from "@/lib/apply/fit-tier";
+import { docToResumeText } from "@/lib/apply/serialize";
 import type {
   ApplicationRow,
   EditDecision,
+  FitBreakdown,
   TailoredDoc,
 } from "@/lib/types";
 import EditEditor from "./edit-editor";
@@ -68,6 +73,24 @@ export default function LocalApplicationEditLoader({ id }: { id: string }) {
       company={app.company}
       role={app.role}
       pdfUrl={printHref(id, true)}
+      initialFit={result.fit ?? null}
+      initialHistory={result.fitHistory}
+      canRecheck={Boolean(result.postingText)}
+      onRecheck={async (nextDoc: TailoredDoc) => {
+        // Demo mode has no server row: simulate the re-score deterministically
+        // off the edited resume and persist the new point to localStorage.
+        const prev = result.fit?.overall ?? 0;
+        const overall = simulateRecheckScore(prev, docToResumeText(nextDoc), true);
+        const newFit: FitBreakdown = {
+          ...result.fit,
+          overall,
+          verdict: fitTier(overall).label,
+        };
+        const updated = recheckLocalApplication(id, newFit, nextDoc);
+        if (!updated?.result) return { ok: false, error: "Could not re-check this local draft." };
+        setApp(updated);
+        return { ok: true, fit: updated.result.fit, history: updated.result.fitHistory };
+      }}
       onSave={async ({
         doc: nextDoc,
         decisions,

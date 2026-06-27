@@ -51,6 +51,19 @@ export interface FitBreakdown {
 }
 
 /**
+ * One point on an application's fit-score timeline. The first entry (source
+ * "initial") is the score when the application was created; each "recheck" is a
+ * re-score of the edited resume against the SAME posting, so the client can see
+ * the score move as they apply our suggestions.
+ */
+export interface FitHistoryEntry {
+  overall: number; // 0–100 snapshot at this point
+  verdict: string; // tier word at that time ("Weak fit" etc.)
+  at: string; // ISO timestamp
+  source: "initial" | "recheck";
+}
+
+/**
  * Lightweight, candidate-independent context about a target role, gathered by a
  * fast background call so the parsing/loading screen reflects the user's actual
  * target (never a default placeholder) and the fit analysis is grounded.
@@ -234,6 +247,8 @@ export interface ApplyResult {
   agentNotes: AgentNote[];
   agents?: AuditAgent[]; // the three personified review cards (full run only)
   doc: TailoredDoc | null; // null for score-only (free preview); current/edited doc
+  postingText?: string; // the posting this was scored against — lets us re-score the edited resume
+  fitHistory?: FitHistoryEntry[]; // append-only fit timeline; [0] is the initial score
   verification?: VerificationReport; // faithfulness pass over the tailored doc (full run only)
   tailorDiagnostics?: TailorDiagnostics; // privacy-safe quality gate metrics for paid tailoring
   // ----- editor (added when a user edits a tailored application) -----

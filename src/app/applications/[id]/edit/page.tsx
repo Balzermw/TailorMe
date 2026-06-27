@@ -66,6 +66,9 @@ export default async function EditPage({
             proofPoints={app.result?.proofPoints ?? []}
             company={app.company}
             role={app.role}
+            initialFit={app.result?.fit ?? null}
+            initialHistory={app.result?.fitHistory}
+            canRecheck={Boolean(app.result?.postingText)}
           />
         ) : (
           <div style={{ padding: "64px 24px", textAlign: "center" }}>

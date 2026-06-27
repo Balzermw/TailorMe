@@ -27,9 +27,13 @@ import {
 import type {
   BulletDiff,
   EditDecision,
+  FitBreakdown,
+  FitHistoryEntry,
   ProofPoint,
   TailoredDoc,
 } from "@/lib/types";
+import { FitPanel } from "@/components/fit/fit-panel";
+import { ensureInitialHistory } from "@/lib/apply/fit-history";
 import { pdfHref } from "@/lib/apply/render";
 import { RESUME_TEMPLATES, DEFAULT_TEMPLATE, templateName } from "@/lib/apply/templates";
 import { feedbackHash } from "@/lib/apply/hash";
@@ -414,6 +418,10 @@ export default function EditEditor({
   backLabel = "Dashboard",
   onGetFeedback,
   onTargetJob,
+  initialFit = null,
+  initialHistory,
+  canRecheck = false,
+  onRecheck,
 }: {
   id: string;
   doc: TailoredDoc;
@@ -441,6 +449,18 @@ export default function EditEditor({
   onGetFeedback?: (doc: TailoredDoc) => Promise<ProofPoint[]>;
   // Base resume: send this resume into the job-targeting flow.
   onTargetJob?: (doc: TailoredDoc) => void;
+  // Fit re-check loop (application mode). initialFit/History seed the panel;
+  // canRecheck gates the action (a posting must exist); onRecheck is the
+  // demo-mode persister (real mode posts to the recheck API by default).
+  initialFit?: FitBreakdown | null;
+  initialHistory?: FitHistoryEntry[];
+  canRecheck?: boolean;
+  onRecheck?: (doc: TailoredDoc) => Promise<{
+    ok: boolean;
+    fit?: FitBreakdown;
+    history?: FitHistoryEntry[];
+    error?: string;
+  }>;
 }) {
   const normalizedInitialDoc = normalizeEditorDoc(initialDoc, role);
   const initialDocNormalized =
@@ -448,6 +468,15 @@ export default function EditEditor({
     normalizedInitialDoc.headline !== initialDoc.headline;
   const [doc, setDoc] = useState<TailoredDoc>(normalizedInitialDoc);
   const [decisions, setDecisions] = useState<Record<string, EditDecision>>(initialDecisions);
+  // Fit re-check loop state (application mode). History is seeded from the saved
+  // timeline, backfilled to a one-point initial if the record predates it.
+  const [fit, setFit] = useState<FitBreakdown | null>(initialFit);
+  const [fitHistory, setFitHistory] = useState<FitHistoryEntry[]>(() =>
+    initialFit
+      ? ensureInitialHistory({ fit: initialFit, fitHistory: initialHistory }, new Date().toISOString())
+      : [],
+  );
+  const [rechecking, setRechecking] = useState(false);
   // Deep link: the dashboard "View feedback" link lands here as
   // /resume/edit#feedback — open the Feedback section directly, not the header.
   const [section, setSection] = useState<Section>(() =>
@@ -1151,6 +1180,51 @@ export default function EditEditor({
     }
   }
 
+  // Re-check fit: re-score the CURRENT edited draft against the same posting and
+  // append the result to the timeline. Demo mode uses the loader's onRecheck
+  // (deterministic simulation); real mode posts to the recheck API, which scores
+  // and persists. A successful re-check also saves the scored draft.
+  async function runRecheck() {
+    if (rechecking) return;
+    setRechecking(true);
+    setMsg(null);
+    try {
+      const docToScore = normalizeEditorDoc(doc, role);
+      if (onRecheck) {
+        const r = await onRecheck(docToScore);
+        if (r.ok && r.fit && r.history) {
+          setFit(r.fit);
+          setFitHistory(r.history);
+          setDirty(false);
+        } else {
+          setMsg({ text: r.error || "Couldn’t re-check fit.", err: true });
+        }
+        return;
+      }
+      const res = await fetch(`/api/applications/${id}/recheck`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ doc: docToScore }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok && data.fit && data.history) {
+        setFit(data.fit);
+        setFitHistory(data.history);
+        setDirty(false);
+        setMsg({ text: "Fit re-checked", err: false });
+      } else {
+        setMsg({
+          text: data.error || "Couldn’t re-check fit.",
+          err: true,
+        });
+      }
+    } catch {
+      setMsg({ text: "Couldn’t re-check fit.", err: true });
+    } finally {
+      setRechecking(false);
+    }
+  }
+
   // Pick a résumé template. Free (a recompile, never an AI call). Persist
   // immediately with the explicit doc so the PDF/download reflects it at once.
   function chooseTemplate(id: string) {
@@ -1438,6 +1512,16 @@ export default function EditEditor({
 
         {/* ---- one section at a time ---- */}
         <div className="tmE-main">
+          {kind === "application" && fit && (
+            <div className="tmF-anim" style={{ marginBottom: "14px" }}>
+              <FitPanel
+                fit={fit}
+                history={fitHistory}
+                onRecheck={canRecheck ? runRecheck : undefined}
+                rechecking={rechecking}
+              />
+            </div>
+          )}
           {review && (
             <div className="tmE-review tmF-anim">
               <div className="tmE-review-head">
