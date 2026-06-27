@@ -19,7 +19,7 @@ describe("latex generation", () => {
   });
 
   it("renders a compilable moderncv resume", () => {
-    const tex = renderResumeTex(SAMPLE_DOC);
+    const tex = renderResumeTex({ ...SAMPLE_DOC, template: "moderncv-banking" });
     expect(tex).toContain("\\documentclass[11pt,a4paper,sans]{moderncv}");
     expect(tex).toContain("\\moderncvstyle{banking}");
     expect(tex).toContain("\\name{Alex}{Mercer}");
@@ -29,6 +29,21 @@ describe("latex generation", () => {
     expect(tex).toContain("\\begin{itemize}");
     expect(tex.startsWith("\\documentclass")).toBe(true);
     expect(tex.trimEnd().endsWith("\\end{document}")).toBe(true);
+  });
+
+  it("omits imported duration suffixes from rendered dates", () => {
+    const tex = renderResumeTex({
+      ...SAMPLE_DOC,
+      template: "moderncv-banking",
+      experience: [
+        {
+          ...SAMPLE_DOC.experience[0],
+          dates: "Apr 2026 - Present \u00b7 3 mos",
+        },
+      ],
+    });
+    expect(tex).toContain("\\cventry{Apr 2026 - Present}");
+    expect(tex).not.toContain("3 mos");
   });
 
   it("renders the classic (article serif) template when selected", () => {
@@ -49,9 +64,26 @@ describe("latex generation", () => {
     expect(tex).not.toContain("moderncv");
   });
 
-  it("falls back to moderncv for a missing or unknown template id", () => {
-    expect(renderResumeTex({ ...SAMPLE_DOC, template: "bogus" })).toContain("{moderncv}");
-    expect(renderResumeTex(SAMPLE_DOC)).toContain("{moderncv}");
+  it("renders Jake's two-line entries when selected", () => {
+    const tex = renderResumeTex({ ...SAMPLE_DOC, template: "jake" });
+    expect(tex).toContain("\\documentclass[letterpaper,11pt]{article}");
+    expect(tex).toContain("\\titlerule"); // ruled small-caps sections
+    expect(tex).toContain("\\hfill"); // right-aligned dates on the role line
+    expect(tex).toContain("Alex Mercer");
+    expect(tex).not.toContain("moderncv");
+  });
+
+  it("uses Jake's (the default) for a missing or unknown template id", () => {
+    const def = renderResumeTex(SAMPLE_DOC); // no template field
+    expect(def).toContain("letterpaper");
+    expect(def).toContain("\\scshape");
+    expect(def).not.toContain("{moderncv}");
+    // An unknown id resolves to the same default render.
+    expect(renderResumeTex({ ...SAMPLE_DOC, template: "bogus" })).toBe(def);
+  });
+
+  it("still renders moderncv-banking when explicitly selected", () => {
+    expect(renderResumeTex({ ...SAMPLE_DOC, template: "moderncv-banking" })).toContain("{moderncv}");
   });
 
   it("renders a cover letter with opening and closing", () => {

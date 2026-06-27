@@ -13,7 +13,7 @@ import { consume, getClientIp, tooManyRequests } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-type Verdict = "good" | "weaker" | "issue";
+type Verdict = "improved" | "okay" | "risky";
 interface Change {
   id: string;
   kind: "summary" | "bullet";
@@ -35,7 +35,7 @@ const SCHEMA = {
         type: "object",
         properties: {
           id: { type: "string" },
-          verdict: { type: "string", enum: ["good", "weaker", "issue"] },
+          verdict: { type: "string", enum: ["improved", "okay", "risky"] },
           note: { type: "string" },
         },
       },
@@ -46,9 +46,9 @@ const SCHEMA = {
 const SYSTEM = `A resume was already tailored and improved by an AI review. The user then hand-edited some lines. Your job is to review THE USER'S EDITS, not to rewrite the resume.
 
 For each change you get the AI's original line and the user's edited version. Classify the edit:
-- "good": it keeps the strengths (keywords, numbers, strong verbs) or genuinely improves clarity or accuracy.
-- "weaker": it dropped a metric or role keyword, got vaguer, or buried the result.
-- "issue": it has a typo, a grammar slip, broken formatting, or a likely-false claim.
+- "improved": it keeps the strengths (keywords, numbers, strong verbs) or genuinely improves clarity or accuracy.
+- "okay": it is acceptable but not clearly stronger, or it drops a minor strength without creating a real risk.
+- "risky": it dropped a key metric or role keyword, got vaguer, has a typo, broke formatting, or introduced a likely-false claim.
 
 For "note": one specific sentence naming what actually changed (for example "You dropped the 2.4M transactions figure" or "Reads cleaner and keeps Kubernetes"). Be honest but encouraging. Keep notes under 24 words. Return exactly one entry per change, reusing the given id.`;
 
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
     const reviews = changes.map((c) => {
       const r = byId.get(c.id);
       const verdict: Verdict =
-        r && ["good", "weaker", "issue"].includes(r.verdict) ? r.verdict : "good";
+        r && ["improved", "okay", "risky"].includes(r.verdict) ? r.verdict : "okay";
       return { id: c.id, verdict, note: (r?.note || "").trim().slice(0, 200) };
     });
     return NextResponse.json({ reviews });

@@ -44,6 +44,7 @@ export async function GET(
   } catch {
     /* fall through to the print view */
   }
-  // No compiler configured (or it failed) → the browser-printable view.
-  return NextResponse.redirect(new URL(`/applications/${id}/print`, request.url));
+  // No compiler configured (or it failed) → the browser-printable view, which
+  // auto-opens the Save-as-PDF dialog (?print=1).
+  return NextResponse.redirect(new URL(`/applications/${id}/print?print=1`, request.url));
 }

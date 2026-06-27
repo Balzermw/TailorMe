@@ -1,11 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, Printer } from "lucide-react";
 import type { TailoredDoc } from "@/lib/types";
 import { coverParagraphs, normalizeSkills } from "@/lib/apply/latex";
+import { DEFAULT_TEMPLATE, isTemplateId } from "@/lib/apply/templates";
 import { editHref } from "@/lib/apply/render";
+import { cleanResumeDate } from "@/lib/apply/dates";
 import { highlight } from "@/lib/highlight";
 
 // Render the contact line, linkifying any email or URL. A bare word like
@@ -51,7 +53,7 @@ const MONTH_ABBR: Record<string, string> = {
   december: "Dec",
 };
 function shortDates(s: string | undefined): string {
-  return (s ?? "").replace(
+  return cleanResumeDate(s).replace(
     /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/gi,
     (m) => MONTH_ABBR[m.toLowerCase()] ?? m,
   );
@@ -84,6 +86,22 @@ export default function PrintDoc({
   // provided, even as []). Metrics tint blue without any keywords; posting
   // keywords tint mint when present. The real PDF/print render passes nothing,
   // so it stays untinted.
+  // When reached as the "Export PDF" target (?print=1), open the browser's
+  // print/Save-as-PDF dialog automatically so export is one click. Never on the
+  // inline editor preview (hideToolbar) — that would print mid-edit.
+  useEffect(() => {
+    if (hideToolbar || typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("print") !== "1") return;
+    const t = window.setTimeout(() => {
+      try {
+        window.print();
+      } catch {
+        /* pop-up/print blocked — the toolbar button still works */
+      }
+    }, 450);
+    return () => window.clearTimeout(t);
+  }, [hideToolbar]);
+
   const hl = (t: string) =>
     highlightKeywords !== undefined ? highlight(t, highlightKeywords) : t;
   const first = doc.name.split(/\s+/).slice(0, -1).join(" ") || doc.name;
@@ -92,6 +110,10 @@ export default function PrintDoc({
       ? doc.name.split(/\s+/).slice(-1)[0]
       : "";
   const coverParas = coverParagraphs(doc.coverLetter);
+  // Skin per template (default = Jake's). moderncv-banking is the base look, so
+  // it carries no skin class; every other id (incl. the default) gets one.
+  const tpl = isTemplateId(doc.template) ? doc.template : DEFAULT_TEMPLATE;
+  const tplClass = tpl === "moderncv-banking" ? "" : ` print-tpl--${tpl}`;
 
   return (
     <div className="print-wrap" data-testid="print-document">
@@ -111,13 +133,7 @@ export default function PrintDoc({
       )}
 
       {/* Résumé — the template skins the preview (the compiled PDF is exact). */}
-      <article
-        className={`print-page${
-          doc.template === "classic" || doc.template === "modern"
-            ? ` print-tpl--${doc.template}`
-            : ""
-        }`}
-      >
+      <article className={`print-page${tplClass}`}>
         <header className="mcv-head">
           <div className="mcv-name">
             {first} {last && <span>{last}</span>}
@@ -233,7 +249,7 @@ export default function PrintDoc({
 
       {/* Cover letter */}
       {!resumeOnly && (
-      <article className="print-page">
+      <article className={`print-page${tplClass}`}>
         <header className="mcv-head">
           <div className="mcv-name">
             {first} {last && <span>{last}</span>}

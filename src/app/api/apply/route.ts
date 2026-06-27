@@ -120,9 +120,14 @@ export async function POST(request: Request) {
     // ----- full run: requires auth + a credit -----
     const sb = await getServerSupabase();
     if (!sb) {
-      // Supabase not configured (no accounts/credits) → surface the demo notice
-      // instead of redirecting to a sign-in page that can't complete the run.
-      return NextResponse.json({ demo: true });
+      // Local/dev mode has no accounts or credits, but it still needs to run
+      // the same full tailoring pipeline so the user can test the draft review
+      // workflow end to end. The client stores this returned result locally.
+      const result = await withAiRun("tailor", { sessionId }, () =>
+        runFull(resumeText, postingText),
+      );
+      result.proofPoints = sanitizeProofPoints(body.proofPoints);
+      return NextResponse.json({ result, local: true, applicationId: null });
     }
     const user = (await sb.auth.getUser()).data.user;
     if (!user) {
@@ -175,9 +180,9 @@ export async function POST(request: Request) {
       if (owned) resumeId = body.resumeId;
     }
 
-    // Spend the credit after a successful run, then persist the application.
-    if (!creditsDisabled) await sb.rpc("consume_credit");
-    const { data: app } = await sb
+    // Persist the application FIRST, then spend the credit only on a confirmed
+    // insert — so a persistence failure never silently burns a paid credit.
+    const { data: app, error: insertError } = await sb
       .from("applications")
       .insert({
         user_id: user.id,
@@ -192,7 +197,20 @@ export async function POST(request: Request) {
       .select("id")
       .single();
 
-    return NextResponse.json({ result, applicationId: app?.id ?? null });
+    // If the row couldn't be created (RLS/schema/constraint), surface a real,
+    // retryable error instead of a dead end — and don't consume the credit. (We
+    // can't downgrade an account user to a localStorage-only app: the account
+    // editor loads from the DB, not localStorage.)
+    if (insertError || !app?.id) {
+      if (insertError) console.error("applications insert failed", insertError);
+      return NextResponse.json(
+        { error: "We couldn’t save your tailored application. Please try again." },
+        { status: 500 },
+      );
+    }
+
+    if (!creditsDisabled) await sb.rpc("consume_credit");
+    return NextResponse.json({ result, applicationId: app.id });
   } catch (err) {
     const message = err instanceof Error ? err.message : "pipeline failed";
     return NextResponse.json(

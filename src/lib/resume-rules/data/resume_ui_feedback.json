@@ -143,7 +143,7 @@
           "order": 3,
           "from_resume": "Software engineer with experience in full-stack development seeking new opportunities in a dynamic team.",
           "why_it_matters": "First thing read after ATS; sets the narrative and grabs attention immediately.",
-          "how_we_fix_it": "Write 3-5 lines naming the role, key strengths/impact, and bridge from past.",
+          "how_we_fix_it": "Rewrite as a tight 1-2 sentence paragraph naming the role, key strengths, and strongest impact. Keep it short, not bulleted.",
           "target_section": "summary",
           "fix_type": "edit",
           "suggested_rewrite": "Improved version here with metrics and clarity.",

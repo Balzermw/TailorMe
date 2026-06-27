@@ -10,9 +10,10 @@ export interface ResumeRenderer {
   render(doc: TailoredDoc): Promise<{ url: string } | { html: string }>;
 }
 
-/** Path to the printable (Save-as-PDF) moderncv view of an application. */
-export function printHref(applicationId: string): string {
-  return `/applications/${applicationId}/print`;
+/** Path to the printable (Save-as-PDF) moderncv view of an application.
+ *  Pass autoPrint to open the browser Save-as-PDF dialog on arrival. */
+export function printHref(applicationId: string, autoPrint = false): string {
+  return `/applications/${applicationId}/print${autoPrint ? "?print=1" : ""}`;
 }
 
 /** Compiled moderncv PDF (falls back to the print view when no compiler is set). */

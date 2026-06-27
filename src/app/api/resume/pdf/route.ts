@@ -38,6 +38,7 @@ export async function GET(request: Request) {
       /* fall through to the print view */
     }
   }
-  // No server doc (anon) or no compiler → the browser-printable view.
-  return NextResponse.redirect(new URL("/resume/print", request.url));
+  // No server doc (anon) or no compiler → the browser-printable view, which
+  // auto-opens the Save-as-PDF dialog (?print=1).
+  return NextResponse.redirect(new URL("/resume/print?print=1", request.url));
 }

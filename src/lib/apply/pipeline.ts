@@ -8,6 +8,7 @@ import {
 import { CLICHES, principlesClause } from "@/lib/apply/doctrine";
 import { withTemplateRules } from "@/lib/apply/template";
 import { sanitizeDoc } from "@/lib/apply/sanitize-doc";
+import { docToResumeText } from "@/lib/apply/serialize";
 import type {
   AgentNote,
   ApplyResult,
@@ -16,6 +17,7 @@ import type {
   FitBreakdown,
   ResumeStats,
   RoleContext,
+  TailorDiagnostics,
   TailoredBullet,
   TailoredDoc,
   VerificationCorrection,
@@ -57,6 +59,8 @@ const GUARDRAILS =
   "Never promise jobs, interviews, salary increases, or ATS-bypass; say 'interview-ready' / " +
   "'recruiter-ready'. When writing analysis or review notes, do not quote or repeat contact " +
   "details such as emails, phone numbers, LinkedIn URLs, websites, or street addresses. " +
+  "Resume headlines must be concise role titles, not mini summaries: 3-7 words, no " +
+  "'with ... experience' phrasing, and no keyword-stuffed comma lists. " +
   "Stay strictly faithful to the source resume: do not invent or inflate " +
   "metrics, numbers, percentages, dates, tenure, job titles, technologies, or " +
   "responsibilities, and do not upgrade verbs beyond what the resume supports (e.g. " +
@@ -195,6 +199,9 @@ const PARSE_SYSTEM =
   "ongoing role — NEVER flag it as future-dated, inconsistent, or an error); vague " +
   "responsibility bullets that state " +
   "activity with no outcome; a dense wall-of-text summary; impact that is never quantified; " +
+  "If you flag a dense or hard-to-scan professional summary, the fix is to shorten " +
+  "and sharpen it into a tight 1-2 sentence paragraph. Do NOT recommend converting " +
+  "the summary into bullets. " +
   "clichés and buzzwords; keywords buried in prose instead of scannable. " +
   "Apply professional resume standards: flag empty self-descriptors and buzzwords with no " +
   "proof (e.g. " +
@@ -347,8 +354,8 @@ const STRUCTURE_SYSTEM =
   "You convert a person's raw resume text, LinkedIn export, or rough career notes " +
   "into a STRUCTURED resume. Extract ONLY what is actually in the text — never " +
   "invent employers, job titles, dates, metrics, schools, certifications, or " +
-  "skills. Produce: the candidate's name; a headline (their most recent or stated " +
-  "target title); a single contact line joining phone, email, city/state, and any " +
+  "skills. Produce: the candidate's name; a concise headline (their most recent or stated " +
+  "target title, 3-7 words, never a sentence); a single contact line joining phone, email, city/state, and any " +
   "LinkedIn URL with ' | '; a short professional summary ONLY if the text has one " +
   "(otherwise empty); experience entries (role, company, dates, and the bullet " +
   "points roughly as written); education; projects; certifications; and a " +
@@ -375,7 +382,11 @@ export async function structureResume(
         required: ["name", "headline", "contact", "summary", "experience", "skills"],
         properties: {
           name: { type: "string" },
-          headline: { type: "string" },
+          headline: {
+            type: "string",
+            maxLength: 70,
+            description: "Concise resume headline: target/current role title only, 3-7 words, not a sentence.",
+          },
           contact: { type: "string" },
           summary: { type: "string" },
           experience: {
@@ -767,16 +778,84 @@ export async function scoreFit(
 function tailorResultComplete(r: {
   bullets?: unknown;
   keywords?: unknown;
-  doc?: TailoredDoc;
-}): boolean {
+  doc?: unknown;
+} | null | undefined): boolean {
+  if (!r) return false;
+  const doc = r.doc as Partial<TailoredDoc> | undefined;
   return (
-    !!r?.doc &&
-    Array.isArray(r.doc.experience) &&
-    r.doc.experience.length > 0 &&
-    Array.isArray(r.doc.skills) &&
+    !!doc &&
+    Array.isArray(doc.experience) &&
+    doc.experience.length > 0 &&
+    Array.isArray(doc.skills) &&
     Array.isArray(r.bullets) &&
     Array.isArray(r.keywords)
   );
+}
+
+const MIN_EDITOR_REWRITE_DIFFS = 3;
+const MAX_TAILOR_QUALITY_ATTEMPTS = 2;
+
+interface TailorStepResult {
+  bullets: TailoredBullet[];
+  keywords: string[];
+  doc: TailoredDoc;
+  diagnostics: Pick<
+    TailorDiagnostics,
+    "rawRewritePairs" | "changedRewritePairs" | "noOpRewritePairs" | "documentRepairPasses"
+  >;
+}
+
+type RawTailorResult = {
+  bullets?: unknown;
+  keywords?: unknown;
+  doc?: unknown;
+};
+
+function normalizeRewriteText(value: string): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9%$]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanRewritePairs(pairs: TailoredBullet[] | undefined): TailoredBullet[] {
+  return (Array.isArray(pairs) ? pairs : [])
+    .map((pair) => ({
+      before: String(pair?.before || "").trim(),
+      after: String(pair?.after || "").trim(),
+    }))
+    .filter(
+      (pair) =>
+        pair.before &&
+        pair.after &&
+        normalizeRewriteText(pair.before) !== normalizeRewriteText(pair.after) &&
+        !containsContactInfo(pair.before) &&
+        !containsContactInfo(pair.after),
+    );
+}
+
+function normalizeTailorOutput(input: unknown): Omit<TailorStepResult, "diagnostics"> | null {
+  if (!input || typeof input !== "object") return null;
+  const raw = input as RawTailorResult;
+  const doc = sanitizeDoc(raw.doc);
+  if (!doc?.experience?.length) return null;
+  return {
+    doc,
+    keywords: (Array.isArray(raw.keywords) ? raw.keywords : [])
+      .map((keyword) => String(keyword || "").trim())
+      .filter(Boolean)
+      .slice(0, 14),
+    bullets: cleanRewritePairs(raw.bullets as TailoredBullet[] | undefined),
+  };
+}
+
+function docBulletCount(doc: TailoredDoc): number {
+  return (doc.experience || []).reduce((n, entry) => n + (entry.bullets || []).length, 0);
+}
+
+function docMateriallyDiffersFromSource(resumeText: string, doc: TailoredDoc): boolean {
+  return normalizeRewriteText(resumeText) !== normalizeRewriteText(docToResumeText(doc));
 }
 
 // Faithful bullet-rewrite exemplars mined from 151 real professional resumes.
@@ -815,23 +894,131 @@ const BULLET_EXAMPLES =
   "AFTER: Secured a global distribution deal with Epic Pictures by spearheading a targeted " +
   "sales and marketing strategy at the American Film Market (AFM).\n\n";
 
+function documentRepairHint(): string {
+  return (
+    "The prior response omitted required document fields. Return a COMPLETE tailored result: " +
+    "bullets array, keywords array, and doc with name, headline, contact, summary, non-empty " +
+    "experience array, each experience entry containing role/company/dates/bullets, skills " +
+    "array, and coverLetter. Do not return a partial object."
+  );
+}
+
+async function repairIncompleteTailorResult(
+  resumeText: string,
+  postingText: string,
+  partial: unknown,
+  provider?: Provider,
+  model?: string,
+): Promise<RawTailorResult | null> {
+  try {
+    return await callTool<RawTailorResult>(
+      "tailor",
+      GUARDRAILS,
+      `Original resume:\n${resumeText}\n\nJob posting:\n${postingText}\n\n` +
+        `Incomplete tailor output:\n${JSON.stringify(partial ?? {})}\n\n` +
+        "The tailor output above is incomplete or malformed. Complete it into a full, renderable " +
+        "tailored result. Preserve any valid tailored wording from the partial output, but fill " +
+        "missing structured fields from the original resume and job posting. Return bullets, " +
+        "keywords, and doc. The doc must include a non-empty experience array with bullets and a " +
+        "skills array. Keep every claim faithful to the original resume; do not invent facts, " +
+        "metrics, tools, dates, employers, schools, or degrees. Plain text only.",
+      {
+        name: "repair_tailored_document",
+        description: "Complete a partial tailor result into a full renderable tailored document.",
+        input_schema: {
+          type: "object",
+          required: ["bullets", "keywords", "doc"],
+          properties: {
+            bullets: {
+              type: "array",
+              items: {
+                type: "object",
+                required: ["before", "after"],
+                properties: {
+                  before: { type: "string" },
+                  after: { type: "string" },
+                },
+              },
+            },
+            keywords: { type: "array", items: { type: "string" } },
+            doc: {
+              type: "object",
+              required: [
+                "name",
+                "headline",
+                "contact",
+                "summary",
+                "experience",
+                "skills",
+                "coverLetter",
+              ],
+              properties: {
+                name: { type: "string" },
+                headline: {
+                  type: "string",
+                  maxLength: 70,
+                  description: "Concise resume headline: target role title only, 3-7 words, not a sentence.",
+                },
+                contact: { type: "string" },
+                summary: { type: "string" },
+                experience: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    required: ["role", "company", "dates", "bullets"],
+                    properties: {
+                      role: { type: "string" },
+                      company: { type: "string" },
+                      dates: { type: "string" },
+                      bullets: { type: "array", items: { type: "string" } },
+                    },
+                  },
+                },
+                skills: { type: "array", items: { type: "string" } },
+                education: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    required: ["school", "degree", "dates"],
+                    properties: {
+                      school: { type: "string" },
+                      degree: { type: "string" },
+                      dates: { type: "string" },
+                    },
+                  },
+                },
+                coverLetter: { type: "string" },
+              },
+            },
+          },
+        },
+      },
+      4500,
+      provider,
+      model,
+    );
+  } catch {
+    return null;
+  }
+}
+
 async function tailor(
   resumeText: string,
   postingText: string,
   provider?: Provider,
   model?: string,
-): Promise<{ bullets: TailoredBullet[]; keywords: string[]; doc: TailoredDoc }> {
-  type TailorResult = {
-    bullets: TailoredBullet[];
-    keywords: string[];
-    doc: TailoredDoc;
-  };
-  const run = () =>
-    callTool<TailorResult>(
+  qualityHint?: string,
+): Promise<TailorStepResult> {
+  const run = (documentHint?: string) =>
+    callTool<RawTailorResult>(
     "tailor",
     GUARDRAILS,
     `Resume:\n${resumeText}\n\nJob posting:\n${postingText}\n\n` +
       BULLET_EXAMPLES +
+      "Editor contract: return 4-8 changed before/after EXPERIENCE bullet pairs. " +
+      "Each pair's after text must closely match one bullet in doc.experience so the " +
+      "revision editor can anchor it; each before text must be the source resume bullet " +
+      "or fact it rewrites. " +
       "Rewrite this resume for THIS posting: re-rank bullets by relevance, translate tasks " +
       "into impact with real numbers where the resume supports them, and align keywords only " +
       "where backed by experience. Do NOT add scope/scale qualifiers the resume does not " +
@@ -847,10 +1034,13 @@ async function tailor(
       "relevant roles most-recent-first (at most 6 entries), 3–5 bullets for recent roles and " +
       "2–3 for older ones, a 1–2 sentence summary, and about 10–15 skills — prioritize " +
       "relevance over completeness. Return: a few before/after bullet pairs (the strongest " +
-      "rewrites), the aligned keywords, and a complete tailored document (name, headline, " +
+      "rewrites), the aligned keywords, and a complete tailored document (name, concise headline " +
+      "as a role title only, 3-7 words, no 'with ... experience' phrasing, " +
       "contact line, 1–2 sentence summary, experience entries with rewritten bullets, skills, " +
       "education entries (degree, school, and dates — include ONLY if the resume actually lists " +
-      "education; never invent a school or degree), and a 3-paragraph cover letter). Plain text only.",
+      "education; never invent a school or degree), and a 3-paragraph cover letter). Plain text only." +
+      (qualityHint ? `\n\nRevision evidence quality gate:\n${qualityHint}` : "") +
+      (documentHint ? `\n\nDocument completeness repair:\n${documentHint}` : ""),
     {
       name: "tailor_resume",
       description: "Return the tailored bullets, keywords, and full document.",
@@ -883,7 +1073,11 @@ async function tailor(
             ],
             properties: {
               name: { type: "string" },
-              headline: { type: "string" },
+              headline: {
+                type: "string",
+                maxLength: 70,
+                description: "Concise resume headline: target role title only, 3-7 words, not a sentence.",
+              },
               contact: { type: "string" },
               summary: { type: "string" },
               experience: {
@@ -926,19 +1120,47 @@ async function tailor(
   // Anthropic forced tool-use does not hard-enforce `required`, so a model can
   // occasionally drop the experience/skills arrays. Retry once, then fail loud
   // rather than handing a half-built document to the renderer/dashboard.
-  let result = await run();
-  if (!tailorResultComplete(result)) result = await run();
-  if (!tailorResultComplete(result)) {
+  let documentRepairPasses = 0;
+  let result: RawTailorResult | null = await run();
+  let normalized = normalizeTailorOutput(result);
+  if (!normalized || !tailorResultComplete(result)) {
+    const retry = await run(documentRepairHint());
+    const retryNormalized = normalizeTailorOutput(retry);
+    if (retryNormalized) {
+      result = retry;
+      normalized = retryNormalized;
+    }
+  }
+  if (!normalized) {
+    documentRepairPasses = 1;
+    result = await repairIncompleteTailorResult(
+      resumeText,
+      postingText,
+      result,
+      provider,
+      model,
+    );
+    normalized = normalizeTailorOutput(result);
+  }
+  if (!normalized) {
     throw new Error(
       "The tailoring step returned an incomplete document. Please try again.",
     );
   }
   // Drop no-op "rewrites" (before === after) — an unchanged pair adds no value
   // and makes the "what changed" / impact evidence look broken.
-  result.bullets = (result.bullets || []).filter(
-    (b) => b && b.before && b.after && b.before.trim() !== b.after.trim(),
-  );
-  return result;
+  const rawBullets = Array.isArray(result?.bullets) ? result.bullets : [];
+  const cleanBullets = normalized.bullets;
+  return {
+    ...normalized,
+    bullets: cleanBullets,
+    diagnostics: {
+      rawRewritePairs: rawBullets.length,
+      changedRewritePairs: cleanBullets.length,
+      noOpRewritePairs: Math.max(0, rawBullets.length - cleanBullets.length),
+      documentRepairPasses,
+    },
+  };
 }
 
 /** Run only the tailor step on a specific provider+model (used by /api/eval). */
@@ -949,6 +1171,56 @@ export async function tailorOnce(
   model: string,
 ): Promise<{ bullets: TailoredBullet[]; keywords: string[]; doc: TailoredDoc }> {
   return tailor(resumeText, postingText, provider, model);
+}
+
+async function repairRewriteEvidence(
+  resumeText: string,
+  postingText: string,
+  doc: TailoredDoc,
+  provider?: Provider,
+  model?: string,
+): Promise<TailoredBullet[]> {
+  try {
+    const data = await callTool<{ bullets: TailoredBullet[] }>(
+      "tailor",
+      GUARDRAILS,
+      `Original resume:\n${resumeText}\n\nJob posting:\n${postingText}\n\n` +
+        `Current tailored document experience bullets:\n${JSON.stringify(doc.experience)}\n\n` +
+        "Return 4-8 before/after rewrite evidence pairs for the current tailored document. " +
+        "Use only experience bullets. The after value MUST be copied exactly from one of the " +
+        "current tailored document bullets above. The before value MUST be the original resume " +
+        "bullet or closest source line that supports the same fact. Do not invent facts, metrics, " +
+        "tools, scope, or seniority. If fewer than 3 truthful pairs exist, return only the pairs " +
+        "you can prove. Plain text only.",
+      {
+        name: "repair_rewrite_evidence",
+        description: "Return before/after rewrite evidence pairs anchored to the current doc.",
+        input_schema: {
+          type: "object",
+          required: ["bullets"],
+          properties: {
+            bullets: {
+              type: "array",
+              items: {
+                type: "object",
+                required: ["before", "after"],
+                properties: {
+                  before: { type: "string" },
+                  after: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+      },
+      2200,
+      provider,
+      model,
+    );
+    return cleanRewritePairs(data.bullets);
+  } catch {
+    return [];
+  }
 }
 
 // ---------- 2b. faithfulness verification (repair pass over the tailored doc) ----------
@@ -1254,8 +1526,8 @@ const STAT_STOP = new Set([
 function extractStats(
   text: string,
   max = 4,
-): { value: string; label: string; accent: "blue" | "mint" }[] {
-  const out: { value: string; label: string; accent: "blue" | "mint" }[] = [];
+): { value: string; label: string }[] {
+  const out: { value: string; label: string }[] = [];
   const seen = new Set<string>();
   STAT_VALUE_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
@@ -1292,7 +1564,6 @@ function extractStats(
     out.push({
       value,
       label: label.join(" "),
-      accent: out.length % 2 === 0 ? "blue" : "mint",
     });
   }
   return out;
@@ -1317,11 +1588,16 @@ async function rankLines(
   postingText: string,
   provider?: Provider,
 ): Promise<{
-  lines: { label: string; score: number; status: "kept-top" | "kept" | "trimmed" | "cut" }[];
+  lines: {
+    label: string;
+    score: number;
+    status: "kept-top" | "kept" | "trimmed" | "cut";
+    reason: string;
+  }[];
   impactStats: { value: string; label: string }[];
 }> {
   const data = await callTool<{
-    lines: { label: string; score: number; status: string }[];
+    lines: { label: string; score: number; status: string; reason?: string }[];
     impactStats: { value: string; label: string }[];
   }>(
     "review",
@@ -1333,9 +1609,12 @@ async function rankLines(
       "summary, skills lists, certifications, awards, or contact lines, and never mark any of " +
       "those as 'cut'. Return the 6–8 " +
       "most informative bullets, ranked highest first: a short label (≤9 words) paraphrasing the " +
-      "REAL line (faithful — no new claims), the 0–100 score, and a status — 'kept-top' for " +
+      "REAL line (faithful — no new claims), the 0–100 score, a status — 'kept-top' for " +
       "the single strongest, 'kept' for clearly relevant, 'trimmed' for marginal, 'cut' for " +
-      "low-relevance lines to drop to hold two pages. Cut by RELEVANCE, not age. " +
+      "low-relevance lines to drop to hold two pages — and a 'reason' (≤12 words) stating WHY it " +
+      "earned that score: name the specific posting keyword/responsibility it hits, or what it " +
+      "lacks (e.g. 'Directly matches the posting's Kubernetes + scale focus' or 'No overlap with " +
+      "this role's backend requirements'). Cut by RELEVANCE, not age. " +
       "(2) Extract up to 4 of the candidate's most impressive QUANTIFIED achievements as " +
       "{value,label} pairs: value = the metric exactly as written (e.g. '$45.7M', '38%', " +
       "'250/sec', '25-person'); label = a 2–4 word noun phrase naming what it measured (e.g. " +
@@ -1352,7 +1631,7 @@ async function rankLines(
             type: "array",
             items: {
               type: "object",
-              required: ["label", "score", "status"],
+              required: ["label", "score", "status", "reason"],
               properties: {
                 label: { type: "string" },
                 score: { type: "integer" },
@@ -1360,6 +1639,7 @@ async function rankLines(
                   type: "string",
                   enum: ["kept-top", "kept", "trimmed", "cut"],
                 },
+                reason: { type: "string" },
               },
             },
           },
@@ -1388,6 +1668,7 @@ async function rankLines(
       status: (["kept-top", "kept", "trimmed", "cut"].includes(l.status)
         ? l.status
         : "kept") as "kept-top" | "kept" | "trimmed" | "cut",
+      reason: String(l.reason || "").trim(),
     }))
     // Drop rows with a non-numeric score (would render as a contradictory 0/Kept).
     .filter((l) => l.label && Number.isFinite(l.score))
@@ -1471,6 +1752,7 @@ export async function buildAgents(
       label: l.label,
       score: l.score,
       status: l.status,
+      reason: l.reason,
     }));
     modelStats = ranked.impactStats;
   } catch {
@@ -1480,13 +1762,10 @@ export async function buildAgents(
 
   // Max — impact rewriting (faithful model-extracted wins + a before/after pair).
   const pair = pickImpactPair(bullets);
-  const stats = (modelStats.length ? modelStats : extractStats(resumeText, 4)).map(
-    (s, i) => ({
-      value: s.value,
-      label: s.label,
-      accent: (i % 2 === 0 ? "blue" : "mint") as "blue" | "mint",
-    }),
-  );
+  const stats = (modelStats.length ? modelStats : extractStats(resumeText, 4)).map((s) => ({
+    value: s.value,
+    label: s.label,
+  }));
   // Roughly how many substantive lines carry a hard number (not just a year) —
   // a quick read on how quantified the resume is overall, shown as a meter.
   const quant = (() => {
@@ -1588,12 +1867,19 @@ function tokenSim(a: string, b: string): number {
  * once; pairs below the threshold are dropped (that bullet stays plain-editable).
  * Called after verifyDoc froze the doc shape, so coordinates are stable.
  */
+interface BulletDiffMatchResult {
+  diffs: BulletDiff[];
+  unmatchedRewritePairs: number;
+  bestMatchScores: number[];
+}
+
 function matchBulletDiffs(
   doc: TailoredDoc,
   pairs: TailoredBullet[],
-): BulletDiff[] {
+): BulletDiffMatchResult {
   const used = new Set<string>();
   const diffs: BulletDiff[] = [];
+  const bestMatchScores: number[] = [];
   for (const pair of pairs) {
     if (!pair?.after || !pair?.before) continue;
     let best: { entry: number; bullet: number; text: string } | null = null;
@@ -1609,13 +1895,127 @@ function matchBulletDiffs(
         }
       }),
     );
+    bestMatchScores.push(Number(bestScore.toFixed(3)));
     if (best && bestScore >= 0.4) {
       const b = best as { entry: number; bullet: number; text: string };
       used.add(`${b.entry}:${b.bullet}`);
       diffs.push({ entry: b.entry, bullet: b.bullet, before: pair.before, after: b.text });
     }
   }
-  return diffs.sort((a, b) => a.entry - b.entry || a.bullet - b.bullet);
+  diffs.sort((a, b) => a.entry - b.entry || a.bullet - b.bullet);
+  return {
+    diffs,
+    unmatchedRewritePairs: Math.max(0, bestMatchScores.length - diffs.length),
+    bestMatchScores,
+  };
+}
+
+interface TailorAttemptResult {
+  tailored: TailorStepResult;
+  verified: { doc: TailoredDoc; report: VerificationReport };
+  bulletDiffs: BulletDiff[];
+  diagnostics: TailorDiagnostics;
+}
+
+function tailorGateFailureReason(diagnostics: TailorDiagnostics): string | undefined {
+  if (!diagnostics.finalDifferentFromSource) {
+    return "final document did not materially differ from the source resume";
+  }
+  if (diagnostics.postVerifyRewritePairs < MIN_EDITOR_REWRITE_DIFFS) {
+    return `only ${diagnostics.postVerifyRewritePairs} rewrite pairs survived verification`;
+  }
+  if (diagnostics.matchedBulletDiffs < MIN_EDITOR_REWRITE_DIFFS) {
+    return `only ${diagnostics.matchedBulletDiffs} rewrite pairs anchored to final document bullets`;
+  }
+  return undefined;
+}
+
+function tailorRetryHint(previous?: TailorDiagnostics): string {
+  const reason = previous?.failureReason || "the prior result did not produce enough editor-safe rewrite evidence";
+  return (
+    `The previous attempt failed because ${reason}. ` +
+    `This attempt must include at least ${MIN_EDITOR_REWRITE_DIFFS} changed before/after ` +
+    "experience bullet pairs. Each after value must match a bullet you place in doc.experience. " +
+    "Avoid no-op pairs, summary lines, skill lines, education lines, and cover-letter text."
+  );
+}
+
+async function finalizeTailorAttempt(
+  resumeText: string,
+  postingText: string,
+  tailored: TailorStepResult,
+  attempt: number,
+  provider?: Provider,
+  repairProvider?: Provider,
+  repairModel?: string,
+): Promise<TailorAttemptResult> {
+  const preVerifyBullets = tailored.doc.experience.flatMap((entry) => entry.bullets);
+  const verified = await verifyDoc(resumeText, tailored.doc, provider);
+  tailored.doc = verified.doc;
+
+  let rewritePairs = tailored.bullets;
+  let walkedBackPairs = 0;
+  if (verified.report.corrections.length) {
+    const postVerify = new Set(
+      verified.doc.experience.flatMap((entry) => entry.bullets).map((bullet) => bullet.trim()),
+    );
+    const walkedBack = preVerifyBullets
+      .map((bullet) => bullet.trim())
+      .filter((bullet) => bullet && !postVerify.has(bullet));
+    if (walkedBack.length) {
+      const walkedBackText = walkedBack.join("\n");
+      const nextPairs = rewritePairs.filter((pair) => !resumeContains(walkedBackText, pair.after));
+      walkedBackPairs = rewritePairs.length - nextPairs.length;
+      rewritePairs = nextPairs;
+    }
+  }
+
+  let repairPasses = 0;
+  let match = matchBulletDiffs(verified.doc, rewritePairs);
+  if (match.diffs.length < MIN_EDITOR_REWRITE_DIFFS) {
+    repairPasses = 1;
+    const repairedPairs = await repairRewriteEvidence(
+      resumeText,
+      postingText,
+      verified.doc,
+      repairProvider,
+      repairModel,
+    );
+    const repairedMatch = matchBulletDiffs(verified.doc, repairedPairs);
+    if (repairedMatch.diffs.length > match.diffs.length) {
+      rewritePairs = repairedPairs;
+      match = repairedMatch;
+    }
+  }
+
+  tailored.bullets = rewritePairs;
+  const diagnostics: TailorDiagnostics = {
+    qualityGate: "failed",
+    attempts: attempt,
+    repairPasses,
+    rawRewritePairs: tailored.diagnostics.rawRewritePairs,
+    changedRewritePairs: tailored.diagnostics.changedRewritePairs,
+    noOpRewritePairs: tailored.diagnostics.noOpRewritePairs,
+    documentRepairPasses: tailored.diagnostics.documentRepairPasses,
+    postVerifyRewritePairs: rewritePairs.length,
+    verifyCorrections: verified.report.corrections.length,
+    walkedBackPairs,
+    finalDocBulletCount: docBulletCount(verified.doc),
+    matchedBulletDiffs: match.diffs.length,
+    unmatchedRewritePairs: match.unmatchedRewritePairs,
+    bestMatchScores: match.bestMatchScores,
+    finalDifferentFromSource: docMateriallyDiffersFromSource(resumeText, verified.doc),
+  };
+  const failureReason = tailorGateFailureReason(diagnostics);
+  diagnostics.qualityGate = failureReason ? "failed" : "passed";
+  if (failureReason) diagnostics.failureReason = failureReason;
+
+  return {
+    tailored,
+    verified,
+    bulletDiffs: match.diffs,
+    diagnostics,
+  };
 }
 
 export async function runFull(
@@ -1636,12 +2036,54 @@ export async function runFull(
       : undefined;
 
   const { company, role, fit } = await scoreFit(resumeText, postingText, provider);
-  const tailored = await tailor(
-    resumeText,
-    postingText,
-    tailorProvider,
-    tailorModel,
-  );
+  let prepared: TailorAttemptResult | null = null;
+  for (let attempt = 1; attempt <= MAX_TAILOR_QUALITY_ATTEMPTS; attempt++) {
+    const tailoredAttempt = await tailor(
+      resumeText,
+      postingText,
+      tailorProvider,
+      tailorModel,
+      attempt > 1 ? tailorRetryHint(prepared?.diagnostics) : undefined,
+    );
+    prepared = await finalizeTailorAttempt(
+      resumeText,
+      postingText,
+      tailoredAttempt,
+      attempt,
+      provider,
+      tailorProvider,
+      tailorModel,
+    );
+    if (prepared.diagnostics.qualityGate === "passed") break;
+    // A short resume (few experience bullets) legitimately can't reach the
+    // ideal rewrite-count target — retrying would only pressure the model to
+    // manufacture rewrites. Once the draft is genuinely tailored and has at
+    // least one tracked change, stop and ship it rather than burning a retry.
+    if (
+      prepared.diagnostics.finalDifferentFromSource &&
+      prepared.diagnostics.matchedBulletDiffs >= 1 &&
+      prepared.diagnostics.finalDocBulletCount <= MIN_EDITOR_REWRITE_DIFFS + 1
+    ) {
+      break;
+    }
+  }
+  // The rewrite-count target is a quality SIGNAL, not a hard wall: ship the draft
+  // as long as it genuinely differs from the source AND carries at least one
+  // reviewable before/after change. Only refuse when tailoring did effectively
+  // nothing (draft ≈ source, or no tracked rewrites at all) — so a short resume
+  // tailors successfully instead of dead-ending the paid run.
+  if (
+    !prepared ||
+    (prepared.diagnostics.qualityGate !== "passed" &&
+      (!prepared.diagnostics.finalDifferentFromSource ||
+        prepared.diagnostics.matchedBulletDiffs < 1))
+  ) {
+    throw new Error(
+      `The tailoring step did not produce enough verifiable bullet rewrites (${prepared?.diagnostics.failureReason ?? "quality gate failed"}). Please try again.`,
+    );
+  }
+
+  const { tailored, verified, bulletDiffs, diagnostics } = prepared;
   // Faithfulness pass: re-read every shipped line against the source resume and
   // repair misattributed / unsupported / inflated claims BEFORE review and
   // delivery. Runs on the base provider (like score/review) to keep the premium
@@ -1650,27 +2092,10 @@ export async function runFull(
   // rewrote. The showcase "after" strings are independent tailor output (not
   // verbatim doc substrings), so filtering them against whole-doc membership
   // would wrongly blank the entire "what changed" panel on any corrected run.
-  const preVerifyBullets = tailored.doc.experience.flatMap((e) => e.bullets);
-  const verified = await verifyDoc(resumeText, tailored.doc, provider);
-  tailored.doc = verified.doc;
   // If the pass corrected something, drop only the before/after samples whose
   // "after" matches a draft line the pass actually walked back — so we never
   // advertise a rewrite we reversed, while valid samples survive. (No-op in the
   // common, clean case.)
-  if (verified.report.corrections.length) {
-    const postVerify = new Set(
-      verified.doc.experience.flatMap((e) => e.bullets).map((b) => b.trim()),
-    );
-    const walkedBack = preVerifyBullets
-      .map((b) => b.trim())
-      .filter((b) => b && !postVerify.has(b));
-    if (walkedBack.length) {
-      const walkedBackText = walkedBack.join("\n");
-      tailored.bullets = tailored.bullets.filter(
-        (b) => !resumeContains(walkedBackText, b.after),
-      );
-    }
-  }
   // The dashboard's agent-notes review and the three personified audit cards are
   // independent — run them together to keep the full-run latency down.
   const [agentNotes, agents] = await Promise.all([
@@ -1679,7 +2104,6 @@ export async function runFull(
   ]);
   // Anchor before/after pairs to doc coordinates for the editor's diff rows, and
   // snapshot the AI draft so the editor can offer "reset to AI version".
-  const bulletDiffs = matchBulletDiffs(tailored.doc, tailored.bullets);
   const originalDoc = JSON.parse(JSON.stringify(tailored.doc)) as TailoredDoc;
 
   return {
@@ -1694,5 +2118,6 @@ export async function runFull(
     originalDoc,
     bulletDiffs,
     verification: verified.report,
+    tailorDiagnostics: diagnostics,
   };
 }

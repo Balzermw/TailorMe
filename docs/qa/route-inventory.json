@@ -91,6 +91,15 @@
     "notes": "Route handler; verify with API-level tests or browser flow."
   },
   {
+    "routePath": "/api/dev/ai-connectivity",
+    "sourceFile": "src/app/api/dev/ai-connectivity/route.ts",
+    "routeType": "API route",
+    "dynamicParams": [],
+    "authLikelyRequired": "unknown",
+    "smokeTestStatus": "manual",
+    "notes": "Route handler; verify with API-level tests or browser flow."
+  },
+  {
     "routePath": "/api/eval",
     "sourceFile": "src/app/api/eval/route.ts",
     "routeType": "API route",

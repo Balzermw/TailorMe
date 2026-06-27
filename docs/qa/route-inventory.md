@@ -13,6 +13,7 @@ Generated from the local Next.js file tree. Dynamic and API routes are documente
 | /api/apply | API route | src/app/api/apply/route.ts | - | unknown | manual | Route handler; verify with API-level tests or browser flow. |
 | /api/checkout | API route | src/app/api/checkout/route.ts | - | unknown | manual | Route handler; verify with API-level tests or browser flow. |
 | /api/compare | API route | src/app/api/compare/route.ts | - | unknown | manual | Route handler; verify with API-level tests or browser flow. |
+| /api/dev/ai-connectivity | API route | src/app/api/dev/ai-connectivity/route.ts | - | unknown | manual | Route handler; verify with API-level tests or browser flow. |
 | /api/eval | API route | src/app/api/eval/route.ts | - | unknown | manual | Route handler; verify with API-level tests or browser flow. |
 | /api/events | API route | src/app/api/events/route.ts | - | unknown | manual | Route handler; verify with API-level tests or browser flow. |
 | /api/fetch-posting | API route | src/app/api/fetch-posting/route.ts | - | unknown | manual | Route handler; verify with API-level tests or browser flow. |

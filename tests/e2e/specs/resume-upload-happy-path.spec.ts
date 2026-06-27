@@ -1,6 +1,10 @@
 import { test, expect } from "../helpers/test";
 import { ensureSyntheticResumeFixtures } from "../helpers/fixtures";
 import { mockAgentReview, mockResumeStructure, TEST_JOB_POSTING, uploadResumeFile } from "../helpers/app";
+import {
+  E2E_REVISION_ACCEPTED_TEXT,
+  E2E_REVISION_APP_ID,
+} from "@/lib/e2e/revision-fixture";
 
 test("@smoke @critical upload resume to feedback, agent review, editor, and export handoff", async ({
   page,
@@ -8,6 +12,16 @@ test("@smoke @critical upload resume to feedback, agent review, editor, and expo
   const [fixture] = await ensureSyntheticResumeFixtures();
   await mockAgentReview(page);
   await mockResumeStructure(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "tm_session_v1",
+      JSON.stringify({
+        email: "demo.fresh@example.com",
+        name: "Demo Fresh",
+        at: Date.now(),
+      }),
+    );
+  });
 
   await page.goto("/audit?start=upload");
   await expect(page.getByRole("button", { name: /Upload your resume/i })).toBeVisible();
@@ -31,9 +45,13 @@ test("@smoke @critical upload resume to feedback, agent review, editor, and expo
   await expect(page.getByText(/^Remy$/).first()).toBeVisible();
   await page.getByRole("button", { name: /See your summary/i }).click();
 
-  await expect(page.getByRole("button", { name: /Open in editor/i })).toBeVisible();
-  await page.getByRole("button", { name: /Open in editor/i }).click();
-  await expect(page).toHaveURL(/\/resume\/edit/);
-  await expect(page.getByText(/Jordan Rivera/i)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("button", { name: /Build tailored draft/i })).toBeVisible();
+  await page.getByRole("button", { name: /Build tailored draft/i }).click();
+  await expect(page).toHaveURL(new RegExp(`/applications/${E2E_REVISION_APP_ID}/edit`), {
+    timeout: 15_000,
+  });
+  await expect(page.getByText(/Avery Stone/i)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId("revision-reviewed-count")).toContainText("0/3 changes reviewed");
+  await expect(page.getByText(E2E_REVISION_ACCEPTED_TEXT)).toBeVisible();
   await expect(page.getByRole("link", { name: /PDF/i })).toBeVisible();
 });

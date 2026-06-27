@@ -306,7 +306,7 @@
       "implementation_priority": "v1_core",
       "complexity": "simple",
       "feedback_template": "Your summary should immediately show relevance and value for this specific role.",
-      "rewrite_instruction": "Write 3-5 lines naming the role, key strengths/impact, and bridge from past.",
+      "rewrite_instruction": "Rewrite as a tight 1-2 sentence paragraph naming the role, key strengths, and strongest impact. Keep it short, not bulleted.",
       "source_reference": "Merit America, Coursera, Teal, Approach Talent",
       "confidence": "high",
       "estimated_impact": "high",
@@ -1863,7 +1863,7 @@
       "supporting_agents": [
         "strategist"
       ],
-      "principle": "Use a Qualifications Summary / Key Features / Professional Profile (3-5 lines) instead of a traditional 'Objective' statement. Focus on what you bring (skills, value, brand) for the target rather than what you seek.",
+      "principle": "Use a concise Qualifications Summary / Professional Profile paragraph instead of a traditional 'Objective' statement. Focus on what you bring (skills, value, brand) for the target rather than what you seek.",
       "why_it_matters": "Objectives are outdated and self-focused. Modern summaries act as a branded headline that immediately shows fit and hooks the scanner. Resume Magic contrasts traditional Objective vs. Qualifications Summary.",
       "applies_when": [
         "most resumes except pure entry or very specific cases"
@@ -1873,7 +1873,7 @@
       "implementation_priority": "v1_core",
       "complexity": "simple",
       "feedback_template": "Replace objective with a summary that sells your qualifications and personal brand for this role.",
-      "rewrite_instruction": "3-5 lines: Role + years + key strengths + 1-2 quantified proof points + unique value/brand.",
+      "rewrite_instruction": "Rewrite as a tight 1-2 sentence paragraph: role + years, key strengths, 1 quantified proof point if supported, and unique value/brand.",
       "source_reference": "Resume Magic (Objective or Focus Statement vs Key Features/Qualifications Summary), multiple 2026 guides",
       "confidence": "high",
       "estimated_impact": "medium",
@@ -1969,7 +1969,7 @@
       "supporting_agents": [
         "strategist"
       ],
-      "principle": "Replace traditional 'Objective' with a Qualifications Summary or Professional Profile (3-5 lines) that immediately communicates your personal brand, key qualifications, and value for the target role.",
+      "principle": "Replace traditional 'Objective' with a concise Qualifications Summary or Professional Profile paragraph that immediately communicates your personal brand, key qualifications, and value for the target role.",
       "why_it_matters": "Objectives are self-focused and outdated. Modern summaries hook scanners and establish brand instantly (strong in Resume Magic and corroborated across sources).",
       "applies_when": [
         "most resumes"
@@ -1979,7 +1979,7 @@
       "implementation_priority": "v1_core",
       "complexity": "simple",
       "feedback_template": "Convert objective to a branded qualifications summary highlighting what you deliver.",
-      "rewrite_instruction": "Write 3-5 lines: [Role/Level] + [Signature strengths + brand] + [1-2 quantified proofs] + [fit for target].",
+      "rewrite_instruction": "Rewrite as a tight 1-2 sentence paragraph: [Role/Level] + [signature strengths + brand] + [1 quantified proof if supported] + [fit for target].",
       "source_reference": "Resume Magic (Qualifications Summary vs Objective), cross-referenced in multiple books",
       "confidence": "high",
       "estimated_impact": "medium",

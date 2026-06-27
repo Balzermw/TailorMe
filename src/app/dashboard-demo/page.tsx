@@ -3,9 +3,8 @@ import Nav from "@/components/landing/nav";
 import Footer from "@/components/landing/footer";
 import DemoBody from "./demo-body";
 
-// TEMPORARY preview route — renders the demo dashboard (DashboardClient) with
-// sample applications, bypassing Supabase auth, so the redesigned dashboard can
-// be tested with data. Safe to delete: remove this folder.
+// TEMPORARY preview route — renders the local dashboard path without Supabase.
+// It intentionally does not seed sample applications.
 
 export const metadata: Metadata = {
   title: "Dashboard demo · TailorMe",

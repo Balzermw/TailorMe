@@ -99,6 +99,18 @@ function detectGutter(items: PdfTextItem[], pageWidth: number): number | null {
 }
 
 /** Order one column's runs into lines (top→bottom), runs left→right with spacing. */
+/**
+ * Collapse the letter-spacing inside a single PDF run. A run whose text is
+ * entirely single letters separated by single spaces ("M O N I R", "S O F T W A R E")
+ * is letter-spacing, not real words — word breaks are encoded between runs, never
+ * inside one — so removing the inner spaces is safe.
+ */
+function despaceRun(str: string): string {
+  return /^[A-Za-z](?: [A-Za-z])+$/.test(str.trim())
+    ? str.replace(/ /g, "")
+    : str;
+}
+
 function columnToText(items: PdfTextItem[], yTol: number): string {
   if (items.length === 0) return "";
   const sorted = [...items].sort((a, b) => b.y - a.y || a.x - b.x);
@@ -127,7 +139,11 @@ function columnToText(items: PdfTextItem[], yTol: number): string {
         if (prevRight != null && it.x - prevRight > Math.max(1.5, it.h * 0.25)) {
           s += " ";
         }
-        s += it.str;
+        // Letter-spaced headers (a styled name, "P R O F E S S I O N A L") arrive
+        // as runs whose own text is single letters joined by spaces ("M O N I R");
+        // word breaks live BETWEEN runs (a standalone space run or an x-gap), so
+        // collapsing the spacing inside one run never merges two words.
+        s += despaceRun(it.str);
         prevRight = it.x + it.w;
       }
       return s.replace(/[ \t]+/g, " ").trim();
@@ -139,6 +155,34 @@ function columnToText(items: PdfTextItem[], yTol: number): string {
 /** True when extraction came back essentially empty — a scanned/image-only PDF. */
 export function looksScanned(text: string): boolean {
   return text.replace(/\s+/g, "").length < 100;
+}
+
+/**
+ * Collapse per-character letter-spacing artifacts ("M D M O N I R",
+ * "P R O F E S S I O N A L") back into words. Some resume templates letter-space
+ * names and section headers, which PDF/Word extraction surfaces as each glyph
+ * separated by a space. We only touch lines clearly dominated by single-letter
+ * tokens (never normal prose), and keep word boundaries that survive as wider
+ * gaps (2+ spaces, preserved by docx body extraction) — so a spaced
+ * "J E S S I C A   H E D S T R O M" becomes "JESSICA HEDSTROM".
+ */
+export function collapseLetterSpacing(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => {
+      const words = line.trim().split(/\s+/).filter(Boolean);
+      const singles = words.filter((w) => /^[A-Za-z]$/.test(w)).length;
+      // Require a real run of spaced single letters so we never collapse a lone
+      // "A"/"I" or an "A B" pair in ordinary text.
+      if (singles < 4 || singles < words.length * 0.7) return line;
+      // Split on the wider gaps (word breaks), de-space each chunk's letters,
+      // then rejoin: "J E S S I C A   H E D S T R O M" -> "JESSICA HEDSTROM".
+      return line
+        .split(/ {2,}/)
+        .map((chunk) => chunk.replace(/(?<=\b[A-Za-z]) (?=[A-Za-z]\b)/g, ""))
+        .join(" ");
+    })
+    .join("\n");
 }
 
 /**
@@ -195,7 +239,7 @@ export async function extractText(
 ): Promise<string> {
   const lower = filename.toLowerCase();
   if (lower.endsWith(".pdf")) {
-    return extractPdfTextOrdered(bytes);
+    return collapseLetterSpacing(await extractPdfTextOrdered(bytes));
   }
   if (lower.endsWith(".docx")) {
     const buf = Buffer.from(bytes);
@@ -230,16 +274,16 @@ export async function extractText(
     } catch {
       /* zip read unavailable → fall back to body-only (no regression) */
     }
-    return extra ? `${extra}\n\n${body}` : body;
+    return collapseLetterSpacing(extra ? `${extra}\n\n${body}` : body);
   }
   if (lower.endsWith(".doc")) {
     // Legacy Word (OLE/.doc) — mammoth only reads .docx, so use word-extractor.
     const WordExtractor = (await import("word-extractor")).default;
     const doc = await new WordExtractor().extract(Buffer.from(bytes));
-    return doc.getBody();
+    return collapseLetterSpacing(doc.getBody());
   }
   // .txt / .md / unknown → decode as UTF-8
-  return new TextDecoder().decode(bytes);
+  return collapseLetterSpacing(new TextDecoder().decode(bytes));
 }
 
 /** Heuristic stats from resume text — real, derived from the actual content. */

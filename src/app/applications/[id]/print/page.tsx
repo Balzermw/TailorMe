@@ -4,8 +4,11 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import type { ApplyResult, TailoredDoc } from "@/lib/types";
 import { SAMPLE_DOC } from "@/lib/apply/sample";
 import { clampToTwoPages } from "@/lib/apply/latex";
+import { E2E_REVISION_APP_ID } from "@/lib/e2e/revision-fixture";
 import { ROUTES } from "@/components/landing/data";
 import PrintDoc from "./print-doc";
+import E2ERevisionPrint from "./e2e-revision-print";
+import LocalApplicationPrintLoader from "./local-application-print-loader";
 import "./print.css";
 
 export const metadata: Metadata = {
@@ -19,11 +22,26 @@ export default async function PrintPage({
 }) {
   const { id } = await params;
 
+  if (process.env.E2E_TEST_MODE === "1" && id === E2E_REVISION_APP_ID) {
+    return (
+      <div className="tm">
+        <E2ERevisionPrint id={id} />
+      </div>
+    );
+  }
+
   let doc: TailoredDoc | null = null;
   if (id === "sample") {
     doc = SAMPLE_DOC; // previewable in demo mode (labeled composite)
   } else {
     const sb = await getServerSupabase();
+    if (!sb) {
+      return (
+        <div className="tm">
+          <LocalApplicationPrintLoader id={id} />
+        </div>
+      );
+    }
     const app = sb
       ? (
           await sb

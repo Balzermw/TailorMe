@@ -10,9 +10,11 @@
 
 import type { ProofPoint } from "@/lib/types";
 import type {
+  ResumeRuleCategory,
   ResumeAdviceRule,
   ResumeRuleFinding,
   ResumeRuleSeverity,
+  ResumeTargetSection,
 } from "./resumeAdviceRule.types";
 import { makeFinding } from "./makeFinding";
 import { makeFindingId, makeDedupeFingerprint } from "./stableId";
@@ -23,9 +25,12 @@ import { makeFindingId, makeDedupeFingerprint } from "./stableId";
 // "machine-readable") — bare "parse"/"format" over-matched and mis-routed
 // header findings here.
 const ISSUE_PATTERNS: Array<{ issueId: string; re: RegExp }> = [
-  { issueId: "clear_full_name_in_header", re: /\b(full |candidate )?name\b/i },
+  {
+    issueId: "clear_full_name_in_header",
+    re: /\b(candidate|legal|full)\s+name\b|\bname\s+(missing|unclear|not clear|not stated)\b|\bheader\b.*\bname\b|\bname\b.*\bheader\b/i,
+  },
   { issueId: "explicit_current_role_title", re: /role title|job title|current title|target role|headline|titles?\b/i },
-  { issueId: "has_dedicated_skills_section", re: /skills?\s+(section|are|not|list)|dedicated skills|skills (buried|missing)|no skills/i },
+  { issueId: "has_dedicated_skills_section", re: /skills?\s+(section|are\s+(not|missing)|missing|buried)|dedicated skills|no skills/i },
   { issueId: "include_start_end_dates_on_all_roles", re: /\bdates?\b|timeline|employment period|tenure/i },
   { issueId: "avoid_first_person_pronouns", re: /first.?person|pronoun/i },
   { issueId: "quantify_impact_metrics", re: /metric|quantif|number|measurab|impact|outcome|\bresults?\b|\bpercent\b|%/i },
@@ -33,7 +38,10 @@ const ISSUE_PATTERNS: Array<{ issueId: string; re: RegExp }> = [
   { issueId: "qualifications_summary_over_traditional_objective", re: /summary|objective|profile|positioning|branding/i },
   { issueId: "ats_clean_single_column", re: /applicant tracking|\bats\b|single.?column|multi.?column|machine.?read/i },
   { issueId: "kill_buzzwords_proof", re: /buzzword|cliché|cliche|generic phras|fluff|jargon/i },
-  { issueId: "bullet_length_1_to_2_lines", re: /too long|wordy|verbose|bullet length/i },
+  {
+    issueId: "bullet_length_1_to_2_lines",
+    re: /\bbullets?\b.{0,48}\b(too long|wordy|verbose|length|scan)\b|\b(too long|wordy|verbose)\b.{0,48}\bbullets?\b|\bbullet length\b/i,
+  },
 ];
 
 function severityToConfidence(s: ResumeRuleSeverity | ProofPoint["severity"]): number {
@@ -50,15 +58,46 @@ function slug(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
 }
 
+function inferLegacySection(pp: ProofPoint): "header" | "experience" | "skills" | "summary" | "projects" {
+  const text = `${pp.title} ${pp.summary} ${pp.why} ${pp.fix}`.toLowerCase();
+  if (/\bskills?\b|tool|technolog|list entry|misspell/.test(text)) return "skills";
+  if (/\bsummary\b|objective|profile/.test(text)) return "summary";
+  if (/\bproject|portfolio/.test(text)) return "projects";
+  if (/\bheader\b|\bheadline\b|\bcontact\b|\blinkedin\b|\bemail\b|\bphone\b|\bname\b/.test(text)) return "header";
+  return "experience";
+}
+
+function legacyCategory(section: ResumeTargetSection): ResumeRuleCategory {
+  if (section === "skills" || section === "summary" || section === "projects" || section === "header") {
+    return section;
+  }
+  return "bullet_strength";
+}
+
+function legacyFixActionLabel(section: ResumeTargetSection): string {
+  switch (section) {
+    case "skills":
+      return "Edit Skills";
+    case "summary":
+      return "Edit Summary";
+    case "projects":
+      return "Edit Projects";
+    case "header":
+      return "Edit Header";
+    default:
+      return "Rewrite bullet";
+  }
+}
+
 /** Build a standalone finding for a legacy proof point that matched no rule. */
 function unmatchedFinding(pp: ProofPoint): ResumeRuleFinding {
   const canonicalIssueId = `legacy_${slug(pp.title) || "finding"}`;
-  const section = "experience";
+  const section = inferLegacySection(pp);
   return {
     findingId: makeFindingId({ ruleId: canonicalIssueId, canonicalIssueId, evidence: pp.quote, section }),
     ruleId: canonicalIssueId,
     canonicalIssueId,
-    category: "bullet_strength",
+    category: legacyCategory(section),
     agent: "editor",
     severity: pp.severity,
     confidence: severityToConfidence(pp.severity),
@@ -69,8 +108,8 @@ function unmatchedFinding(pp: ProofPoint): ResumeRuleFinding {
     message: pp.summary,
     whyItMatters: pp.why,
     suggestedFix: pp.fix,
-    targetSection: "experience",
-    fixActionLabel: "Rewrite bullet",
+    targetSection: section,
+    fixActionLabel: legacyFixActionLabel(section),
     uiSeverityLabel: pp.severity === "high" ? "High" : pp.severity === "medium" ? "Medium" : "Low",
     dedupeFingerprint: makeDedupeFingerprint({ canonicalIssueId, section }),
     sourceRuleIds: [canonicalIssueId],

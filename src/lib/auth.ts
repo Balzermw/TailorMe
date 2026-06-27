@@ -114,8 +114,8 @@ export async function signInOAuth(
   provider: OAuthProvider,
 ): Promise<{ error: string | null }> {
   if (!supabaseConfigured) {
-    // Demo: simulate a successful OAuth round-trip with the sample persona.
-    demo.signIn("alex.m@email.com", "Alex Mercer");
+    // Local mode: simulate a successful OAuth round-trip without sample persona data.
+    demo.signIn("local.user@example.com", "Local User");
     return { error: null };
   }
   const sb = getBrowserSupabase()!;

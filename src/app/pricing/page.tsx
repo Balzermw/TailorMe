@@ -240,9 +240,7 @@ export default function PricingPage() {
         <section className="tm-sec tmP-head">
           <h1 className="tm-h1">Tailor every important application.</h1>
           <p className="tm-body">
-            No subscription. Buy application credits once and use them across
-            roles. Add a human review when one application needs extra eyes, or
-            use coaching for hands-on help.
+            Buy credits once. Use them across roles. Add human review when it matters.
           </p>
         </section>
 

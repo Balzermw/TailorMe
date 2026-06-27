@@ -1,5 +1,6 @@
 import type { TailoredDoc } from "@/lib/types";
 import { DEFAULT_TEMPLATE, isTemplateId } from "./templates";
+import { cleanResumeDate } from "./dates";
 
 // Real moderncv (banking) LaTeX generation for the tailored documents, plus a
 // pluggable compile step. Generating the .tex is pure and always available;
@@ -134,7 +135,7 @@ export function clampToTwoPages(doc: TailoredDoc): TailoredDoc {
       ...e,
       role: clampLen(e.role ?? "", TWO_PAGE.maxRoleChars),
       company: clampLen(e.company ?? "", TWO_PAGE.maxCompanyChars),
-      dates: clampLen(e.dates ?? "", TWO_PAGE.maxDatesChars),
+      dates: clampLen(cleanResumeDate(e.dates), TWO_PAGE.maxDatesChars),
       bullets: (e.bullets ?? [])
         .slice(0, TWO_PAGE.bulletsByIndex[i] ?? TWO_PAGE.minBullets)
         .map((b) => clampLen(b, TWO_PAGE.maxBulletChars)),
@@ -155,7 +156,7 @@ export function clampToTwoPages(doc: TailoredDoc): TailoredDoc {
       .map((ed) => ({
         degree: clampLen(ed.degree ?? "", TWO_PAGE.maxDegreeChars),
         school: clampLen(ed.school ?? "", TWO_PAGE.maxSchoolChars),
-        dates: clampLen(ed.dates ?? "", TWO_PAGE.maxDatesChars),
+        dates: clampLen(cleanResumeDate(ed.dates), TWO_PAGE.maxDatesChars),
       })),
     projects: (doc.projects ?? [])
       .slice(0, TWO_PAGE.maxProjects)
@@ -168,7 +169,7 @@ export function clampToTwoPages(doc: TailoredDoc): TailoredDoc {
       .map((c) => ({
         name: clampLen(c.name ?? "", TWO_PAGE.maxCertNameChars),
         issuer: clampLen(c.issuer ?? "", TWO_PAGE.maxCertIssuerChars),
-        date: clampLen(c.date ?? "", TWO_PAGE.maxDatesChars),
+        date: clampLen(cleanResumeDate(c.date), TWO_PAGE.maxDatesChars),
       })),
   };
 }
@@ -177,9 +178,97 @@ export function clampToTwoPages(doc: TailoredDoc): TailoredDoc {
 export function renderResumeTex(input: TailoredDoc): string {
   const doc = clampToTwoPages(input);
   const id = isTemplateId(input.template) ? input.template : DEFAULT_TEMPLATE;
+  if (id === "jake") return renderJake(doc);
   if (id === "classic") return renderClassic(doc);
   if (id === "modern") return renderModern(doc);
   return renderModerncv(doc);
+}
+
+/** Jake's-résumé style (the default) — single column, centered header, small-caps
+ *  ruled section titles, and two-line entries: a bold role with right-aligned
+ *  dates, then the company in italics. A faithful take on the popular MIT-licensed
+ *  template, rendered in stock article LaTeX so the TeXLive service compiles it. */
+function renderJake(doc: TailoredDoc): string {
+  const head: string[] = [
+    "\\documentclass[letterpaper,11pt]{article}",
+    "\\usepackage[margin=0.5in]{geometry}",
+    "\\usepackage{enumitem}",
+    "\\usepackage{titlesec}",
+    "\\usepackage[hidelinks]{hyperref}",
+    "\\titleformat{\\section}{\\large\\scshape\\raggedright}{}{0em}{}[\\vspace{-3pt}\\titlerule\\vspace{2pt}]",
+    "\\titlespacing*{\\section}{0pt}{9pt}{4pt}",
+    "\\setlist[itemize]{leftmargin=0.18in,itemsep=1pt,topsep=2pt,parsep=0pt,label=\\textbullet}",
+    "\\setlength{\\parindent}{0pt}",
+    "\\pagestyle{empty}",
+    "\\begin{document}",
+    "\\begin{center}",
+    `{\\Huge\\bfseries ${escapeLatex(doc.name)}}\\\\[4pt]`,
+  ];
+  if (doc.headline) head.push(`{\\itshape ${escapeLatex(doc.headline)}}\\\\[3pt]`);
+  if (doc.contact) head.push(`{\\small ${contactInline(doc.contact)}}`);
+  head.push("\\end{center}", "\\vspace{2pt}");
+
+  const twoLine = (title: string, right: string, sub: string): string[] => {
+    const top = right
+      ? `\\noindent\\textbf{${escapeLatex(title)}}\\hfill ${escapeLatex(right)}\\\\`
+      : `\\noindent\\textbf{${escapeLatex(title)}}\\\\`;
+    return [top, `\\textit{${escapeLatex(sub)}}\\par`];
+  };
+  const bulletList = (bullets: string[]): string[] =>
+    bullets.length
+      ? ["\\begin{itemize}", ...bullets.map((b) => `  \\item ${escapeLatex(b)}`), "\\end{itemize}"]
+      : ["\\vspace{3pt}"];
+
+  const L: string[] = [...head];
+  if (doc.summary) L.push("\\section{Summary}", escapeLatex(doc.summary));
+
+  if (doc.experience.length) {
+    L.push("\\section{Experience}");
+    for (const e of doc.experience) {
+      L.push(...twoLine(e.role, e.dates, e.company), ...bulletList(e.bullets));
+    }
+  }
+
+  if (doc.education && doc.education.length) {
+    L.push("\\section{Education}");
+    for (const ed of doc.education) L.push(...twoLine(ed.degree, ed.dates, ed.school));
+  }
+
+  if (doc.projects && doc.projects.length) {
+    L.push("\\section{Projects}");
+    for (const p of doc.projects) {
+      L.push(`\\noindent\\textbf{${escapeLatex(p.name)}}\\par`);
+      L.push(
+        ...bulletList(
+          (p.description || "").split("\n").map((s) => s.trim()).filter(Boolean),
+        ),
+      );
+    }
+  }
+
+  if (doc.certifications && doc.certifications.length) {
+    L.push("\\section{Certifications}");
+    for (const c of doc.certifications) {
+      const tail = [c.issuer, c.date].filter(Boolean).map(escapeLatex).join(", ");
+      L.push(`\\noindent\\textbf{${escapeLatex(c.name)}}${tail ? `\\hfill ${tail}` : ""}\\par`);
+    }
+  }
+
+  if (doc.skillGroups?.length) {
+    L.push("\\section{Skills}");
+    for (const g of doc.skillGroups) {
+      L.push(
+        `\\noindent\\textbf{${escapeLatex(g.label)}:} ${normalizeSkills(g.skills)
+          .map(escapeLatex)
+          .join(", ")}\\par`,
+      );
+    }
+  } else if (doc.skills.length) {
+    L.push("\\section{Skills}", normalizeSkills(doc.skills).map(escapeLatex).join(", "));
+  }
+
+  L.push("\\end{document}");
+  return L.join("\n");
 }
 
 /** moderncv-banking — the original colored single-column style. */

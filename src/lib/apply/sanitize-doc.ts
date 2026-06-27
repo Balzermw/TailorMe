@@ -1,8 +1,113 @@
 import type { TailoredDoc } from "@/lib/types";
 import { isTemplateId } from "./templates";
+import { cleanResumeDate } from "./dates";
+import { normalizeContactLine } from "./contact";
 
 function str(v: unknown, max: number): string {
   return typeof v === "string" ? v.slice(0, max) : "";
+}
+
+// Résumé templates often ship placeholder guidance — e.g. "Add a concise 1-2
+// sentence professional summary highlighting skills and career goals." — that
+// gets extracted into real content when a template-based PDF is imported. Drop
+// sentences that are clearly such instructions so they don't render as part of
+// the résumé. Deliberately strict (imperative verb + article + a résumé noun,
+// or a bracketed placeholder) so it never touches a genuine summary sentence.
+const TEMPLATE_GUIDANCE_RE =
+  /^\s*(?:tip:|note:|example:|hint:)?\s*(?:add|list|include|insert|enter|write|describe|summar(?:ize|ise)|highlight|showcase|mention|replace|provide|outline|fill\s+in)\s+(?:a|an|your|the|some|any|all|each|one|two|\d|here)\b[^.!?\n]*\b(?:summary|skills?|experience|section|bullets?|professional|career|goals?|objective|highlights?|achievements?|qualifications?|profile|headline)\b/i;
+
+function isTemplateGuidance(sentence: string): boolean {
+  const s = sentence.trim();
+  if (!s) return false;
+  if (/^[[<(].{0,80}[)\]>][.\s]*$/.test(s)) return true; // [Your summary] / <placeholder>
+  return TEMPLATE_GUIDANCE_RE.test(s);
+}
+
+/** Remove leftover résumé-template instruction sentences from free text (used
+ *  for the summary). Keeps the original if it can't confidently separate real
+ *  content from guidance, so it never blanks a genuine summary. */
+export function stripTemplateGuidance(text: string): string {
+  const trimmed = (text ?? "").trim();
+  if (!trimmed) return trimmed;
+  const segments = trimmed
+    .split(/\n+|(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (segments.length < 2) {
+    return isTemplateGuidance(trimmed) ? "" : trimmed;
+  }
+  const kept = segments.filter((s) => !isTemplateGuidance(s));
+  const cleaned = kept.join(" ").replace(/[ \t]+/g, " ").trim();
+  return cleaned || trimmed; // all-guidance → keep original rather than blank it
+}
+
+const HEADLINE_MAX_CHARS = 70;
+const HEADLINE_MAX_WORDS = 8;
+
+function words(value: string): string[] {
+  return value.split(/\s+/).filter(Boolean);
+}
+
+function titleCaseShort(value: string): string {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => (word.length <= 3 && word === word.toUpperCase()
+      ? word
+      : word.charAt(0).toUpperCase() + word.slice(1)))
+    .join(" ");
+}
+
+function compactHeadline(value: string): string {
+  let headline = value
+    .replace(/\s+/g, " ")
+    .replace(/\s*[,;:|\u2022\u00b7]\s*.*$/, "")
+    .trim();
+  const withMatch = headline.match(/^(.+?)\s+with\s+(.+)$/i);
+  if (withMatch) {
+    const base = withMatch[1].trim();
+    const context = withMatch[2]
+      .replace(/\b(experience|expertise|background|skills?|leadership)\b.*$/i, "")
+      .split(/,|\band\b|\bfor\b|\bin\b/i)[0]
+      .trim();
+    if (/^(engineer|manager|analyst|consultant|developer|specialist)$/i.test(base) && context) {
+      headline = `${titleCaseShort(words(context).slice(0, 2).join(" "))} ${base}`;
+    } else {
+      headline = base;
+    }
+  }
+  headline = headline
+    .replace(/\s+(specializing|experienced)\s+in\s+.*$/i, "")
+    .replace(/\s+(experience|expertise|background|track record)\b.*$/i, "")
+    .trim();
+  const parts = words(headline);
+  if (parts.length > HEADLINE_MAX_WORDS) headline = parts.slice(0, HEADLINE_MAX_WORDS).join(" ");
+  if (headline.length > HEADLINE_MAX_CHARS) {
+    const sliced = headline.slice(0, HEADLINE_MAX_CHARS);
+    headline = sliced.slice(0, Math.max(sliced.lastIndexOf(" "), 0)).trim() || sliced.trim();
+  }
+  return headline;
+}
+
+export function normalizeHeadline(input: unknown, fallback?: string): string {
+  const raw = str(input, 180).trim();
+  const compactFallback = fallback ? compactHeadline(str(fallback, 120)) : "";
+  const rawWords = words(raw);
+  const sentenceLike =
+    raw.length > HEADLINE_MAX_CHARS ||
+    rawWords.length > HEADLINE_MAX_WORDS ||
+    /\bwith\b.+\b(experience|expertise|background|leadership|skills?)\b/i.test(raw);
+
+  if (
+    sentenceLike &&
+    compactFallback &&
+    compactFallback.length <= HEADLINE_MAX_CHARS &&
+    words(compactFallback).length <= HEADLINE_MAX_WORDS
+  ) {
+    return compactFallback;
+  }
+
+  return compactHeadline(raw);
 }
 
 // Validate + bound an incoming (client-edited or builder-assembled) doc so a
@@ -19,7 +124,7 @@ export function sanitizeDoc(input: unknown): TailoredDoc | null {
       return {
         role: str(x.role, 160).trim(),
         company: str(x.company, 160).trim(),
-        dates: str(x.dates, 80).trim(),
+        dates: cleanResumeDate(str(x.dates, 80)),
         bullets: (Array.isArray(x.bullets) ? x.bullets : [])
           .map((b) => str(b, 600).trim())
           .filter((b) => b.length > 0)
@@ -35,7 +140,7 @@ export function sanitizeDoc(input: unknown): TailoredDoc | null {
       return {
         school: str(x.school, 160).trim(),
         degree: str(x.degree, 160).trim(),
-        dates: str(x.dates, 80).trim(),
+        dates: cleanResumeDate(str(x.dates, 80)),
       };
     })
     .filter((e) => e.school || e.degree);
@@ -58,7 +163,7 @@ export function sanitizeDoc(input: unknown): TailoredDoc | null {
       return {
         name: str(x.name, 160).trim(),
         issuer: str(x.issuer, 160).trim(),
-        date: str(x.date, 80).trim(),
+        date: cleanResumeDate(str(x.date, 80)),
       };
     })
     .filter((e) => e.name);
@@ -87,9 +192,9 @@ export function sanitizeDoc(input: unknown): TailoredDoc | null {
 
   const doc: TailoredDoc = {
     name: str(d.name, 120).trim(),
-    headline: str(d.headline, 160).trim(),
-    contact: str(d.contact, 240).trim(),
-    summary: str(d.summary, 1400).trim(),
+    headline: normalizeHeadline(d.headline),
+    contact: normalizeContactLine(str(d.contact, 240)),
+    summary: stripTemplateGuidance(str(d.summary, 1400)),
     experience,
     education,
     projects,

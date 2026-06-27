@@ -76,6 +76,12 @@ export async function POST(request: Request) {
     // Cap stored/scored text so a huge document can't balloon downstream tokens.
     const truncated = raw.length > MAX_RESUME_CHARS;
     const text = truncated ? raw.slice(0, MAX_RESUME_CHARS) : raw;
+    // Text-only mode (resume import): just return the extracted text — skip the
+    // LLM stats pass, which the import flow doesn't use and which would double
+    // the wait before structuring.
+    if (new URL(request.url).searchParams.get("mode") === "text") {
+      return NextResponse.json({ text, truncated });
+    }
     // AI parse → real, accurate profile when a provider is configured; the local
     // heuristic is the demo/offline fallback (and a safety net if the call fails).
     let stats = analyze(text);

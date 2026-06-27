@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleAlert, Plus, Trash2 } from "lucide-react";
 import type { TailoredDoc } from "@/lib/types";
 import { composeContact } from "@/lib/apply/contact";
-import { setResumeDraft, saveResumeDoc } from "@/lib/resume";
+import { loadSavedResume, setResumeDraft, type SavedResume } from "@/lib/resume";
 import { ROUTES } from "@/components/landing/data";
 
-type Exp = { role: string; company: string; dates: string; bullets: string };
-type Edu = { degree: string; school: string; dates: string };
+type Exp = { id: number; role: string; company: string; dates: string; bullets: string };
+type Edu = { id: number; degree: string; school: string; dates: string };
 
 // Guided minimum setup, then hand off to the full editor. Collects just enough
 // to assemble a normalized TailoredDoc; the user refines everything in the
@@ -23,18 +23,75 @@ export default function ScratchBuilder() {
   const [location, setLocation] = useState("");
   const [linkedin, setLinkedin] = useState("");
   const [headline, setHeadline] = useState("");
-  const [exp, setExp] = useState<Exp[]>([{ role: "", company: "", dates: "", bullets: "" }]);
+  const [exp, setExp] = useState<Exp[]>([{ id: 0, role: "", company: "", dates: "", bullets: "" }]);
   const [edu, setEdu] = useState<Edu[]>([]);
   const [skills, setSkills] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [existingResume, setExistingResume] = useState<SavedResume | null>(null);
+  const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
+  // Stable ids (so adding/removing animates only the changed row, not the rest)
+  // and a "removing" set that plays the exit animation before the row is dropped.
+  const idRef = useRef(1);
+  const nextId = () => idRef.current++;
+  const [removing, setRemoving] = useState<Set<number>>(() => new Set());
+
+  useEffect(() => {
+    let active = true;
+    loadSavedResume().then((saved) => {
+      if (active) setExistingResume(saved);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const setExpAt = (i: number, p: Partial<Exp>) =>
     setExp((xs) => xs.map((x, j) => (j === i ? { ...x, ...p } : x)));
   const setEduAt = (i: number, p: Partial<Edu>) =>
     setEdu((xs) => xs.map((x, j) => (j === i ? { ...x, ...p } : x)));
+  const beginRemove = (id: number) => setRemoving((s) => new Set(s).add(id));
+  // Called when the exit animation finishes — actually drop the row now.
+  const finishRemove = (id: number) => {
+    setExp((xs) => xs.filter((x) => x.id !== id));
+    setEdu((xs) => xs.filter((x) => x.id !== id));
+    setRemoving((s) => {
+      const n = new Set(s);
+      n.delete(id);
+      return n;
+    });
+  };
 
-  async function create() {
+  function existingResumeLabel() {
+    return (
+      existingResume?.doc?.headline ||
+      existingResume?.doc?.name ||
+      existingResume?.name ||
+      "Saved source profile"
+    );
+  }
+
+  function savedAtLabel() {
+    if (!existingResume?.savedAt) {
+      return "Last saved time is not available for this older source profile.";
+    }
+    const saved = new Date(existingResume.savedAt);
+    if (Number.isNaN(saved.getTime())) {
+      return "Last saved time is not available for this older source profile.";
+    }
+    return `Last saved ${new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(saved)}.`;
+  }
+
+  const existingSourceEditHref = existingResume?.doc ? ROUTES.resumeEdit : ROUTES.resumeImport;
+  const existingSourceEditLabel = existingResume?.doc ? "Edit source" : "Update source";
+
+  function create(replaceConfirmed = false) {
     const doc: TailoredDoc = {
       name: name.trim(),
       headline: headline.trim(),
@@ -68,10 +125,14 @@ export default function ScratchBuilder() {
       setErr("Add a target role or your most recent job to get started.");
       return;
     }
+    if (existingResume && !replaceConfirmed) {
+      setErr(null);
+      setShowReplaceConfirm(true);
+      return;
+    }
     setErr(null);
     setBusy(true);
-    setResumeDraft(doc); // hand the built doc to the editor
-    await saveResumeDoc(doc, "scratch");
+    setResumeDraft(doc, undefined, { persistOnLoad: true }); // explicit replacement or first saved resume
     router.push(ROUTES.resumeEdit);
   }
 
@@ -87,6 +148,22 @@ export default function ScratchBuilder() {
           refine every section in the editor and can get feedback.
         </p>
       </header>
+
+      {existingResume && (
+        <div className="tmB-replace-card" role="status">
+          <CircleAlert className="tmB-replace-icon" size={16} aria-hidden="true" />
+          <div className="tmB-replace-copy">
+            <b>You already have a source profile</b>
+            <p>
+              {existingResumeLabel()} &middot; building a new one replaces it
+              after you confirm.
+            </p>
+          </div>
+          <Link className="tmB-replace-link" href={existingSourceEditHref}>
+            {existingSourceEditLabel}
+          </Link>
+        </div>
+      )}
 
       {/* You */}
       <section className="tmB-build-sec">
@@ -132,7 +209,13 @@ export default function ScratchBuilder() {
           Start with your most recent role. One result per line. Lead with what you did and any numbers.
         </p>
         {exp.map((e, i) => (
-          <div key={i} className="tmE-edu">
+          <div
+            key={e.id}
+            className={"tmE-edu tmB-item" + (removing.has(e.id) ? " is-removing" : "")}
+            onAnimationEnd={(ev) => {
+              if (ev.animationName === "tmB-item-out") finishRemove(e.id);
+            }}
+          >
             <div className="tmB-grid2">
               <div className="tmE-field" style={{ marginBottom: 0 }}>
                 <label>Role</label>
@@ -156,14 +239,18 @@ export default function ScratchBuilder() {
                 onChange={(ev) => setExpAt(i, { bullets: ev.target.value })}
               />
             </div>
-            {exp.length > 1 && (
-              <button type="button" className="tmE-edu-remove" onClick={() => setExp((xs) => xs.filter((_, j) => j !== i))}>
+            {exp.length > 1 && !removing.has(e.id) && (
+              <button type="button" className="tmE-edu-remove" onClick={() => beginRemove(e.id)}>
                 <Trash2 size={13} /> Remove role
               </button>
             )}
           </div>
         ))}
-        <button type="button" className="tmE-add" onClick={() => setExp((xs) => [...xs, { role: "", company: "", dates: "", bullets: "" }])}>
+        <button
+          type="button"
+          className="tmE-add"
+          onClick={() => setExp((xs) => [...xs, { id: nextId(), role: "", company: "", dates: "", bullets: "" }])}
+        >
           <Plus size={14} /> Add another role
         </button>
       </section>
@@ -172,7 +259,13 @@ export default function ScratchBuilder() {
       <section className="tmB-build-sec">
         <h2 className="tmE-panel-title">Education <span className="tmB-build-opt">optional</span></h2>
         {edu.map((e, i) => (
-          <div key={i} className="tmE-edu">
+          <div
+            key={e.id}
+            className={"tmE-edu tmB-item" + (removing.has(e.id) ? " is-removing" : "")}
+            onAnimationEnd={(ev) => {
+              if (ev.animationName === "tmB-item-out") finishRemove(e.id);
+            }}
+          >
             <div className="tmE-field">
               <label>Degree</label>
               <input className="tmE-input" value={e.degree} placeholder="BSc Computer Science" onChange={(ev) => setEduAt(i, { degree: ev.target.value })} />
@@ -187,12 +280,18 @@ export default function ScratchBuilder() {
                 <input className="tmE-input" value={e.dates} placeholder="2016 – 2020" onChange={(ev) => setEduAt(i, { dates: ev.target.value })} />
               </div>
             </div>
-            <button type="button" className="tmE-edu-remove" onClick={() => setEdu((xs) => xs.filter((_, j) => j !== i))}>
-              <Trash2 size={13} /> Remove
-            </button>
+            {!removing.has(e.id) && (
+              <button type="button" className="tmE-edu-remove" onClick={() => beginRemove(e.id)}>
+                <Trash2 size={13} /> Remove
+              </button>
+            )}
           </div>
         ))}
-        <button type="button" className="tmE-add" onClick={() => setEdu((xs) => [...xs, { degree: "", school: "", dates: "" }])}>
+        <button
+          type="button"
+          className="tmE-add"
+          onClick={() => setEdu((xs) => [...xs, { id: nextId(), degree: "", school: "", dates: "" }])}
+        >
           <Plus size={14} /> Add education
         </button>
       </section>
@@ -212,11 +311,42 @@ export default function ScratchBuilder() {
       </section>
 
       {err && <p className="tmB-build-err">{err}</p>}
-      <div className="tmB-build-actions">
-        <button type="button" className="tm-btn tm-btn--primary tm-btn--lg" onClick={() => void create()} disabled={busy}>
-          {busy ? "Creating…" : "Create my resume"} <ArrowRight size={16} />
-        </button>
-      </div>
+      {showReplaceConfirm && existingResume ? (
+        <div className="tmB-replace-confirm" role="alert">
+          <b>Replace your saved source profile?</b>
+          <p>
+            This makes the new resume your active source profile. Targeted
+            applications you already created stay in your dashboard.
+          </p>
+          <p className="tmB-replace-meta">
+            Current: {existingResumeLabel()}. {savedAtLabel()}
+          </p>
+          <div>
+            <button
+              type="button"
+              className="tm-btn tm-btn--outline"
+              onClick={() => setShowReplaceConfirm(false)}
+              disabled={busy}
+            >
+              Keep current
+            </button>
+            <button
+              type="button"
+              className="tm-btn tm-btn--primary"
+              onClick={() => create(true)}
+              disabled={busy}
+            >
+              {busy ? "Creating..." : "Replace and continue"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="tmB-build-actions">
+          <button type="button" className="tm-btn tm-btn--primary" onClick={() => create()} disabled={busy}>
+            {busy ? "Creating..." : "Create my resume"} <ArrowRight size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

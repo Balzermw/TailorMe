@@ -10,7 +10,7 @@ describe("initials", () => {
   });
 
   it("falls back when empty", () => {
-    expect(initials("")).toBe("AM");
-    expect(initials(undefined)).toBe("AM");
+    expect(initials("")).toBe("LU");
+    expect(initials(undefined)).toBe("LU");
   });
 });
