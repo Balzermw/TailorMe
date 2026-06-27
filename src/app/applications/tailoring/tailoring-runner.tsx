@@ -28,6 +28,7 @@ export default function TailoringRunner() {
   const [stage, setStage] = useState(0);
   const [pct, setPct] = useState(12);
   const [error, setError] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const started = useRef(false);
 
   // Progress ticker in its OWN effect so React StrictMode's mount→cleanup→mount
@@ -67,6 +68,8 @@ export default function TailoringRunner() {
       router.replace(ROUTES.audit);
       return;
     }
+    const targetRole = typeof inputs.role === "string" ? inputs.role.trim() : "";
+    if (targetRole) queueMicrotask(() => setRole(targetRole));
 
     void (async () => {
       try {
@@ -191,6 +194,18 @@ export default function TailoringRunner() {
               }}
             />
             <h3>Building your tailored draft...</h3>
+            {role && (
+              <p
+                style={{
+                  margin: "2px 0 2px",
+                  fontSize: "13.5px",
+                  fontWeight: 500,
+                  color: "var(--tm-blue-800)",
+                }}
+              >
+                Tailoring it for {role}
+              </p>
+            )}
             <p style={{ minHeight: "1.4em" }}>{STAGES[stage]}...</p>
             <div
               role="progressbar"

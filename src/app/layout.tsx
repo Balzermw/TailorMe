@@ -1,6 +1,16 @@
 import type { Metadata } from "next";
+import { Geist } from "next/font/google";
 import { APP_URL } from "@/lib/config";
 import "./globals.css";
+
+// Brand font (design brief: "Geist 400+500 only"). Self-hosted by next/font, so
+// it loads consistently in prod with no layout shift. Exposed as a CSS variable
+// that globals.css wires into --font-sans / --tm-font.
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist",
+  display: "swap",
+});
 
 function appUrl(): URL {
   try {
@@ -27,7 +37,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-scroll-behavior="smooth"
-      className="h-full antialiased"
+      className={`h-full antialiased ${geist.variable}`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

@@ -1,4 +1,5 @@
-import type { ApplicationRow, ApplyResult } from "@/lib/types";
+import type { ApplicationRow, ApplyResult, FitBreakdown, TailoredDoc } from "@/lib/types";
+import { appendFitEntry, ensureInitialHistory } from "@/lib/apply/fit-history";
 
 const STORAGE_KEY = "tm_local_applications_v1";
 const MAX_LOCAL_APPLICATIONS = 30;
@@ -39,22 +40,47 @@ export function listLocalApplications(): ApplicationRow[] {
 }
 
 export function loadLocalApplication(id: string): ApplicationRow | null {
-  return listLocalApplications().find((app) => app.id === id) ?? null;
+  const app = listLocalApplications().find((item) => item.id === id) ?? null;
+  // Backfill a one-point fit timeline for applications saved before the re-check
+  // loop shipped, so the editor always has a history to render (read-time, not
+  // persisted; stamped with createdAt so it's stable across reads).
+  if (app?.result && !(app.result.fitHistory && app.result.fitHistory.length)) {
+    app.result = {
+      ...app.result,
+      fitHistory: ensureInitialHistory(app.result, app.createdAt),
+    };
+  }
+  return app;
+}
+
+/** Permanently remove one local application. Returns true if a row was deleted. */
+export function deleteLocalApplication(id: string): boolean {
+  const items = read();
+  const next = items.filter((app) => app.id !== id);
+  if (next.length === items.length) return false;
+  write(next);
+  return true;
 }
 
 export function saveLocalApplication(
   result: ApplyResult,
   resumeId?: string | null,
 ): ApplicationRow {
+  const createdAt = nowIso();
+  // Seed the opening point on the fit timeline if the caller didn't.
+  const seeded: ApplyResult = {
+    ...result,
+    fitHistory: ensureInitialHistory(result, createdAt),
+  };
   const app: ApplicationRow = {
     id: makeId(),
-    company: result.company || "Target company",
-    role: result.role || "Target role",
-    fitScore: result.fit?.overall ?? null,
-    status: result.doc ? "ready" : "scored",
+    company: seeded.company || "Target company",
+    role: seeded.role || "Target role",
+    fitScore: seeded.fit?.overall ?? null,
+    status: seeded.doc ? "ready" : "scored",
     michaelStatus: "none",
-    createdAt: nowIso(),
-    result,
+    createdAt,
+    result: seeded,
     resumeId: resumeId ?? null,
   };
   const items = read().filter((item) => item.id !== app.id);
@@ -81,4 +107,26 @@ export function updateLocalApplicationResult(
   items[index] = next;
   write(items);
   return next;
+}
+
+/**
+ * Demo-mode re-check: append a "recheck" point to the fit timeline, update the
+ * stored fit + (current) doc, and persist. Delegates the actual write to
+ * updateLocalApplicationResult (which re-derives fitScore from result.fit).
+ */
+export function recheckLocalApplication(
+  id: string,
+  newFit: FitBreakdown,
+  newDoc: TailoredDoc | null,
+): ApplicationRow | null {
+  const current = loadLocalApplication(id);
+  if (!current?.result) return null;
+  const base = ensureInitialHistory(current.result, current.createdAt);
+  const result: ApplyResult = {
+    ...current.result,
+    fit: newFit,
+    doc: newDoc ?? current.result.doc,
+    fitHistory: appendFitEntry(base, newFit.overall, newFit.verdict, "recheck", nowIso()),
+  };
+  return updateLocalApplicationResult(id, result);
 }

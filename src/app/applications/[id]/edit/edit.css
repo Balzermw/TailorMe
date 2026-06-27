@@ -542,28 +542,47 @@
   background: var(--tm-blue-600);
   margin-left: 9px;
 }
+/* Legend + "review overlay" note on one line, shown only while the overlay is
+   on. The toggle (below) carries the "this is optional" signal, so the note can
+   be a quiet reassurance rather than a heavy warning badge. */
 .tmE-preview-note {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
   font-size: 11.5px;
   color: var(--tm-zinc);
-  margin: 4px 0 0;
+  margin: 7px 0 12px;
   line-height: 1.4;
 }
-/* Stands out from the muted legend note: an amber "preview only" badge so users
-   don't mistake the keyword/metric tints for something in their downloaded PDF. */
-.tmE-preview-disclaimer {
+.tmE-preview-overlaynote {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin: 7px 0 12px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: #fdf3e7;
-  color: #854f0b;
-  border: 0.5px solid rgba(133, 79, 11, 0.28);
-  font-size: 11.5px;
-  font-weight: 600;
+  gap: 5px;
 }
-.tmE-preview-disclaimer svg {
+.tmE-preview-overlaynote svg {
+  flex: none;
+}
+/* Toggle the match overlay on/off, so it's clearly a view option the user
+   controls, not baked-in resume formatting. */
+.tmE-preview-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--tm-blue-600);
+  background: none;
+  border: none;
+  padding: 3px 7px;
+  margin: -3px -3px -3px 0;
+  cursor: pointer;
+  border-radius: 7px;
+}
+.tmE-preview-toggle:hover {
+  background: var(--tm-blue-50);
+}
+.tmE-preview-toggle svg {
   flex: none;
 }
 .tmE-preview-bar {
@@ -719,12 +738,16 @@
   font-size: 12.5px;
   color: var(--tm-zinc);
 }
-/* "Present" end state: a calm mint chip that shares the .tmE-input box, so the
-   row keeps the exact same width whether the end is a month or "Present". */
-.tmE-daterange-present {
-  display: flex;
+/* "Present" end state: a calm mint chip that hugs its label (no longer stretched
+   to the month-input width) and centers the text. */
+.tmE-daterange .tmE-daterange-present {
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
   font-weight: 500;
   color: var(--tm-mint-700);
   background: var(--tm-mint-50);
@@ -756,14 +779,15 @@
   background: #fff;
   overflow: hidden;
 }
-/* collapsed-by-default entry header */
+/* collapsed-by-default entry header — tinted so each entry's title reads as a
+   header bar distinct from the white field body below it. */
 .tmE-entry-head {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
   text-align: left;
-  background: none;
+  background: color-mix(in srgb, var(--tm-gray) 55%, #fff);
   border: none;
   padding: 13px 15px;
   cursor: pointer;
@@ -771,7 +795,7 @@
   transition: background 0.15s;
 }
 .tmE-entry-head:hover {
-  background: var(--tm-gray);
+  background: color-mix(in srgb, var(--tm-gray) 85%, #fff);
 }
 .tmE-entry.is-open .tmE-entry-head {
   border-bottom: 0.5px solid var(--tm-border);
@@ -782,7 +806,7 @@
 }
 .tmE-entry-role {
   display: block;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 600;
   color: var(--tm-ink);
   white-space: nowrap;
@@ -1106,14 +1130,17 @@
 
 /* one-section panel header */
 .tmE-panel-title {
-  font-size: 17px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 600;
   letter-spacing: -0.01em;
+  color: var(--tm-ink);
 }
 .tmE-panel-sub {
   font-size: 12.5px;
   color: var(--tm-zinc);
-  margin: 4px 0 16px;
+  margin: 4px 0 18px;
+  padding-bottom: 16px;
+  border-bottom: 0.5px solid var(--tm-border);
   line-height: 1.5;
 }
 
@@ -1304,28 +1331,36 @@
   margin-top: -28px;
 }
 .tmE-fix b {
-  font-size: 13.5px;
+  display: block;
+  font-size: 14.5px;
   font-weight: 600;
+  color: var(--tm-ink);
+  line-height: 1.35;
 }
 .tmE-fix-sum {
   font-size: 12.5px;
-  color: var(--tm-ink);
+  color: var(--tm-slate);
   line-height: 1.5;
-  margin-top: 4px;
+  margin-top: 5px;
 }
 .tmE-fix-quote {
   font-size: 12px;
-  color: var(--tm-slate);
+  color: var(--tm-zinc);
   font-style: italic;
   border-left: 2px solid var(--tm-border);
   padding-left: 9px;
-  margin-top: 8px;
+  margin-top: 9px;
   line-height: 1.5;
 }
+/* The fix is the payoff: a tinted block so the eye lands on the action, not the
+   surrounding explanation. */
 .tmE-fix-fix {
   font-size: 12.5px;
   color: var(--tm-ink);
-  margin-top: 8px;
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: var(--tm-mint-50);
   line-height: 1.5;
 }
 .tmE-fix-fix span {

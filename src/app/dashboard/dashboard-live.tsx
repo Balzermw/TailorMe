@@ -17,6 +17,7 @@ import {
   PenLine,
   Settings,
   Target,
+  Trash2,
   UserCheck,
   WandSparkles,
   X,
@@ -120,7 +121,7 @@ function fitBand(fit: number | null) {
 export default function DashboardLive({
   user,
   credits,
-  apps,
+  apps: appsProp,
   baseResume,
   baseResumeId,
   sourceResumeName,
@@ -141,6 +142,9 @@ export default function DashboardLive({
   reviewNotice?: string | null;
 }) {
   const router = useRouter();
+  // Optimistically hide rows the user just deleted; the server re-syncs on refresh.
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
+  const apps = appsProp.filter((a) => !removed.has(a.id));
   const sourceVersions = baseResumeId
     ? apps.filter((a) => a.resumeId === baseResumeId).length
     : 0;
@@ -149,6 +153,30 @@ export default function DashboardLive({
   const [openId, setOpenId] = useState<string | null>(ranked[0]?.id ?? null);
   const [requesting, setRequesting] = useState(false);
   const [reviewMsg, setReviewMsg] = useState<string | null>(reviewNotice ?? null);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; label: string } | null>(null);
+  function requestDelete(id: string, label: string) {
+    setPendingDelete({ id, label });
+  }
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const { id } = pendingDelete;
+    setPendingDelete(null);
+    if (openId === id) setOpenId(null);
+    setRemoved((prev) => new Set(prev).add(id));
+    try {
+      const res = await fetch(`/api/applications/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      router.refresh();
+    } catch {
+      // Revert the optimistic removal and surface an error.
+      setRemoved((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      setReviewMsg("Couldn't delete that application. Please try again.");
+    }
+  }
 
   const ready = apps.filter((a) => a.status === "ready" && a.result?.doc);
   const reviewApps = sortByNeed(
@@ -182,7 +210,7 @@ export default function DashboardLive({
       const res = await fetch(`/api/applications/${appId}/request-review`, { method: "POST" });
       const data = await res.json();
       if (data.url) {
-        window.location.href = data.url as string;
+        window.location.assign(data.url as string);
         return;
       }
       if (data.demo) setReviewMsg("Payments are not configured in this environment.");
@@ -310,22 +338,36 @@ export default function DashboardLive({
                     const building = app.status === "running";
                     const step = nextStep(app);
                     return (
-                      <button
-                        type="button"
-                        key={app.id}
-                        className={"tm-card tmD-row" + (open?.id === app.id ? " is-open" : "")}
-                        onClick={() => setOpenId(open?.id === app.id ? null : app.id)}
-                        aria-expanded={open?.id === app.id}
-                        aria-controls={`dashboard-drawer-${app.id}`}
-                      >
-                        <div className="tmD-row-co">
-                          <b>{app.role}</b>
-                          <span>{app.company}</span>
-                        </div>
-                        <ScoreBar fit={app.fitScore ?? null} building={building} />
-                        <RowStatus tone={step.tone} label={step.label} />
-                        <span className="tmD-row-date">{formatDate(app.createdAt)}</span>
-                      </button>
+                      <div key={app.id} className="tmD-row-wrap">
+                        <button
+                          type="button"
+                          className={"tm-card tmD-row" + (open?.id === app.id ? " is-open" : "")}
+                          onClick={() => setOpenId(open?.id === app.id ? null : app.id)}
+                          aria-expanded={open?.id === app.id}
+                          aria-controls={`dashboard-drawer-${app.id}`}
+                        >
+                          <div className="tmD-row-co">
+                            <span className="tmD-row-ico" aria-hidden="true">
+                              <FileText size={17} strokeWidth={1.7} />
+                            </span>
+                            <div className="tmD-row-co-text">
+                              <b>{app.role}</b>
+                              <span>{app.company}</span>
+                            </div>
+                          </div>
+                          <ScoreBar fit={app.fitScore ?? null} building={building} history={app.result?.fitHistory} />
+                          <RowStatus tone={step.tone} label={step.label} />
+                          <span className="tmD-row-date">{formatDate(app.createdAt)}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="tmD-row-del"
+                          aria-label={`Delete ${app.role}`}
+                          onClick={() => requestDelete(app.id, app.company ? `${app.role} @ ${app.company}` : app.role)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -516,6 +558,14 @@ export default function DashboardLive({
                           >
                             <Download size={13} /> PDF
                           </Link>
+                          <button
+                            type="button"
+                            className="tm-btn tm-btn--outline tm-btn--sm tmD-del-btn"
+                            aria-label={`Delete ${targetLabel(app)}`}
+                            onClick={() => requestDelete(app.id, targetLabel(app))}
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       </div>
                     ))
@@ -560,6 +610,40 @@ export default function DashboardLive({
           </div>
         )}
       </div>
+      {pendingDelete && (
+        <div
+          className="tmD-modal-backdrop"
+          role="presentation"
+          onClick={() => setPendingDelete(null)}
+        >
+          <div
+            className="tm-card tmD-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Delete targeted resume"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>Delete this targeted resume?</h3>
+            <p className="tmD-modal-target">
+              <b>{pendingDelete.label}</b>
+            </p>
+            <p>Will be permanently removed, including its cover letter and fit history.</p>
+            <p className="tmD-modal-warn">This can&apos;t be undone.</p>
+            <div className="tmD-modal-actions">
+              <button
+                type="button"
+                className="tm-btn tm-btn--outline"
+                onClick={() => setPendingDelete(null)}
+              >
+                Cancel
+              </button>
+              <button type="button" className="tm-btn tmSet-danger-fill" onClick={confirmDelete}>
+                <Trash2 size={14} /> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

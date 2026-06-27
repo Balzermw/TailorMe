@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { creditsDisabled, llmConfigured } from "@/lib/config";
 import { runAudit, runFull, runScore } from "@/lib/apply/pipeline";
+import { ensureInitialHistory } from "@/lib/apply/fit-history";
 import { withAiRun } from "@/lib/apply/ai-telemetry";
 import { SAMPLE_RESUME } from "@/lib/apply/sample";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -127,6 +128,8 @@ export async function POST(request: Request) {
         runFull(resumeText, postingText),
       );
       result.proofPoints = sanitizeProofPoints(body.proofPoints);
+      result.postingText = postingText;
+      result.fitHistory = ensureInitialHistory(result, new Date().toISOString());
       return NextResponse.json({ result, local: true, applicationId: null });
     }
     const user = (await sb.auth.getUser()).data.user;
@@ -167,6 +170,10 @@ export async function POST(request: Request) {
     // Carry the step-1 audit findings into the stored result so the editor can
     // show "what the tailoring addressed."
     result.proofPoints = sanitizeProofPoints(body.proofPoints);
+    // Seed the re-check loop: remember the posting we scored against and the
+    // opening point on the fit timeline, both inside the result blob.
+    result.postingText = postingText;
+    result.fitHistory = ensureInitialHistory(result, new Date().toISOString());
 
     // Link to the base resume this run came from (verify it's the user's own).
     let resumeId: string | null = null;

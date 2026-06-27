@@ -13,7 +13,7 @@
   --color-mint-400: #2dbd8b;
   --color-mint-600: #21926b;
   --color-mint-800: #16654a;
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
 }
 
 html {
@@ -23,7 +23,7 @@ html {
 body {
   background: #ffffff;
   color: #18181b;
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* ============================================================
@@ -51,7 +51,7 @@ body {
   --tm-mint-500: #27a87a;
   --tm-mint-700: #1a7a5a;
   --tm-slate: #52525b;
-  --tm-font: var(--font-sans), "Geist", "Inter", system-ui, sans-serif;
+  --tm-font: var(--font-sans);
 
   /* spacing (regular density) · Direction B scale */
   --sy: 84px;
@@ -3371,13 +3371,16 @@ body {
   height: 42px;
   border-radius: 50%;
   flex: none;
-  background: var(--tm-blue-50);
-  color: var(--tm-blue-800);
+  /* Solid fill so the initials anchor the (blue-tinted) profile row instead of
+     blending into it the way a blue-50 chip did. */
+  background: var(--tm-blue-600);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   font-weight: 500;
+  letter-spacing: 0.01em;
 }
 .tmSet-profile-text {
   min-width: 0;
@@ -3513,6 +3516,190 @@ body {
   .tmF-why-row.is-clickable {
     grid-template-columns: 96px 1fr 30px 16px;
   }
+}
+
+/* Verdict hero — the score is the headline, with the role as context beneath it. */
+.tmSum-verdict {
+  padding: 22px 22px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.tmSum-verdict-score {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 2px;
+}
+.tmSum-verdict-num {
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 1;
+}
+.tmSum-verdict-of {
+  font-size: 14px;
+  color: var(--tm-zinc);
+}
+.tmSum-verdict-role {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--tm-ink);
+  line-height: 1.4;
+}
+.tmSum-verdict-note {
+  font-size: 12.5px;
+  color: var(--tm-zinc);
+  line-height: 1.45;
+  max-width: 60ch;
+}
+
+/* Audit summary cards — left-aligned with a clear header row so the report reads
+   as a scannable hierarchy instead of centered walls of prose. */
+.tmSum-card {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+.tmSum-card--good {
+  border-color: var(--tm-mint-200);
+}
+.tmSum-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tmSum-head svg {
+  flex: none;
+}
+.tmSum-head b {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--tm-ink);
+}
+.tmSum-count {
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: var(--tm-gray);
+  color: var(--tm-slate);
+}
+.tmSum-sub {
+  font-size: 12px;
+  color: var(--tm-zinc);
+  line-height: 1.45;
+}
+.tmSum-line {
+  font-size: 12.5px;
+  color: var(--tm-ink);
+  line-height: 1.5;
+}
+.tmSum-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tmSum-eg {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--tm-zinc);
+  line-height: 1.5;
+  border-left: 2px solid var(--tm-mint-200);
+  padding-left: 10px;
+}
+
+/* Fit panel — the score-as-progress-loop surface (editor). */
+.tmFit-panel {
+  border: 0.5px solid var(--tm-border);
+  border-radius: 12px;
+  background: #fff;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tmFit-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tmFit-score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  flex: none;
+}
+.tmFit-score b {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1;
+}
+.tmFit-score span {
+  font-size: 13px;
+  font-weight: 500;
+}
+.tmFit-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tm-mint-700);
+  background: var(--tm-mint-50);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.tmFit-delta.is-down {
+  color: #946218;
+  background: #fdf6ec;
+}
+.tmFit-track {
+  flex: 1 1 80px;
+  min-width: 60px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--tm-gray);
+  overflow: hidden;
+}
+.tmFit-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 320ms ease;
+}
+.tmFit-lever {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tm-ink);
+}
+.tmFit-lever b {
+  font-weight: 600;
+}
+.tmFit-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--tm-zinc);
+}
+.tmFit-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tmFit-hint {
+  font-size: 12px;
+  color: var(--tm-zinc);
+}
+.tmFit-spin {
+  animation: tmspin 0.8s linear infinite;
 }
 
 .tmF-michael {
@@ -3702,14 +3889,47 @@ body {
   color: var(--tm-zinc);
 }
 /* tmD-row defined in dashboard v2 additions below */
-.tmD-row-co b {
-  font-size: 14.5px;
+.tmD-row-co {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+/* Document anchor on the left of each row — echoes the source-resume thumbnail
+   so a target reads as a saved document, not a wall of text. */
+.tmD-row-ico {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tm-blue-50);
+  color: var(--tm-blue-600);
+  border: 0.5px solid var(--tm-blue-200);
+}
+.tmD-row-co-text {
+  min-width: 0;
+}
+/* Scope to -text so these never match the icon span (a .tmD-row-co descendant);
+   a .tmD-row-co span rule outranks .tmD-row-ico and forced it to display:block,
+   breaking the flex centering of the glyph. */
+.tmD-row-co-text b {
+  font-size: 14px;
   font-weight: 500;
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.tmD-row-co span {
+.tmD-row-co-text span {
   font-size: 12.5px;
   color: var(--tm-zinc);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .tmD-status {
   display: flex;
@@ -4102,6 +4322,31 @@ body {
 .tmD-doc-body .tmD-doc-advice {
   color: #946218;
   font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.tmD-doc-body .tmD-doc-advice svg {
+  flex: none;
+}
+/* Meta line as icon-led items (resume / cover letter / date) so the card reads
+   at a glance instead of a run-on string. */
+.tmD-doc-body .tmD-doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 13px;
+  font-size: 12.5px;
+  color: var(--tm-zinc);
+}
+.tmD-doc-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.tmD-doc-meta svg {
+  flex: none;
+  color: var(--tm-blue-400);
 }
 .tmD-doc-co {
   white-space: nowrap;
@@ -4115,6 +4360,26 @@ body {
   flex: none;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+/* Source (master) resume: a tinted surface + filled thumbnail + small eyebrow so
+   it reads as the one document every targeted resume derives from, distinct from
+   the white targeted cards below. Replaces the old redundant "source" pill. */
+.tmD-doc.tmD-doc--source {
+  background: color-mix(in srgb, var(--tm-blue-50) 55%, #fff);
+  border-color: var(--tm-blue-200);
+}
+.tmD-doc--source .tmD-doc-thumb {
+  background: var(--tm-blue-600);
+  border-color: var(--tm-blue-600);
+  color: #fff;
+}
+.tmD-doc-body .tmD-doc-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tm-blue-800);
+  margin-bottom: 1px;
 }
 @media (max-width: 600px) {
   .tmD-doc-group-head {
@@ -4162,10 +4427,96 @@ body {
 }
 .tmD-thead {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 150px 168px 72px;
+  grid-template-columns: minmax(0, 2fr) 150px 168px 72px minmax(0, 1fr);
   gap: 16px;
   padding: 2px 18px 6px;
   margin-top: 12px;
+}
+/* Row wrapper holds the (anchor) row + a hover-revealed delete button as a
+   sibling, so the button is never nested inside the row's <a>. */
+.tmD-row-wrap {
+  position: relative;
+}
+.tmD-row-del {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #fff;
+  border: 0.5px solid var(--tm-border);
+  color: var(--tm-zinc);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.tmD-row-wrap:hover .tmD-row-del,
+.tmD-row-del:focus-visible {
+  opacity: 1;
+}
+.tmD-row-del:hover {
+  color: #b3261e;
+  border-color: rgba(179, 38, 30, 0.4);
+}
+/* Doc-card delete: quiet by default, reds on hover (matches the danger button). */
+.tmD-del-btn {
+  color: var(--tm-zinc);
+}
+.tmD-del-btn:hover {
+  color: #b3261e;
+  border-color: rgba(179, 38, 30, 0.4);
+}
+.tmD-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(24, 24, 27, 0.38);
+}
+.tmD-modal {
+  max-width: 420px;
+  width: 100%;
+  padding: 24px 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.tmD-modal h3 {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--tm-ink);
+}
+.tmD-modal p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tm-slate);
+}
+.tmD-modal-target {
+  font-size: 13.5px;
+  color: var(--tm-ink);
+}
+.tmD-modal-target b {
+  font-weight: 600;
+}
+.tmD-modal-warn {
+  font-weight: 600;
+  color: #b3261e;
+}
+.tmD-modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 6px;
 }
 .tmD-thead span {
   font-size: 11px;
@@ -4183,7 +4534,7 @@ body {
   border: 0.5px solid var(--tm-border);
   border-radius: 12px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 150px 168px 72px;
+  grid-template-columns: minmax(0, 2fr) 150px 168px 72px minmax(0, 1fr);
   gap: 16px;
   align-items: center;
   padding: 14px 18px;
@@ -4356,31 +4707,51 @@ body {
   color: var(--tm-zinc);
   font-style: italic;
 }
-/* Fit cell: number + plain-language tier on one line, a slim tier-colored bar
-   under it — a self-contained judgement instead of a stray bar + number. */
+/* Fit cell: a single vertically-centered line so it sits on the exact same axis
+   as the status pill and date. Number + plain-language tier on the left, with a
+   slim tier-colored meter filling the rest of the column — one cohesive unit,
+   never a number floating above a detached bar. */
 .tmD-fit {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 .tmD-fit-head {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 7px;
+  flex: none;
 }
 .tmD-fit-num {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--tm-ink);
   line-height: 1;
 }
 .tmD-fit-tier {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
 }
+/* Tiny improvement chip: how far the score has moved since the initial score. */
+.tmD-fit-chip {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 999px;
+  color: var(--tm-mint-700);
+  background: var(--tm-mint-50);
+}
+.tmD-fit-chip.is-down {
+  color: #946218;
+  background: #fdf6ec;
+}
 .tmD-fit-track {
+  flex: 1 1 auto;
+  min-width: 24px;
   height: 4px;
   border-radius: 999px;
   background: var(--tm-gray);
@@ -4413,8 +4784,10 @@ body {
 .tmD-fit[data-tier="weak"] .tmD-fit-fill {
   background: var(--tm-blue-400);
 }
-/* Status as a tinted pill so it reads as a state, not floating text. */
+/* Status as a tinted pill so it reads as a state, not floating text. It hugs its
+   label (justify-self: start) instead of stretching to fill the grid column. */
 .tmD-row-status {
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: 7px;
