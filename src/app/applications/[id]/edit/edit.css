@@ -756,14 +756,15 @@
   background: #fff;
   overflow: hidden;
 }
-/* collapsed-by-default entry header */
+/* collapsed-by-default entry header — tinted so each entry's title reads as a
+   header bar distinct from the white field body below it. */
 .tmE-entry-head {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
   text-align: left;
-  background: none;
+  background: color-mix(in srgb, var(--tm-gray) 55%, #fff);
   border: none;
   padding: 13px 15px;
   cursor: pointer;
@@ -771,7 +772,7 @@
   transition: background 0.15s;
 }
 .tmE-entry-head:hover {
-  background: var(--tm-gray);
+  background: color-mix(in srgb, var(--tm-gray) 85%, #fff);
 }
 .tmE-entry.is-open .tmE-entry-head {
   border-bottom: 0.5px solid var(--tm-border);
@@ -782,7 +783,7 @@
 }
 .tmE-entry-role {
   display: block;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 600;
   color: var(--tm-ink);
   white-space: nowrap;
@@ -1106,14 +1107,17 @@
 
 /* one-section panel header */
 .tmE-panel-title {
-  font-size: 17px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 600;
   letter-spacing: -0.01em;
+  color: var(--tm-ink);
 }
 .tmE-panel-sub {
   font-size: 12.5px;
   color: var(--tm-zinc);
-  margin: 4px 0 16px;
+  margin: 4px 0 18px;
+  padding-bottom: 16px;
+  border-bottom: 0.5px solid var(--tm-border);
   line-height: 1.5;
 }
 
