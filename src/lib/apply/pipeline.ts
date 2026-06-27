@@ -136,12 +136,11 @@ function publicAuditAgents(agents: AuditAgent[]): AuditAgent[] {
     agent.id === "impact"
       ? {
           ...agent,
+          // The metric vocabulary lives in the deep-dive only; it was too verbose
+          // as an always-visible footer on the card.
           detail: agent.detail.includes(QUANTIFIED_IMPACT_GUIDANCE)
             ? agent.detail
             : `${agent.detail} ${QUANTIFIED_IMPACT_GUIDANCE}`,
-          footer: agent.footer?.trim()
-            ? `${agent.footer} ${QUANTIFIED_IMPACT_GUIDANCE}`
-            : QUANTIFIED_IMPACT_GUIDANCE,
         }
       : agent,
   );
@@ -1226,6 +1225,25 @@ async function repairRewriteEvidence(
 // ---------- 2b. faithfulness verification (repair pass over the tailored doc) ----------
 
 /**
+ * Token ceiling for the verify pass. The pass must echo the FULL experience
+ * array back (every role/company/dates + bullet) plus a corrections list, so a
+ * fixed cap that's fine for a short resume truncates a long one, and a truncated
+ * JSON body throws in the parser, which verifyDoc then reports as "unavailable"
+ * even though the draft was perfectly faithful. max_tokens is a ceiling, not a
+ * charge (the model stops at the closing brace), so we size it to the draft:
+ * about chars/2 (comfortably above the real ~chars/3.5 token rate, plus room for
+ * corrections), floored at the long-standing 3000 default so short resumes are
+ * byte-for-byte unchanged, and capped at 8000 (below common model output limits,
+ * yet because actual output runs ~chars/3.5 it still echoes the largest allowed
+ * resume, MAX_RESUME_CHARS, without truncating).
+ */
+export function verifyMaxTokens(doc: TailoredDoc): number {
+  const experience = Array.isArray(doc.experience) ? doc.experience : [];
+  const json = JSON.stringify({ summary: doc.summary ?? "", experience });
+  return Math.min(8_000, Math.max(3_000, Math.ceil(json.length / 2) + 1_000));
+}
+
+/**
  * Post-tailor faithfulness pass. The offline A/B eval showed that even with the
  * exemplar-grounded prompt, tailored output still leaks unsupported claims —
  * dominated NOT by rephrasing but by misattribution (a real metric moved to the
@@ -1325,7 +1343,7 @@ async function verifyDoc(
           },
         },
       },
-      3000,
+      verifyMaxTokens(doc),
       provider,
     );
 

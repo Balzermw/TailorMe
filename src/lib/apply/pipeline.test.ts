@@ -171,6 +171,7 @@ let runFull: typeof import("./pipeline").runFull;
 let runAudit: typeof import("./pipeline").runAudit;
 let parseResume: typeof import("./pipeline").parseResume;
 let redactContactInfoForPublicOutput: typeof import("./pipeline").redactContactInfoForPublicOutput;
+let verifyMaxTokens: typeof import("./pipeline").verifyMaxTokens;
 
 beforeAll(async () => {
   process.env.ANTHROPIC_API_KEY = "sk-ant-test";
@@ -180,6 +181,7 @@ beforeAll(async () => {
   runAudit = mod.runAudit;
   parseResume = mod.parseResume;
   redactContactInfoForPublicOutput = mod.redactContactInfoForPublicOutput;
+  verifyMaxTokens = mod.verifyMaxTokens;
 });
 
 beforeEach(() => {
@@ -205,6 +207,46 @@ function tailoredDocFixture(bullets = EXPECTED_BULLETS) {
     coverLetter: "Dear team.\n\nHello.\n\nSincerely.",
   };
 }
+
+describe("verifyMaxTokens (verify echo budget)", () => {
+  // A doc whose experience array serializes to roughly `chars` characters.
+  function docOfSize(chars: number) {
+    const base = tailoredDocFixture([]);
+    const bullet = "x".repeat(120);
+    const bullets: string[] = [];
+    const experience = [{ ...base.experience[0], bullets }];
+    while (JSON.stringify(experience).length < chars) bullets.push(bullet);
+    return { ...base, experience };
+  }
+
+  it("keeps the long-standing 3000 floor for a short resume (no behavior change)", () => {
+    expect(verifyMaxTokens(tailoredDocFixture())).toBe(3000);
+  });
+
+  it("scales the budget above the floor for a long resume", () => {
+    const big = verifyMaxTokens(docOfSize(8000));
+    expect(big).toBeGreaterThan(3000);
+    expect(big).toBeLessThanOrEqual(8000);
+  });
+
+  it("caps the budget at 8000 (under model output limits) for a pathological doc", () => {
+    expect(verifyMaxTokens(docOfSize(50_000))).toBe(8000);
+  });
+
+  it("never truncates the largest allowed resume: budget exceeds the real token need", () => {
+    // MAX_RESUME_CHARS is 24k; real output runs ~chars/3.5, so the budget must
+    // comfortably exceed that for the worst case the parser will ever feed in.
+    const json = JSON.stringify({
+      summary: "",
+      experience: docOfSize(24_000).experience,
+    });
+    expect(verifyMaxTokens(docOfSize(24_000))).toBeGreaterThan(json.length / 3.5);
+  });
+
+  it("tolerates a malformed doc with no experience array", () => {
+    expect(verifyMaxTokens({ experience: undefined } as never)).toBe(3000);
+  });
+});
 
 describe("apply pipeline", () => {
   it("runScore returns fit only, no documents", async () => {

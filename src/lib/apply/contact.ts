@@ -10,6 +10,11 @@ export type ContactFields = {
   email: string;
   location: string;
   linkedin: string;
+  // Work-authorization / citizenship tokens ("U.S. Citizen", "Authorized to
+  // work", "H-1B") parsed off a pipe-separated contact line. Kept OUT of the
+  // city/state `location` field but preserved as their own trailing segment on
+  // recompose, so the header keeps the info without polluting city/state.
+  extra?: string;
   // The order the fields appeared in the source string, so editing one field
   // doesn't reshuffle the others on recompose (e.g. a phone listed last stays
   // last). Absent -> canonical order. Carried through edits inside the object.
@@ -18,6 +23,10 @@ export type ContactFields = {
 
 const CANONICAL: ContactKey[] = ["phone", "email", "location", "linkedin"];
 const CONTACT_SPLIT_RE = /\s*[|\u00b7]\s*/;
+// Work-authorization / citizenship phrases that resumes list among contact
+// segments. These are not a city/state, so we peel them out of `location`.
+const WORK_AUTH_RE =
+  /\b(?:u\.?\s?s\.?\s?)?citizen(?:ship)?\b|authorized to work|work authoriz(?:ation|ed)|work permit|green ?card|permanent resident|lawful permanent|\bvisa\b|\bh-?1b\b|\bead\b|\bopt\b|\bcpt\b|\btn visa\b|right to work|naturalized/i;
 const LINKEDIN_URL_RE =
   /\b(?:https?:\/\/)?(?:www\.)?(?:linkedin|linkedgin)\.com\/[^\s"'<>|,;]+/gi;
 const LINKEDIN_LABEL_RE = /\b(?:linkedin|linkedgin)\b\s*[:\-]?/gi;
@@ -80,6 +89,7 @@ export function normalizeContactFields(fields: ContactFields): ContactFields {
     email: (fields.email || "").trim(),
     location: (fields.location || "").trim(),
     linkedin: (fields.linkedin || "").trim(),
+    extra: (fields.extra || "").trim() || undefined,
     order: normalizeOrder(fields.order),
   };
 
@@ -121,6 +131,7 @@ export function parseContact(contact: string): ContactFields {
   const f: ContactFields = { phone: "", email: "", location: "", linkedin: "" };
   const order: ContactKey[] = [];
   const rest: string[] = [];
+  const auth: string[] = [];
   let locationSeen = false;
 
   for (const raw of parts) {
@@ -140,6 +151,8 @@ export function parseContact(contact: string): ContactFields {
     } else if (!f.phone && digits >= 7 && !/@/.test(p)) {
       f.phone = p;
       addOrder(order, "phone");
+    } else if (WORK_AUTH_RE.test(p)) {
+      auth.push(p); // citizenship / work-authorization — keep out of city/state
     } else if (p) {
       rest.push(p);
       if (!locationSeen) {
@@ -155,6 +168,7 @@ export function parseContact(contact: string): ContactFields {
   }
 
   f.location = rest.join(", ");
+  f.extra = auth.join(", ") || undefined;
   f.order = order;
   return normalizeContactFields(f);
 }
@@ -170,10 +184,11 @@ export function composeContact(f: ContactFields): string {
           ...CANONICAL.filter((k) => !normalized.order!.includes(k)),
         ]
       : CANONICAL;
-  return seq
-    .map((k) => (normalized[k] || "").trim())
-    .filter(Boolean)
-    .join(" | ");
+  const parts = seq.map((k) => (normalized[k] || "").trim()).filter(Boolean);
+  // Work-authorization / citizenship segment trails the standard fields so it
+  // survives the round-trip without ever landing in the city/state field.
+  if (normalized.extra) parts.push(normalized.extra.trim());
+  return parts.join(" | ");
 }
 
 export function normalizeContactLine(contact: string): string {

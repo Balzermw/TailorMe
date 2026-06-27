@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   analyze,
   collapseLetterSpacing,
+  dedupeHeaderExtra,
+  isPlaceholderName,
   looksScanned,
   reconstructReadingOrder,
   type PdfTextItem,
@@ -142,5 +144,76 @@ describe("scanned-PDF detection", () => {
 
   it("does not flag a real resume", () => {
     expect(looksScanned(SAMPLE_RESUME)).toBe(false);
+  });
+});
+
+describe("placeholder-name detection", () => {
+  it("flags unfilled template placeholders (case / bracket / spacing insensitive)", () => {
+    for (const p of [
+      "CANDIDATE NAME",
+      "Candidate Name",
+      "  candidate   name ",
+      "Your Name",
+      "Your Full Name",
+      "Full Name",
+      "[Name]",
+      "<Your Name>",
+      "First Last",
+      "Firstname Lastname",
+      "First Middle Last",
+      "Name Here",
+      "Applicant Name",
+      "Lorem Ipsum",
+      "Name",
+    ]) {
+      expect(isPlaceholderName(p)).toBe(true);
+    }
+  });
+
+  it("never flags a real name (no false positives that would scold a real person)", () => {
+    for (const real of [
+      "Alex Mercer",
+      "Jessica Hedstrom",
+      "MD Monir",
+      "Miguel Lara Chavez",
+      "Sarah First", // surname "First" but no literal "name" token
+      "Robert Last", // surname "Last" but no literal "name" token
+      "Grace Hopper",
+      "Jean-Luc Picard",
+      "Wei Zhang",
+    ]) {
+      expect(isPlaceholderName(real)).toBe(false);
+    }
+  });
+
+  it("returns false for empty / our own 'no name found' fallback", () => {
+    expect(isPlaceholderName("")).toBe(false);
+    expect(isPlaceholderName("   ")).toBe(false);
+    expect(isPlaceholderName("Your resume")).toBe(false); // the analyze() fallback, not a placeholder
+  });
+});
+
+describe("DOCX header/textbox dedup", () => {
+  it("drops a letter-spaced header name already present (clean) in the body", () => {
+    // The header surfaces the name with each glyph spaced; the body has it clean.
+    const header = "J E S S I C A   H E D S T R O M";
+    const body = "Jessica Hedstrom\nSoftware Engineer\n- Built things.";
+    expect(dedupeHeaderExtra([header], body)).toBe(""); // recognized as a duplicate
+  });
+
+  it("keeps a genuinely new header chunk the body does not contain", () => {
+    const header = "Security Clearance: TS/SCI";
+    const body = "Jessica Hedstrom\nSoftware Engineer";
+    expect(dedupeHeaderExtra([header], body)).toBe(header);
+  });
+
+  it("drops a normally-spaced header duplicate too (whitespace-insensitive)", () => {
+    const header = "Jessica   Hedstrom"; // extra spaces from XML strip
+    const body = "Jessica Hedstrom\nSoftware Engineer";
+    expect(dedupeHeaderExtra([header], body)).toBe("");
+  });
+
+  it("ignores empty / single-character chunks", () => {
+    expect(dedupeHeaderExtra(["", " ", "x"], "anything")).toBe("");
   });
 });

@@ -232,6 +232,21 @@ async function extractPdfTextOrdered(bytes: ArrayBuffer): Promise<string> {
   return text;
 }
 
+/**
+ * Drop DOCX header/footer/textbox chunks already present in the body, then join
+ * the survivors. Comparison removes ALL whitespace and lowercases, so a
+ * letter-spaced header name ("J E S S I C A   H E D S T R O M") is recognized
+ * against the clean body line ("Jessica Hedstrom") instead of being prepended
+ * and later uniform-collapsed into a duplicate ("JESSICAHEDSTROM").
+ */
+export function dedupeHeaderExtra(chunks: string[], body: string): string {
+  const squash = (s: string) => s.replace(/\s+/g, "").toLowerCase();
+  const seen = squash(body);
+  return chunks
+    .filter((c) => squash(c).length > 1 && !seen.includes(squash(c).slice(0, 24)))
+    .join("\n");
+}
+
 /** Extract plain text from an uploaded resume by file type. */
 export async function extractText(
   filename: string,
@@ -265,12 +280,9 @@ export async function extractText(
       for (const m of docXml.matchAll(/<w:txbxContent>([\s\S]*?)<\/w:txbxContent>/g)) {
         chunks.push(strip(m[1]));
       }
-      // Prepend only the parts the body doesn't already contain (dedup), so the
-      // parser sees the name/contact up top where it expects them.
-      const seen = body.toLowerCase();
-      extra = chunks
-        .filter((c) => c.length > 1 && !seen.includes(c.slice(0, 30).toLowerCase()))
-        .join("\n");
+      // Prepend only the parts the body doesn't already contain, so the parser
+      // sees the name/contact up top where it expects them.
+      extra = dedupeHeaderExtra(chunks, body);
     } catch {
       /* zip read unavailable → fall back to body-only (no regression) */
     }
@@ -285,6 +297,10 @@ export async function extractText(
   // .txt / .md / unknown → decode as UTF-8
   return collapseLetterSpacing(new TextDecoder().decode(bytes));
 }
+
+// Shared with the client UI; lives in its own (non-server-only) module so the
+// audit/editor surfaces can import it too. Re-exported here for server callers.
+export { isPlaceholderName } from "./placeholder-name";
 
 /** Heuristic stats from resume text — real, derived from the actual content. */
 export function analyze(text: string): ResumeStats {

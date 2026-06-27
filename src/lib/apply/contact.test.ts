@@ -93,4 +93,47 @@ describe("contact parse/compose", () => {
       "612-227-1149 | you@email.com | Sacramento, CA | https://www.linkedin.com/in/michael",
     );
   });
+
+  it("keeps a citizenship token out of city/state and preserves it as its own segment", () => {
+    const fields = parseContact(
+      "551-249-9072 | mdmonir@example.com | United States | U.S. Citizen | LinkedIn",
+    );
+    expect(fields.location).toBe("United States"); // not "United States, U.S. Citizen"
+    expect(fields.extra).toBe("U.S. Citizen");
+    expect(composeContact(fields)).toBe(
+      "551-249-9072 | mdmonir@example.com | United States | U.S. Citizen",
+    );
+  });
+
+  it("round-trips a work-authorization phrase without polluting the location", () => {
+    const s =
+      "612-227-1149 | you@email.com | Austin, TX | Authorized to work in the US | linkedin.com/in/you";
+    const fields = parseContact(s);
+    expect(fields.location).toBe("Austin, TX");
+    expect(fields.extra).toBe("Authorized to work in the US");
+    // The auth segment trails the standard fields, but the city/state stays clean
+    // and no information is dropped.
+    const composed = composeContact(fields);
+    expect(composed).toContain("Austin, TX");
+    expect(composed).toContain("Authorized to work in the US");
+    expect(composed).toContain("linkedin.com/in/you");
+    // Stable across a second round-trip.
+    expect(composeContact(parseContact(composed))).toBe(composed);
+  });
+
+  it("editing the city/state does not drop the preserved work-authorization segment", () => {
+    const fields = parseContact(
+      "551-249-9072 | mdmonir@example.com | United States | U.S. Citizen",
+    );
+    const edited = { ...fields, location: "Jersey City, NJ" };
+    expect(composeContact(edited)).toBe(
+      "551-249-9072 | mdmonir@example.com | Jersey City, NJ | U.S. Citizen",
+    );
+  });
+
+  it("does not mistake a city containing 'visa' (Visalia) for work authorization", () => {
+    const fields = parseContact("612-227-1149 | you@email.com | Visalia, CA");
+    expect(fields.location).toBe("Visalia, CA");
+    expect(fields.extra).toBeUndefined();
+  });
 });
