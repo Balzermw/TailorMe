@@ -54,6 +54,8 @@ import {
 } from "@/lib/resume";
 import { SAMPLE_DOC } from "@/lib/apply/sample";
 import { fixSection, SECTION_LABEL } from "@/lib/apply/sections";
+import { isPlaceholderName } from "@/lib/apply/placeholder-name";
+import { ManualReviewCTA, MichaelPitch } from "@/components/fit/michael-cta";
 
 const SHOW_SAMPLE_WORKFLOWS = process.env.NEXT_PUBLIC_SHOW_SAMPLE_WORKFLOWS === "1";
 
@@ -719,6 +721,9 @@ function StepUpload({
   const done = phase === "done" || (fromSample && phase !== "parsing");
   const showSample = fromSample && !stats;
   const profile = showSample ? SAMPLE_PROFILE : stats;
+  // The resume left a template name placeholder ("CANDIDATE NAME", "Your Name")
+  // unfilled — surface a gentle nudge so it isn't shipped as the candidate's name.
+  const namePlaceholder = !showSample && !!profile && isPlaceholderName(profile.name || "");
 
   // Staged "filling in" reveal once parsing is done (role → bullets → counts →
   // skills → the case). Count-ups run at stage 3.
@@ -988,15 +993,23 @@ function StepUpload({
               <div>
                 <b>{profile.name || "Your resume"}</b>
                 <span className="tm-small mt-[2px] block">
-                  {profile.primaryRole
-                    ? profile.primaryRole +
-                      (profile.yearsExperience ? ` · ${profile.yearsExperience} yrs` : "") +
-                      (showSample ? " · sample profile" : "")
-                    : "parsed from your upload"}
+                  {namePlaceholder ? (
+                    <span style={{ color: "#ba7517", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      <AlertTriangle size={12} style={{ flex: "none" }} />
+                      Looks like a template placeholder. Add your real name when you edit.
+                    </span>
+                  ) : profile.primaryRole ? (
+                    profile.primaryRole +
+                    (profile.yearsExperience ? ` · ${profile.yearsExperience} yrs` : "") +
+                    (showSample ? " · sample profile" : "")
+                  ) : (
+                    "parsed from your upload"
+                  )}
                 </span>
               </div>
-              <span className="tm-pill tm-pill--mint ml-auto">
-                <Check size={12} /> parsed
+              <span className={`tm-pill ${namePlaceholder ? "tm-pill--amber" : "tm-pill--mint"} ml-auto`}>
+                {namePlaceholder ? <AlertTriangle size={12} /> : <Check size={12} />}{" "}
+                {namePlaceholder ? "check name" : "parsed"}
               </span>
             </div>
           </Reveal>
@@ -1358,61 +1371,6 @@ function ScoringLoader({
   );
 }
 
-// Honest, conversion-friendly nudge toward a manual expert review on weak fit.
-function ManualReviewCTA({ overall }: { overall: number }) {
-  const line =
-    overall >= 60
-      ? "Your resume shows relevant experience, but there are notable gaps for this role."
-      : overall >= 45
-        ? "This role may be a stretch based on your current resume. The gaps below are real, but fixable."
-        : "Based on this resume, this role looks like a significant stretch right now.";
-  return (
-    <div
-      style={{
-        marginTop: "16px",
-        border: "0.5px solid rgba(67,115,219,.3)",
-        background: "var(--tm-blue-50)",
-        borderRadius: "12px",
-        padding: "16px 18px",
-        display: "flex",
-        gap: "14px",
-        alignItems: "flex-start",
-      }}
-    >
-      <Image
-        src="/michael.png"
-        alt="Michael, Head of Res.Me"
-        width={52}
-        height={52}
-        style={{
-          width: "52px",
-          height: "52px",
-          borderRadius: "50%",
-          objectFit: "cover",
-          border: "0.5px solid var(--tm-border)",
-          flex: "none",
-        }}
-      />
-      <div style={{ minWidth: 0 }}>
-        <p style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--tm-ink)", lineHeight: 1.5 }}>
-          {line}
-        </p>
-        <p className="tm-small" style={{ marginTop: "6px", fontSize: "12.5px", lineHeight: 1.5 }}>
-          I&apos;m Michael, Head of Res.Me and a Certified Professional Resume Writer. I&apos;ve
-          rewritten plenty of resumes that didn&apos;t look qualified on paper. I can do the same for
-          yours, coach you on strategy, and tell you honestly which roles fit.
-        </p>
-        <Link
-          href={ROUTES.coaching}
-          className="tm-btn tm-btn--outline tmF-manual-cta"
-          style={{ marginTop: "12px" }}
-        >
-          <PenLine size={13} /> Get a rewrite or coaching from Michael
-        </Link>
-      </div>
-    </div>
-  );
-}
 
 // The fit breakdown (score hero + ranked dimensions + location + keyword
 // coverage). Presentational + self-contained (owns its expand state) so both
@@ -2135,43 +2093,6 @@ function StepJob({
 }
 
 // ---------- Step 3: results (signed-out gate OR signed-in full run) ----------
-function MichaelPitch() {
-  return (
-    <div className="tm-card tmF-michael">
-      <Image
-        src="/michael.png"
-        alt="Michael, head of Res.Me"
-        width={72}
-        height={72}
-      />
-      <div className="tmF-michael-body">
-        <span className="tmF-michael-eyebrow">
-          <PenLine size={13} /> Optional human pass
-        </span>
-        <h3>Want real human eyes on it? That’s Michael.</h3>
-        <p>
-          The AI agents already catch what a parser and a skim-read miss. For
-          extra peace of mind, Michael (Certified Professional Resume Writer, 650+
-          resumes) reads your final draft like a hiring manager and sends
-          positioning notes for this role, back in your inbox within 48 hours.
-        </p>
-        <div className="tmF-michael-foot">
-          <span className="tm-pill tm-pill--mint">+$79 per application</span>
-          <span className="tm-small" style={{ fontSize: "12.5px" }}>
-            Add it at checkout, or{" "}
-            <Link
-              href={ROUTES.coaching}
-              style={{ color: "var(--tm-blue-600)", textDecoration: "none" }}
-            >
-              meet Michael first
-            </Link>
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ---------- step 3: the three review agents (Ada / Max / Remy) ----------
 const ACCENT: Record<AuditAgent["accent"], { tint: string; ink: string; solid: string }> = {
   blue: { tint: "var(--tm-blue-50)", ink: "var(--tm-blue-800)", solid: "var(--tm-blue-600)" },
@@ -2498,13 +2419,10 @@ function RankingEvidence({ a }: { a: AuditAgent }) {
         className="tm-small"
         style={{ fontSize: "11.5px", lineHeight: 1.5, color: "var(--tm-zinc)", marginBottom: "12px" }}
       >
-        Each line is scored 0&ndash;100 for relevance to this posting.
-        {anyReason && (
-          <>
-            {" "}
-            The reason under each explains <em>why</em> &mdash; what it matches, or what it lacks.
-          </>
-        )}
+        Lines pulled straight from{" "}
+        <b style={{ color: "var(--tm-ink)", fontWeight: 600 }}>your resume</b>, each scored 0&ndash;100
+        for how well it matches this posting.
+        {anyReason && " The note under each line is the reviewer's reason."}
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       {lines.map((l) => {
@@ -2555,7 +2473,9 @@ function RankingEvidence({ a }: { a: AuditAgent }) {
             {l.reason && (
               <p
                 style={{
-                  margin: "3px 0 0 26px",
+                  margin: "4px 0 0 26px",
+                  paddingLeft: "10px",
+                  borderLeft: "2px solid var(--tm-gray)",
                   fontSize: "12px",
                   lineHeight: 1.45,
                   color: "var(--tm-slate)",
@@ -2926,6 +2846,7 @@ interface TailorArgs {
   postingText: string;
   proofPoints: ProofPoint[];
   resumeId: string | null;
+  role?: string; // target role (+ company) label, shown on the tailoring loader
 }
 function stashTailor(args: TailorArgs): void {
   try {
@@ -3139,6 +3060,7 @@ function StepSummary({
       postingText: posting,
       proofPoints: stats?.proofPoints ?? [],
       resumeId,
+      role: fitView?.header,
     });
     router.push("/applications/tailoring");
   };
@@ -3164,64 +3086,48 @@ function StepSummary({
 
   return (
     <div className="flex flex-col gap-[20px]">
-      {/* recap */}
-      <div className="tm-card" style={{ padding: "20px 22px", textAlign: "center" }}>
-        <span className="tmF-p2-label">Your audit summary</span>
-        <h3 style={{ fontSize: "18px", fontWeight: 600, color: "var(--tm-ink)", margin: "8px 0 0" }}>
-          {name ? `${name}, here’s the verdict` : "Here’s the verdict"}
-        </h3>
-        {fitView &&
+      {/* recap — the score is the hero, role is the context beneath it */}
+      <div className="tm-card tmSum-verdict">
+        <span className="tmF-p2-label">
+          {name ? `${name}, here’s your verdict` : "Your audit summary"}
+        </span>
+        {fitView ? (
           (() => {
             const t = fitTheme(fitView.overall);
             return (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  justifyContent: "center",
-                  gap: "8px",
-                  marginTop: "10px",
-                }}
-              >
-                <span style={{ fontSize: "34px", fontWeight: 700, lineHeight: 1, color: t.ring }}>
-                  {fitView.overall}
-                </span>
-                <span style={{ fontSize: "13px", color: "var(--tm-zinc)" }}>/ 100</span>
-                {fitView.verdict && (
-                  <span
-                    className="tm-pill"
-                    style={{
-                      fontSize: "11.5px",
-                      fontWeight: 600,
-                      background: t.card,
-                      color: t.ink,
-                      border: `0.5px solid ${t.border}`,
-                    }}
-                  >
-                    {fitView.verdict}
+              <>
+                <div className="tmSum-verdict-score">
+                  <span className="tmSum-verdict-num" style={{ color: t.ring }}>
+                    {fitView.overall}
                   </span>
+                  <span className="tmSum-verdict-of">/ 100</span>
+                  {fitView.verdict && (
+                    <span
+                      className="tm-pill"
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        background: t.card,
+                        color: t.ink,
+                        border: `0.5px solid ${t.border}`,
+                      }}
+                    >
+                      {fitView.verdict}
+                    </span>
+                  )}
+                </div>
+                <p className="tmSum-verdict-role">{fitView.header}</p>
+                {fitView.locationNote && (
+                  <p className="tmSum-verdict-note">{fitView.locationNote}</p>
                 )}
-              </div>
+              </>
             );
-          })()}
-        <p className="tm-small" style={{ marginTop: "10px", fontSize: "13px" }}>
-          <b style={{ color: "var(--tm-ink)", fontWeight: 600 }}>
-            {fitView?.header || (posting ? "Your target posting" : "Your resume")}
-          </b>
-          {/*
-          {fitView?.locationNote ? ` · ${fitView.locationNote}` : ""}
-          */}
-        </p>
-        {fitView?.locationNote && (
-          <p
-            className="tm-small"
-            style={{ margin: "4px auto 0", maxWidth: "62ch", fontSize: "12.5px", lineHeight: 1.45 }}
-          >
-            {fitView.locationNote}
-          </p>
+          })()
+        ) : (
+          <p className="tmSum-verdict-role">{posting ? "Your target posting" : "Your resume"}</p>
         )}
         {(auditSample || useSample) && (
-          <p className="tmS-free" style={{ marginTop: "10px", display: "block" }}>
+          <p className="tmS-free" style={{ marginTop: "6px", display: "block" }}>
             This is a sample result.{" "}
             <Link href={ROUTES.signIn} style={{ color: "var(--tm-mint-600)", textDecoration: "underline" }}>
               create a free account
@@ -3233,69 +3139,48 @@ function StepSummary({
 
       {/* 1 · what's strong (keep) */}
       {hasStrengths && (
-        <div className="tm-card" style={{ padding: "20px 22px", borderColor: "var(--tm-mint-200)" }}>
-          <span
-            className="tmF-p2-label"
-            style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", color: "var(--tm-mint-600)" }}
-          >
-            <Check size={14} /> What’s strong · keep it
-          </span>
-          <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px", textAlign: "center" }}>
-            Already working for this role. Tailoring leaves these alone.
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", marginTop: "12px" }}>
-            {strongDims.length > 0 && (
-              <p className="tm-small" style={{ fontSize: "12.5px", color: "var(--tm-ink)", textAlign: "center" }}>
-                Strong on {strongDims.map((d) => d.label).join(", ")}.
-              </p>
-            )}
-            {quantified > 0 && (
-              <p className="tm-small" style={{ fontSize: "12.5px", color: "var(--tm-ink)", textAlign: "center" }}>
-                {quantified} bullet{quantified === 1 ? "" : "s"} already carry a hard metric.
-              </p>
-            )}
-            {quantified > 0 && strongExample && (
-              <p
-                className="tm-small"
-                style={{
-                  fontSize: "12px",
-                  fontStyle: "italic",
-                  color: "var(--tm-zinc)",
-                  textAlign: "center",
-                  maxWidth: "60ch",
-                  lineHeight: 1.5,
-                }}
-              >
-                e.g. “{strongExample}”
-              </p>
-            )}
-            {matchedKw.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "6px" }}>
-                {matchedKw.map((k) => (
-                  <span key={k.term} className="tm-pill tm-pill--mint" style={{ fontSize: "11px" }}>
-                    <Check size={11} /> {k.term}
-                  </span>
-                ))}
-              </div>
-            )}
+        <div className="tm-card tmSum-card tmSum-card--good">
+          <div className="tmSum-head">
+            <Check size={15} style={{ color: "var(--tm-mint-600)" }} />
+            <b>What&apos;s strong</b>
+            <span className="tmSum-sub">keep these, tailoring leaves them alone</span>
           </div>
+          {(strongDims.length > 0 || quantified > 0) && (
+            <p className="tmSum-line">
+              {strongDims.length > 0 && `Strong on ${strongDims.map((d) => d.label).join(", ")}. `}
+              {quantified > 0 &&
+                `${quantified} bullet${quantified === 1 ? "" : "s"} already quantified.`}
+            </p>
+          )}
+          {matchedKw.length > 0 && (
+            <div className="tmSum-pills">
+              {matchedKw.map((k) => (
+                <span key={k.term} className="tm-pill tm-pill--mint" style={{ fontSize: "11px" }}>
+                  <Check size={11} /> {k.term}
+                </span>
+              ))}
+            </div>
+          )}
+          {quantified > 0 && strongExample && (
+            <p className="tmSum-eg">“{strongExample}”</p>
+          )}
         </div>
       )}
 
       {/* 2 · what to quantify */}
       {/* 3 · what to change (rewrite/fix) */}
       {proofPoints.length > 0 && (
-        <div className="tm-card" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
+        <div className="tm-card tmSum-card" style={{ gap: "14px" }}>
           <div>
-            <span
-              className="tmF-p2-label"
-              style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", color: "#854f0b" }}
-            >
-              <PenLine size={14} /> What to change · {proofPoints.length} fix
-              {proofPoints.length === 1 ? "" : "es"}
-            </span>
-            <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px", textAlign: "center" }}>
-              Rewrites pulled from your resume. Each shows the section it lives in.
+            <div className="tmSum-head">
+              <PenLine size={15} style={{ color: "#854f0b" }} />
+              <b>What to change</b>
+              <span className="tmSum-count">
+                {proofPoints.length} fix{proofPoints.length === 1 ? "" : "es"}
+              </span>
+            </div>
+            <p className="tmSum-sub" style={{ marginTop: "4px" }}>
+              Rewrites pulled from your resume, each tagged with the section it lives in.
             </p>
           </div>
           {changeGroups.map(([sev, items]) =>
@@ -3323,19 +3208,17 @@ function StepSummary({
 
       {/* 3 · what to add (missing keywords) */}
       {missingKw.length > 0 && (
-        <div className="tm-card" style={{ padding: "20px 22px" }}>
-          <span
-            className="tmF-p2-label"
-            style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", color: SEMANTIC.missing.ink }}
-          >
-            <AlertTriangle size={14} /> Missing keywords · {missingKw.length} keyword
-            {missingKw.length === 1 ? "" : "s"}
-          </span>
-          <p className="tm-small" style={{ marginTop: "4px", fontSize: "12.5px", textAlign: "center" }}>
+        <div className="tm-card tmSum-card">
+          <div className="tmSum-head">
+            <AlertTriangle size={15} style={{ color: SEMANTIC.missing.ink }} />
+            <b>Missing keywords</b>
+            <span className="tmSum-count">{missingKw.length}</span>
+          </div>
+          <p className="tmSum-sub">
             The posting screens for these and your resume misses them. Tailoring adds them only where
             your experience genuinely backs them.
           </p>
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "6px", marginTop: "12px" }}>
+          <div className="tmSum-pills">
             {missingKw.map((k) => (
               <span
                 key={k.term}
