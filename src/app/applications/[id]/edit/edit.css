@@ -24,6 +24,47 @@
   font-weight: 400;
   color: var(--tm-zinc);
 }
+/* Title block: the headline + an "Optimized resume" badge under it, so it's
+   clear the resume carries AI feedback. The badge jumps to the Feedback tab. */
+.tmE-head-title {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.tmE-optimized {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 3px 9px 3px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--tm-blue-700, var(--tm-blue-600));
+  background: var(--tm-blue-50);
+  border: 0.5px solid var(--tm-blue-200, rgba(67, 115, 219, 0.22));
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.tmE-optimized:hover {
+  background: #e7eefb;
+}
+.tmE-optimized svg {
+  color: var(--tm-blue-600);
+}
+.tmE-optimized-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--tm-blue-600);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
 .tmE-head-right {
   margin-left: auto;
   display: flex;
@@ -1574,6 +1615,45 @@
   font-weight: 600;
   color: var(--tm-ink);
   line-height: 1.35;
+}
+/* Title + "what this fix does" badge on one row, badge pinned to the right. */
+.tmE-fix-titlerow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tmE-fix-titlerow b {
+  flex: 1 1 auto;
+}
+/* Adds-vs-rewrites tag: tells the user at a glance whether a fix introduces new
+   content or just reworks text already in the resume. */
+.tmE-fix-kind {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 1px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tmE-fix-kind svg {
+  flex: none;
+}
+.tmE-fix-kind--add {
+  background: var(--tm-mint-50);
+  color: var(--tm-mint-700);
+  border: 0.5px solid var(--tm-mint-200);
+}
+.tmE-fix-kind--edit {
+  background: var(--tm-gray);
+  color: var(--tm-slate);
+  border: 0.5px solid var(--tm-border);
 }
 .tmE-fix-sum {
   font-size: 12.5px;

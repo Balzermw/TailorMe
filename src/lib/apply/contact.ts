@@ -38,6 +38,13 @@ const LOCATION_PLACEHOLDER_RE =
 const LINKEDIN_URL_RE =
   /\b(?:https?:\/\/)?(?:www\.)?(?:linkedin|linkedgin)\.com\/[^\s"'<>|,;]+/gi;
 const LINKEDIN_LABEL_RE = /\b(?:linkedin|linkedgin)\b\s*[:\-]?/gi;
+// Portfolio / personal-site links (github.com/me, behance.net/me, mysite.dev/work)
+// that resumes list among contact segments. A place is never a URL, so we peel
+// these out of `location` and keep them as a trailing segment. Requires a path
+// (".../x") so a plain "St. Louis" or "Washington, D.C." is never mistaken for one.
+// LinkedIn is handled separately above and is stripped before this runs.
+const OTHER_URL_RE =
+  /\b(?:https?:\/\/)?(?:www\.)?[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)+\/[^\s"'<>|,;]*/gi;
 
 function addOrder(order: ContactKey[], key: ContactKey) {
   if (!order.includes(key)) order.push(key);
@@ -93,6 +100,20 @@ function extractLinkedin(value: string): { text: string; linkedin: string } {
   return { text, linkedin: links[0] ?? "" };
 }
 
+// Pull any non-LinkedIn portfolio/site URLs out of a value (returns the cleaned
+// text plus the URLs found), so links never sit inside the city/state field.
+function extractUrls(value: string): { text: string; urls: string[] } {
+  const urls: string[] = [];
+  const text = cleanLooseSeparators(
+    (value || "").replace(OTHER_URL_RE, (match) => {
+      const clean = match.replace(/[.)\]]+$/g, "");
+      urls.push(clean);
+      return match.slice(clean.length);
+    }),
+  );
+  return { text, urls };
+}
+
 function normalizeOrder(order: ContactKey[] | undefined): ContactKey[] | undefined {
   if (!order?.length) return undefined;
   const seen = new Set<ContactKey>();
@@ -124,6 +145,15 @@ export function normalizeContactFields(fields: ContactFields): ContactFields {
     next.location = cleanLooseSeparators(next.location);
   }
   next.location = cleanLocation(next.location);
+
+  // A portfolio/site URL is not a city/state. Peel any out of location and keep
+  // them with the trailing `extra` segment so the link survives the round-trip
+  // (print-doc still renders it as a real link in the header).
+  const fromUrls = extractUrls(next.location);
+  if (fromUrls.urls.length) {
+    next.location = fromUrls.text;
+    next.extra = [next.extra, ...fromUrls.urls].filter(Boolean).join(", ") || undefined;
+  }
 
   const fromLinkedin = extractLinkedin(next.linkedin);
   if (fromLinkedin.linkedin) {
