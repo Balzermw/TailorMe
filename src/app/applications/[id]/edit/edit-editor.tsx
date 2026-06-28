@@ -7,8 +7,6 @@ import {
   ArrowLeft,
   Check,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   ChevronUp,
   Download,
   Eye,
@@ -612,15 +610,8 @@ export default function EditEditor({
   // where the résumé spills onto page 2+ (the downloaded PDF is the exact split).
   const docWrapRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
-  // Page navigator: the preview paginates into real US-Letter sheets — content is
-  // padded so a block never crosses a page edge — and shows ONE sheet at a time,
-  // flipped with the pager. pageCount = number of sheets; sheetPx = one sheet's
-  // unscaled (pre-zoom) height.
-  const [pageCount, setPageCount] = useState(1);
-  const [sheetPx, setSheetPx] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  // After an applied edit, the exact preview anchor to flip the pager to, so an
-  // edit that lands on (or moves to) page 2 is shown, not left off-screen.
+  // After an applied edit, the exact preview anchor to scroll to, so an edit lands
+  // visibly in the (continuously-scrolling) preview rather than off-screen.
   const [pendingJump, setPendingJump] = useState<string | null>(null);
   // While a suggestion's draft is open, keep its targeted line highlighted in the
   // preview (not just on hover) so the user always sees WHAT they're editing.
@@ -655,23 +646,10 @@ export default function EditEditor({
       // Fit the fixed-width document to the panel (zoom-to-fit-width), capped.
       const scale = Math.min(1.5, viewport.clientWidth / PREVIEW_DOC_WIDTH);
       setDocScale((prev) => (Math.abs(prev - scale) > 0.001 ? scale : prev));
-      // One US-Letter sheet at the document's true (pre-zoom) width.
-      const sheet = (page.offsetWidth * 11) / 8.5;
-      // Clear our sheet-fill (and any stale per-block padding from older builds) so
-      // we measure the TRUE content height, then split it into whole sheets. We
-      // slice on the sheet edge — padding every block down to avoid splits left the
-      // pages looking half-empty and inflated the page count.
+      // Continuous scroll: the preview is one tall sheet that scrolls, so we only
+      // need the document's true (natural) height scaled to the on-screen zoom, to
+      // size the scroll area. No page splitting / sheet-fill padding.
       page.style.minHeight = "";
-      page
-        .querySelectorAll<HTMLElement>(".mcv-head, .mcv-body > *")
-        .forEach((el) => {
-          el.style.marginTop = "";
-        });
-      const contentH = page.offsetHeight;
-      const pages = Math.max(1, Math.ceil((contentH - 8) / sheet));
-      page.style.minHeight = `${Math.round(pages * sheet)}px`; // fill out whole sheets
-      setSheetPx((prev) => (prev != null && Math.abs(prev - sheet) < 1 ? prev : Math.round(sheet)));
-      setPageCount(pages);
       setDocHeight(Math.round(page.offsetHeight * scale));
     };
     measure();
@@ -685,18 +663,9 @@ export default function EditEditor({
       ro.disconnect();
     };
   }, [doc]);
-  // Page navigator: one sheet shown at a time. We translate the scaler up by whole
-  // sheets (pre-scale coords, applied before the zoom), so each page shows only
-  // its own content. Clamp the page when pagination changes (an edit can add or
-  // remove a page).
-  const totalPages = pageCount;
-  const paged = pageCount > 1 && sheetPx != null;
-  const pageHeightScaled = sheetPx != null ? Math.round(sheetPx * docScale) : null;
-  // Clamp at render so a pagination change (an edit added/removed a page) can't
-  // strand the indicator past the last page — no effect/setState needed.
-  const safePage = Math.min(Math.max(1, currentPage), totalPages);
-  const pageTranslate = paged && safePage > 1 ? (safePage - 1) * (sheetPx ?? 0) : 0;
-  const goToPage = (p: number) => setCurrentPage(Math.min(Math.max(1, p), totalPages));
+  // Scaled width of the document, so the scroll area (sizer) matches the zoomed
+  // doc and centers it.
+  const docWidthScaled = Math.round(PREVIEW_DOC_WIDTH * docScale);
   // Experience entries collapse to a one-line header; open entries that still
   // have AI rewrites to review so those aren't hidden.
   const [openEntries, setOpenEntries] = useState<Set<number>>(() => {
@@ -744,52 +713,40 @@ export default function EditEditor({
       const vr = vp.getBoundingClientRect();
       const sr = scaler.getBoundingClientRect();
       const er = (el as HTMLElement).getBoundingClientRect();
-      // When the SECTION changes (not on manual paging), flip the pager to the
-      // page holding it so the avatar is on-screen. (er.top - sr.top) is
-      // translate-invariant, so divide by the scale for the unscaled offset.
+      // The avatar lives in the scroll content at the section's offset, so it
+      // scrolls with the résumé (the offset is stable while scrolling).
+      setCursorTop(Math.max(2, er.top - sr.top));
+      // When the edited SECTION changes, scroll it comfortably into view.
       const anchorChanged = prevAnchorRef.current !== editingAnchor;
       prevAnchorRef.current = editingAnchor;
-      if (anchorChanged && pageCount > 1 && sheetPx && docScale > 0) {
-        const unscaledTop = (er.top - sr.top) / docScale;
-        const targetPage = Math.min(pageCount, Math.floor(unscaledTop / sheetPx) + 1);
-        if (targetPage !== currentPage) {
-          setCurrentPage(targetPage);
-          return; // reposition on the re-run after the flip
-        }
+      if (anchorChanged) {
+        vp.scrollTo({ top: vp.scrollTop + (er.top - vr.top) - 48, behavior: "smooth" });
       }
-      const top = er.top - vr.top;
-      // Only show it when the anchored block is on the visible page.
-      setCursorTop(top >= -10 && top <= vr.height - 10 ? Math.max(2, top) : null);
     };
-    // rAF + a post-transition pass; never set state synchronously in the effect.
     const raf = requestAnimationFrame(compute);
-    const t = setTimeout(compute, 350); // settle after a page-flip transition
+    const t = setTimeout(compute, 200); // settle after reflow
     window.addEventListener("resize", compute);
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(t);
       window.removeEventListener("resize", compute);
     };
-  }, [editingAnchor, currentPage, docScale, sheetPx, pageCount, doc, openEntries]);
-  // After an apply, let the doc re-render + re-paginate, then flip the pager to
-  // the page that now holds the edited block (reads fresh geometry so it's robust
-  // to the reflow). Clears itself once it has navigated.
+  }, [editingAnchor, docScale, doc, openEntries]);
+  // After an apply, let the doc re-render, then scroll the edited block into view
+  // so the change is visible in the continuous preview. Clears itself once done.
   useEffect(() => {
     if (!pendingJump) return;
     let raf = 0;
     const t = window.setTimeout(() => {
       raf = requestAnimationFrame(() => {
-        const scaler = docWrapRef.current;
-        const page = scaler?.querySelector(".print-page") as HTMLElement | null;
-        const el = scaler?.querySelector(`[data-field="${pendingJump}"]`) as HTMLElement | null;
-        if (scaler && page && el) {
-          const sheet = (page.offsetWidth * 11) / 8.5;
-          if (sheet > 0) {
-            const pages = Math.max(1, Math.round(page.offsetHeight / sheet));
-            const scale = page.getBoundingClientRect().width / page.offsetWidth || 1;
-            const top = (el.getBoundingClientRect().top - scaler.getBoundingClientRect().top) / scale;
-            setCurrentPage(Math.min(pages, Math.max(1, Math.floor(top / sheet) + 1)));
-          }
+        const vp = viewportRef.current;
+        const el = docWrapRef.current?.querySelector(
+          `[data-field="${pendingJump}"]`,
+        ) as HTMLElement | null;
+        if (vp && el) {
+          const vr = vp.getBoundingClientRect();
+          const er = el.getBoundingClientRect();
+          vp.scrollTo({ top: vp.scrollTop + (er.top - vr.top) - 48, behavior: "smooth" });
         }
         setPendingJump(null);
       });
@@ -1581,9 +1538,9 @@ export default function EditEditor({
     }
   }
 
-  // Re-apply the locked highlight after the preview re-renders or flips pages, so
-  // the targeted line stays lit while the draft is open. Defined after
-  // highlightFinding so the compiler can track it.
+  // Re-apply the locked highlight after the preview re-renders, so the targeted
+  // line stays lit while the draft is open. Defined after highlightFinding so the
+  // compiler can track it.
   useEffect(() => {
     if (!lockedFinding) return;
     const raf = requestAnimationFrame(() =>
@@ -1591,7 +1548,7 @@ export default function EditEditor({
     );
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lockedFinding, currentPage, doc]);
+  }, [lockedFinding, doc]);
 
   const reviewableChangeCount = collectChanges().length;
   const wideEditMode =
@@ -2643,42 +2600,34 @@ export default function EditEditor({
               </span>
             </p>
           )}
-          <div
-            className="tmE-doc-viewport"
-            ref={viewportRef}
-            style={{
-              height: paged
-                ? `${pageHeightScaled}px`
-                : docHeight != null
-                  ? `${docHeight}px`
-                  : undefined,
-            }}
-          >
-            <div
-              ref={docWrapRef}
-              className="tmE-doc-scaler"
-              style={{
-                transform: `scale(${docScale}) translateY(${-pageTranslate}px)`,
-                transition: "transform 0.3s ease",
-              }}
-            >
-              <PrintDoc doc={doc} id={id} resumeOnly hideToolbar markPlaceholders highlightKeywords={showMatches ? previewKeywords : undefined} />
-            </div>
-            {cursorTop != null && (
-              <div className="tmE-cursor" style={{ top: `${cursorTop}px` }} aria-hidden="true">
-                <span className="tmE-cursor-badge">{avatarInitials}</span>
+          <div className="tmE-preview-stage">
+            <div className="tmE-doc-viewport" ref={viewportRef}>
+              <div
+                className="tmE-doc-sizer"
+                style={{
+                  width: docHeight != null ? `${docWidthScaled}px` : undefined,
+                  height: docHeight != null ? `${docHeight}px` : undefined,
+                }}
+              >
+                <div
+                  ref={docWrapRef}
+                  className="tmE-doc-scaler"
+                  style={{ transform: `scale(${docScale})` }}
+                >
+                  <PrintDoc doc={doc} id={id} resumeOnly hideToolbar markPlaceholders highlightKeywords={showMatches ? previewKeywords : undefined} />
+                </div>
+                {cursorTop != null && (
+                  <div className="tmE-cursor" style={{ top: `${cursorTop}px` }} aria-hidden="true">
+                    <span className="tmE-cursor-badge">{avatarInitials}</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          {hlDir === "down" && (
-            <div className="tmE-hl-arrow tmE-hl-arrow--down" aria-hidden="true">
-              <ChevronDown size={14} /> Highlighted below
             </div>
-          )}
-          <div className="tmE-preview-foot">
+            {/* Saved pill floats over the scrolling résumé, bottom-right, so it
+                stays visible without taking a row of its own. */}
             <button
               type="button"
-              className={`tmE-saved ${saving ? "is-saving" : dirty ? "is-dirty" : "is-saved"}`}
+              className={`tmE-saved tmE-saved--float ${saving ? "is-saving" : dirty ? "is-dirty" : "is-saved"}`}
               onClick={() => {
                 if (dirty && !saving) void save();
               }}
@@ -2700,29 +2649,9 @@ export default function EditEditor({
                 </>
               )}
             </button>
-            {totalPages > 1 && (
-              <div className="tmE-pager">
-                <button
-                  type="button"
-                  className="tmE-pager-btn"
-                  onClick={() => goToPage(safePage - 1)}
-                  disabled={safePage <= 1}
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft size={15} />
-                </button>
-                <span className="tmE-pager-count">
-                  {safePage} / {totalPages}
-                </span>
-                <button
-                  type="button"
-                  className="tmE-pager-btn"
-                  onClick={() => goToPage(safePage + 1)}
-                  disabled={safePage >= totalPages}
-                  aria-label="Next page"
-                >
-                  <ChevronRight size={15} />
-                </button>
+            {hlDir === "down" && (
+              <div className="tmE-hl-arrow tmE-hl-arrow--down" aria-hidden="true">
+                <ChevronDown size={14} /> Highlighted below
               </div>
             )}
           </div>
