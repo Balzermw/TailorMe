@@ -60,10 +60,9 @@
 }
 .mcv-contact a {
   color: var(--mcv-blue);
-  text-decoration: none;
-}
-.mcv-contact a:hover {
   text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 0.5px;
 }
 
 .mcv-body {
@@ -211,10 +210,6 @@
   color: var(--mcv-ink);
   font-size: 12px;
 }
-.print-tpl--jake .mcv-contact a {
-  color: var(--mcv-ink);
-  text-decoration: none;
-}
 .print-tpl--jake .mcv-sec {
   color: var(--mcv-ink);
   text-transform: uppercase;
@@ -270,9 +265,6 @@
   color: var(--mcv-ink);
   font-style: italic;
 }
-.print-tpl--classic .mcv-contact a {
-  color: inherit;
-}
 .print-tpl--classic .mcv-sec {
   color: var(--mcv-ink);
   text-transform: none;
@@ -296,9 +288,6 @@
   color: inherit;
 }
 .print-tpl--modern .mcv-title {
-  color: var(--mcv-ink);
-}
-.print-tpl--modern .mcv-contact a {
   color: var(--mcv-ink);
 }
 .print-tpl--modern .mcv-sec {

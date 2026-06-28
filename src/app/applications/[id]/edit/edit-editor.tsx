@@ -546,12 +546,16 @@ export default function EditEditor({
   // where the résumé spills onto page 2+ (the downloaded PDF is the exact split).
   const docWrapRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const [pageBreaks, setPageBreaks] = useState<number[]>([]);
-  // Page navigator: the viewport is one page tall and the scaler is translated to
-  // show the current page (1-based), like flipping sheets. pageHeight is one
-  // sheet's on-screen (scaled) height.
+  // Page navigator: the preview paginates into real US-Letter sheets — content is
+  // padded so a block never crosses a page edge — and shows ONE sheet at a time,
+  // flipped with the pager. pageCount = number of sheets; sheetPx = one sheet's
+  // unscaled (pre-zoom) height.
+  const [pageCount, setPageCount] = useState(1);
+  const [sheetPx, setSheetPx] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageHeight, setPageHeight] = useState<number | null>(null);
+  // "You are here": a small avatar in the preview, level with the section being
+  // edited. Null = hidden (off the current page, or not in Edit mode).
+  const [cursorTop, setCursorTop] = useState<number | null>(null);
   // The preview renders at a fixed document width and is scaled to fit the panel,
   // so the page layout (and therefore the page breaks) never change with the
   // window — only the on-screen zoom does. The PDF is the exact split.
@@ -574,92 +578,50 @@ export default function EditEditor({
     const page = scaler?.querySelector(".print-page") as HTMLElement | null;
     if (!scaler || !viewport || !page) return;
     const measure = () => {
-      // Scale the fixed-width document to FILL the panel (zoom-to-fit-width, like
-      // a word processor) — up or down — so the preview uses the whole section
-      // while the layout/pagination stay fixed. Capped so it never zooms absurdly.
+      // Fit the fixed-width document to the panel (zoom-to-fit-width), capped.
       const scale = Math.min(1.5, viewport.clientWidth / PREVIEW_DOC_WIDTH);
       setDocScale((prev) => (Math.abs(prev - scale) > 0.001 ? scale : prev));
-      setDocHeight(Math.round(scaler.offsetHeight * scale));
-      // offsetWidth is the pre-transform layout width, so one sheet's height is
-      // computed on the true (fixed) document size, not the scaled-down view.
-      const w = page.offsetWidth;
-      const sheet = (w * 11) / 8.5; // a US Letter page at the document's true width
-      setPageHeight(Math.round(sheet * scale)); // one sheet, on-screen (scaled)
-      // Markers live inside the scaler, so positions are measured in the scaler's
-      // own (pre-transform) coordinates. getBoundingClientRect is post-transform;
-      // dividing the gap from the scaler's top edge by `scale` converts back. The
-      // print-wrap padding above the sheet is preview chrome, so anchor to the page
-      // top, not the scaler top.
-      const scalerTop = scaler.getBoundingClientRect().top;
-      const localY = (el: Element) =>
-        (el.getBoundingClientRect().top - scalerTop) / scale;
-      const pageTop = localY(page);
-      const docBottom = scaler.offsetHeight;
-      if (!sheet || docBottom - pageTop <= sheet + 6) {
-        setPageBreaks((prev) => (prev.length ? [] : prev));
-        return;
-      }
-      // The print engine never splits a block (a section header, a dated entry, a
-      // skills line): a block that would cross the page edge is pushed whole to the
-      // next page, leaving white space below. So break at the TOP of the first
-      // block that straddles each sheet boundary, not at a flat line through it.
-      const blocks = Array.from(page.querySelectorAll(".mcv-head, .mcv-body > *")).map(
-        (el) => {
-          const top = localY(el);
-          return {
-            top,
-            bottom: top + (el as HTMLElement).offsetHeight,
-            // A section heading shouldn't be stranded at the foot of a page away
-            // from the entries it titles (print's break-after: avoid).
-            heading: el.classList.contains("mcv-sec"),
-          };
-        },
-      );
-      const breaks: number[] = [];
-      let pageStart = pageTop;
-      // The guards (block must start below pageStart; cap at 12) keep a single
-      // block taller than a sheet from looping forever.
-      while (docBottom - pageStart > sheet + 6 && breaks.length < 12) {
-        const boundary = pageStart + sheet;
-        const idx = blocks.findIndex(
-          (b) => b.top > pageStart + 1 && b.top < boundary && b.bottom > boundary,
-        );
-        let breakY = boundary;
-        if (idx >= 0) {
-          // Pull the break up past an immediately-preceding heading so it travels
-          // to the next page with its content instead of being orphaned.
-          const prev = blocks[idx - 1];
-          breakY =
-            prev && prev.heading && prev.top > pageStart + 1
-              ? prev.top
-              : blocks[idx].top;
-        }
-        breakY = Math.round(breakY);
-        breaks.push(breakY);
-        pageStart = breakY;
-      }
-      setPageBreaks((prev) =>
-        prev.length === breaks.length && prev.every((v, i) => v === breaks[i])
-          ? prev
-          : breaks,
-      );
+      // One US-Letter sheet at the document's true (pre-zoom) width.
+      const sheet = (page.offsetWidth * 11) / 8.5;
+      // Clear our sheet-fill (and any stale per-block padding from older builds) so
+      // we measure the TRUE content height, then split it into whole sheets. We
+      // slice on the sheet edge — padding every block down to avoid splits left the
+      // pages looking half-empty and inflated the page count.
+      page.style.minHeight = "";
+      page
+        .querySelectorAll<HTMLElement>(".mcv-head, .mcv-body > *")
+        .forEach((el) => {
+          el.style.marginTop = "";
+        });
+      const contentH = page.offsetHeight;
+      const pages = Math.max(1, Math.ceil((contentH - 8) / sheet));
+      page.style.minHeight = `${Math.round(pages * sheet)}px`; // fill out whole sheets
+      setSheetPx((prev) => (prev != null && Math.abs(prev - sheet) < 1 ? prev : Math.round(sheet)));
+      setPageCount(pages);
+      setDocHeight(Math.round(page.offsetHeight * scale));
     };
     measure();
+    // One more pass after fonts/async settle (block heights can shift).
+    const t = window.setTimeout(measure, 250);
+    // Observe width only — observing `page` would loop on our own padding writes.
     const ro = new ResizeObserver(measure);
     ro.observe(viewport);
-    ro.observe(page);
-    return () => ro.disconnect();
+    return () => {
+      window.clearTimeout(t);
+      ro.disconnect();
+    };
   }, [doc]);
-  // Page navigator: the viewport is one sheet tall and we translate the scaler up
-  // by the current page's break offset (page breaks are in the scaler's pre-scale
-  // coords, so they translate before the scale is applied). Clamp the page when
-  // the doc's pagination changes (an edit can add/remove a page).
-  const totalPages = pageBreaks.length + 1;
-  const paged = pageBreaks.length > 0 && pageHeight != null;
+  // Page navigator: one sheet shown at a time. We translate the scaler up by whole
+  // sheets (pre-scale coords, applied before the zoom), so each page shows only
+  // its own content. Clamp the page when pagination changes (an edit can add or
+  // remove a page).
+  const totalPages = pageCount;
+  const paged = pageCount > 1 && sheetPx != null;
+  const pageHeightScaled = sheetPx != null ? Math.round(sheetPx * docScale) : null;
   // Clamp at render so a pagination change (an edit added/removed a page) can't
   // strand the indicator past the last page — no effect/setState needed.
   const safePage = Math.min(Math.max(1, currentPage), totalPages);
-  const pageTranslate = paged && safePage > 1 ? pageBreaks[safePage - 2] : 0;
+  const pageTranslate = paged && safePage > 1 ? (safePage - 1) * (sheetPx ?? 0) : 0;
   const goToPage = (p: number) => setCurrentPage(Math.min(Math.max(1, p), totalPages));
   // Experience entries collapse to a one-line header; open entries that still
   // have AI rewrites to review so those aren't hidden.
@@ -668,6 +630,73 @@ export default function EditEditor({
     bulletDiffs.forEach((d) => s.add(d.entry));
     return s;
   });
+  // "You are here" avatar: map the active edit section to a preview anchor
+  // (data-field on PrintDoc), then track that block's on-screen position.
+  const editingAnchor =
+    mode !== "edit"
+      ? null
+      : section === "header"
+        ? "header"
+        : section === "summary"
+          ? "summary"
+          : section === "experience"
+            ? `exp-${openEntries.size ? Math.min(...openEntries) : 0}`
+            : section === "projects"
+              ? "proj-0"
+              : section === "education"
+                ? "edu-0"
+                : section === "certifications"
+                  ? "cert-0"
+                  : section === "skills"
+                    ? "skills"
+                    : null;
+  const avatarInitials =
+    (doc.name || "You")
+      .split(/\s+/)
+      .map((w) => w[0] ?? "")
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "Y";
+  const prevAnchorRef = useRef<string | null>(null);
+  useEffect(() => {
+    const compute = () => {
+      const vp = viewportRef.current;
+      const scaler = docWrapRef.current;
+      const el = editingAnchor ? scaler?.querySelector(`[data-field="${editingAnchor}"]`) : null;
+      if (!vp || !scaler || !el) {
+        setCursorTop(null);
+        return;
+      }
+      const vr = vp.getBoundingClientRect();
+      const sr = scaler.getBoundingClientRect();
+      const er = (el as HTMLElement).getBoundingClientRect();
+      // When the SECTION changes (not on manual paging), flip the pager to the
+      // page holding it so the avatar is on-screen. (er.top - sr.top) is
+      // translate-invariant, so divide by the scale for the unscaled offset.
+      const anchorChanged = prevAnchorRef.current !== editingAnchor;
+      prevAnchorRef.current = editingAnchor;
+      if (anchorChanged && pageCount > 1 && sheetPx && docScale > 0) {
+        const unscaledTop = (er.top - sr.top) / docScale;
+        const targetPage = Math.min(pageCount, Math.floor(unscaledTop / sheetPx) + 1);
+        if (targetPage !== currentPage) {
+          setCurrentPage(targetPage);
+          return; // reposition on the re-run after the flip
+        }
+      }
+      const top = er.top - vr.top;
+      // Only show it when the anchored block is on the visible page.
+      setCursorTop(top >= -10 && top <= vr.height - 10 ? Math.max(2, top) : null);
+    };
+    // rAF + a post-transition pass; never set state synchronously in the effect.
+    const raf = requestAnimationFrame(compute);
+    const t = setTimeout(compute, 350); // settle after a page-flip transition
+    window.addEventListener("resize", compute);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t);
+      window.removeEventListener("resize", compute);
+    };
+  }, [editingAnchor, currentPage, docScale, sheetPx, pageCount, doc, openEntries]);
   function toggleEntry(i: number) {
     setOpenEntries((prev) => {
       const next = new Set(prev);
@@ -2333,7 +2362,7 @@ export default function EditEditor({
             ref={viewportRef}
             style={{
               height: paged
-                ? `${pageHeight}px`
+                ? `${pageHeightScaled}px`
                 : docHeight != null
                   ? `${docHeight}px`
                   : undefined,
@@ -2348,17 +2377,12 @@ export default function EditEditor({
               }}
             >
               <PrintDoc doc={doc} id={id} resumeOnly hideToolbar highlightKeywords={showMatches ? previewKeywords : undefined} />
-              {pageBreaks.map((y, i) => (
-                <div
-                  key={i}
-                  className="tmE-pagebreak"
-                  style={{ top: `${y}px` }}
-                  aria-hidden="true"
-                >
-                  <span>Page {i + 2}</span>
-                </div>
-              ))}
             </div>
+            {cursorTop != null && (
+              <div className="tmE-cursor" style={{ top: `${cursorTop}px` }} aria-hidden="true">
+                <span className="tmE-cursor-badge">{avatarInitials}</span>
+              </div>
+            )}
           </div>
           {hlDir === "down" && (
             <div className="tmE-hl-arrow tmE-hl-arrow--down" aria-hidden="true">
