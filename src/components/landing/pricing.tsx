@@ -55,7 +55,7 @@ function HumanReviewRow() {
       />
       <div className="tm-human-body">
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-          <h3 style={{ margin: 0 }}>Add Expert Feedback</h3>
+          <h3 style={{ margin: 0 }}>Add expert feedback</h3>
           <span className="tm-pill tm-pill--mint" style={{ fontSize: "11px" }}>
             Most loved add-on
           </span>
@@ -64,7 +64,7 @@ function HumanReviewRow() {
           A resume expert reviews one selected application and returns
           prioritized, human feedback within 48 hours: risks, weak spots, and
           what to improve. A review pass, not a full rewrite. Want hands-on
-          changes? Human Revision is available for +$149.
+          changes? Human revision is available for +$149.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
           <span className="tm-pill">CPRW certified</span>

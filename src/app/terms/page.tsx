@@ -32,7 +32,7 @@ const TM_TERMS: LegalDocData = {
     ],
     [
       "Human review",
-      "Expert Feedback is a human review pass for one completed application. Human Revision and coaching packages are separate hands-on services. Completed human services are non-refundable once delivered.",
+      "Expert feedback is a human review pass for one completed application. Human revision and coaching packages are separate hands-on services. Completed human services are non-refundable once delivered.",
     ],
     [
       "Changes",

@@ -28,7 +28,7 @@ const PRICING_FAQS = [
   {
     id: "human_review",
     q: "Can a human review my resume?",
-    a: "Yes. Add Expert Feedback at checkout for a 48-hour human review pass on one application. For hands-on rewriting, revision, cover letters, or coaching, work with Michael through the Coaching page.",
+    a: "Yes. Add expert feedback at checkout for a 48-hour human review pass on one application. For hands-on rewriting, revision, cover letters, or coaching, work with Michael through the coaching page.",
   },
 ];
 
