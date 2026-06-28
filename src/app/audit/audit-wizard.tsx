@@ -3024,16 +3024,23 @@ function StepSummary({
   // Distilled buckets: what's strong + what to change (counts). The full fix list
   // and missing-keyword chips live in the editor, so they're not repeated here.
   const matchedKw = fitView?.keywords?.filter((k) => k.inResume) ?? [];
-  const strongDims = (fitView?.dims ?? []).filter((d) => d.score >= 78);
+  // Strongest dimensions (solid or better), best first — the evidence behind the
+  // score, shown with their own mini bars.
+  const bestDims = [...(fitView?.dims ?? [])]
+    .filter((d) => d.score >= 62)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
   const quantified = stats?.metricBullets ?? 0;
-  // A short, real example of an already-quantified bullet, so "1 bullet carries a
-  // metric" isn't just a count — the user sees which kind of line is working.
-  const strongExample = (() => {
-    const b = (stats?.sampleBullets ?? []).find((s) => s.hasMetric)?.text?.trim();
-    if (!b) return null;
-    return b.length > 110 ? `${b.slice(0, 107).trimEnd()}…` : b;
-  })();
-  const hasStrengths = matchedKw.length > 0 || strongDims.length > 0 || quantified > 0;
+  // Up to three already-quantified bullets, verbatim, so "N bullets carry a metric"
+  // reads as real proof rather than just a count.
+  const strongExamples = (stats?.sampleBullets ?? [])
+    .filter((s) => s.hasMetric && s.text?.trim())
+    .slice(0, 3)
+    .map((s) => {
+      const t = s.text.trim();
+      return t.length > 120 ? `${t.slice(0, 117).trimEnd()}…` : t;
+    });
+  const hasStrengths = matchedKw.length > 0 || bestDims.length > 0 || quantified > 0;
   const changeGroups: [ProofPoint["severity"], ProofPoint[]][] = [
     ["high", proofPoints.filter((p) => p.severity === "high")],
     ["medium", proofPoints.filter((p) => p.severity === "medium")],
@@ -3098,24 +3105,58 @@ function StepSummary({
             <b>What&apos;s strong</b>
             <span className="tmSum-sub">keep these, tailoring leaves them alone</span>
           </div>
-          {(strongDims.length > 0 || quantified > 0) && (
-            <p className="tmSum-line">
-              {strongDims.length > 0 && `Strong on ${strongDims.map((d) => d.label).join(", ")}. `}
-              {quantified > 0 &&
-                `${quantified} bullet${quantified === 1 ? "" : "s"} already quantified.`}
-            </p>
-          )}
-          {matchedKw.length > 0 && (
-            <div className="tmSum-pills">
-              {matchedKw.map((k) => (
-                <span key={k.term} className="tm-pill tm-pill--mint" style={{ fontSize: "11px" }}>
-                  <Check size={11} /> {k.term}
-                </span>
-              ))}
+          {bestDims.length > 0 && (
+            <div className="tmSum-block">
+              <span className="tmSum-blocklabel">Where you score best</span>
+              <div className="tmSum-strong-dims">
+                {bestDims.map((d) => {
+                  const b = band(d.score);
+                  return (
+                    <div key={d.label} className="tmSum-dimrow">
+                      <span className="tmSum-dimlabel">{d.label}</span>
+                      <span className="tmSum-dimtrack">
+                        <span
+                          className="tmSum-dimfill"
+                          style={{ width: `${d.score}%`, background: b.bar }}
+                        />
+                      </span>
+                      <span className="tmSum-dimscore">{d.score}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
-          {quantified > 0 && strongExample && (
-            <p className="tmSum-eg">“{strongExample}”</p>
+          {matchedKw.length > 0 && (
+            <div className="tmSum-block">
+              <span className="tmSum-blocklabel">Keywords you already match ({matchedKw.length})</span>
+              <div className="tmSum-pills">
+                {matchedKw.slice(0, 10).map((k) => (
+                  <span key={k.term} className="tm-pill tm-pill--mint" style={{ fontSize: "11px" }}>
+                    <Check size={11} /> {k.term}
+                  </span>
+                ))}
+                {matchedKw.length > 10 && (
+                  <span className="tm-pill tm-pill--gray" style={{ fontSize: "11px" }}>
+                    +{matchedKw.length - 10} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          {strongExamples.length > 0 && (
+            <div className="tmSum-block">
+              <span className="tmSum-blocklabel">
+                Already quantified ({quantified} bullet{quantified === 1 ? "" : "s"})
+              </span>
+              <ul className="tmSum-egs">
+                {strongExamples.map((eg, i) => (
+                  <li key={i} className="tmSum-eg">
+                    “{eg}”
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       )}
