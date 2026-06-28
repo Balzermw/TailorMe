@@ -56,6 +56,7 @@ import { SAMPLE_DOC } from "@/lib/apply/sample";
 import { fixSection, SECTION_LABEL } from "@/lib/apply/sections";
 import { isPlaceholderName } from "@/lib/apply/placeholder-name";
 import { ManualReviewCTA, MichaelPitch } from "@/components/fit/michael-cta";
+import { stripLogoArtifact } from "@/lib/text-clean";
 
 const SHOW_SAMPLE_WORKFLOWS = process.env.NEXT_PUBLIC_SHOW_SAMPLE_WORKFLOWS === "1";
 
@@ -1756,7 +1757,7 @@ function StepJob({
   }, [phase]);
 
   // Once the role-research returns, prefer its normalized title for the label.
-  const displayTarget = roleCtx?.role || targetLabel;
+  const displayTarget = stripLogoArtifact(roleCtx?.role || targetLabel);
 
   const score = async () => {
     if (phase !== "idle" || fetching) return;
@@ -2066,11 +2067,12 @@ function StepJob({
           real resumes.
         </p>
       )}
-      {view.recommendReview && <ManualReviewCTA overall={view.overall} />}
-
       {/* the three specialist agents — same single call returns them, so they
           render right below the score instead of behind a separate step. */}
       <AgentAudit agents={agents} sample={auditSample} role={auditRole ?? undefined} />
+
+      {/* Michael escalation sits at the bottom, after the analysis, not above it. */}
+      {view.recommendReview && <ManualReviewCTA overall={view.overall} />}
 
       {/* footer */}
       <div
