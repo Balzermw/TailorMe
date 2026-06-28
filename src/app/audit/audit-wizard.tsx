@@ -873,6 +873,7 @@ function StepUpload({
                     type="button"
                     className="tm-btn tm-btn--primary tmF-saved-use"
                     onClick={useSaved}
+                    disabled={phase !== "idle"}
                   >
                     Use this resume <ArrowRight size={15} />
                   </button>

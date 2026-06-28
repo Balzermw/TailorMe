@@ -332,6 +332,20 @@ function draftFromFinding(p: ProofPoint, target: EditableSection): string {
   return fix;
 }
 
+// An applied experience edit must be just the bullet. The AI rewrite is given
+// section context, so it can echo a leading "Role — Company" header or bullet
+// markers; strip those so the role title never lands inside a bullet.
+function cleanBulletText(text: string): string {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^[\s•*•‣▪\-–—]+/, "").trim())
+    .filter(Boolean);
+  if (lines.length > 1 && /\s[—–-]\s/.test(lines[0]) && lines[0].length <= 80) {
+    lines.shift(); // drop a "Role — Company" style header line the rewrite echoed
+  }
+  return lines.join(" ").trim() || text.trim();
+}
+
 function findQuotedBullet(doc: TailoredDoc, quote: string | undefined): { ei: number; bi: number } | null {
   const q = normForMatch(quote ?? "");
   if (q.length < 8) return null;
@@ -976,9 +990,11 @@ export default function EditEditor({
         : (doc.skills ?? []).join(", ");
     if (target === "header") return doc.contact ?? "";
     if (target === "experience")
+      // Bullets only (no "Role — Company" headers) so the rewrite can't echo a
+      // role title into the bullet it produces.
       return doc.experience
-        .map((e) => `${e.role} — ${e.company}\n${e.bullets.join("\n")}`)
-        .join("\n\n")
+        .flatMap((e) => e.bullets)
+        .join("\n")
         .slice(0, 2000);
     return "";
   }
@@ -1068,6 +1084,7 @@ export default function EditEditor({
     if (target === "experience") {
       const hit = findQuotedBullet(doc, p.quote);
       jumpEntry = hit?.ei ?? 0;
+      const bulletText = cleanBulletText(text);
       setDoc((d) => {
         if (hit && d.experience[hit.ei]?.bullets[hit.bi] != null) {
           return {
@@ -1076,7 +1093,7 @@ export default function EditEditor({
               ei === hit.ei
                 ? {
                     ...entry,
-                    bullets: entry.bullets.map((bullet, bi) => (bi === hit.bi ? text : bullet)),
+                    bullets: entry.bullets.map((bullet, bi) => (bi === hit.bi ? bulletText : bullet)),
                   }
                 : entry,
             ),
@@ -1086,7 +1103,7 @@ export default function EditEditor({
           return {
             ...d,
             experience: d.experience.map((entry, ei) =>
-              ei === 0 ? { ...entry, bullets: [...entry.bullets, text] } : entry,
+              ei === 0 ? { ...entry, bullets: [...entry.bullets, bulletText] } : entry,
             ),
           };
         }
@@ -1097,7 +1114,7 @@ export default function EditEditor({
               role: d.headline || "Role",
               company: "",
               dates: "",
-              bullets: [text],
+              bullets: [bulletText],
             },
           ],
         };
@@ -1120,20 +1137,29 @@ export default function EditEditor({
     } else if (target === "header") {
       setDoc((d) => ({ ...d, headline: normalizeHeadline(text.split(/\r?\n/)[0], role) || d.headline }));
     } else if (target === "skills") {
-      const skills = parseSkillInput(text);
+      const incoming = parseSkillInput(text);
       setDoc((d) => {
-        const merged = Array.from(new Set([...(d.skills ?? []), ...skills].map((s) => s.trim()).filter(Boolean)));
+        // Converge into existing skills: add only genuinely-new ones (deduped,
+        // case-insensitive) and fold them into the first existing group rather
+        // than spawning a separate "Suggested additions" group.
+        const have = new Set(
+          [...(d.skills ?? []), ...(d.skillGroups ?? []).flatMap((g) => g.skills)]
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean),
+        );
+        const fresh = incoming.map((s) => s.trim()).filter((s) => s && !have.has(s.toLowerCase()));
+        if (!fresh.length) return d;
+        const merged = Array.from(new Set([...(d.skills ?? []), ...fresh]));
         if (d.skillGroups?.length) {
           return {
             ...d,
             skills: merged,
-            skillGroups: [
-              ...d.skillGroups,
-              { label: "Suggested additions", skills: skills.length ? skills : [text] },
-            ],
+            skillGroups: d.skillGroups.map((g, i) =>
+              i === 0 ? { ...g, skills: [...g.skills, ...fresh] } : g,
+            ),
           };
         }
-        return { ...d, skills: merged.length ? merged : [...(d.skills ?? []), text] };
+        return { ...d, skills: merged };
       });
     } else if (target === "projects") {
       const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
