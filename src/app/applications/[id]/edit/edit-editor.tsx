@@ -1085,7 +1085,9 @@ export default function EditEditor({
         if (quote && d.summary.includes(quote)) {
           return { ...d, summary: d.summary.replace(quote, text) };
         }
-        return { ...d, summary: d.summary.trim() ? `${d.summary.trim()}\n\n${text}` : text };
+        // A summary draft is a complete rewrite — replace the whole summary rather
+        // than appending (which stacked two summaries). Empty summary -> just sets it.
+        return { ...d, summary: text };
       });
     } else if (target === "header") {
       setDoc((d) => ({ ...d, headline: normalizeHeadline(text.split(/\r?\n/)[0], role) || d.headline }));

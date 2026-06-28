@@ -61,7 +61,12 @@ function titleCaseShort(value: string): string {
 function compactHeadline(value: string): string {
   let headline = value
     .replace(/\s+/g, " ")
-    .replace(/\s*[,;:|\u2022\u00b7]\s*.*$/, "")
+    // Drop buzzword piles / clarifier tails after a HARD separator. Comma is
+    // intentionally excluded: structural role titles ("Lead, Product Management")
+    // depend on it. We only strip a comma when a clarifier phrase clearly follows
+    // (", with 10 years\u2026", ", specializing in\u2026"), never a multi-part title.
+    .replace(/\s*[;:|\u2022\u00b7]\s*.*$/, "")
+    .replace(/\s*,\s*(?:with\b|specializing\b|experienced\b|formerly\b|previously\b|\d).*$/i, "")
     .trim();
   const withMatch = headline.match(/^(.+?)\s+with\s+(.+)$/i);
   if (withMatch) {
