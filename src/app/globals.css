@@ -4742,6 +4742,9 @@ body {
   align-items: baseline;
   gap: 7px;
   flex: none;
+  /* Fixed width (number box + widest tier label, "Strong fit") so the bar
+     always starts at the same x across rows. */
+  width: 92px;
 }
 .tmD-fit-num {
   font-size: 15px;
