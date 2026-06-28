@@ -450,6 +450,17 @@ function normalizeProofPointFix(p: ProofPoint): string {
   return fix;
 }
 
+// A "words run together / missing spaces" finding almost always reflects our own
+// text extraction (e.g. a multi-column skills block pasted as one run), not a real
+// defect in the candidate's resume — so we hide it rather than flag a parsing
+// artifact as their error.
+function isExtractionSpacingArtifact(p: ProofPoint): boolean {
+  const blob = `${p.title} ${p.summary} ${p.fix ?? ""}`.toLowerCase();
+  return /concatenat|without spaces|missing spaces|no spaces between|run together|inconsistent spacing|spacing (?:error|issue)/.test(
+    blob,
+  );
+}
+
 // A single proof point: headline + summary up front, the verbatim resume quote
 // as proof it's real, and an optional deep-dive into why + the fix.
 function ProofPointCard({ p }: { p: ProofPoint }) {
@@ -2956,7 +2967,9 @@ function StepSummary({
     if (!user) track("paywall_seen", { trigger: "download" });
   }, [user]);
 
-  const proofPoints = useSample ? SAMPLE_PROFILE.proofPoints ?? [] : stats?.proofPoints ?? [];
+  const proofPoints = (useSample ? SAMPLE_PROFILE.proofPoints ?? [] : stats?.proofPoints ?? []).filter(
+    (p) => !isExtractionSpacingArtifact(p),
+  );
   const name = useSample ? SAMPLE_PROFILE.name : stats?.name;
   // The unified handoff: parse fixes + Job Score + agent findings as ONE list.
   const combinedSuggestions = buildCombinedProofPoints({
@@ -3060,9 +3073,6 @@ function StepSummary({
                   )}
                 </div>
                 <p className="tmSum-verdict-role">{fitView.header}</p>
-                {fitView.locationNote && (
-                  <p className="tmSum-verdict-note">{fitView.locationNote}</p>
-                )}
               </>
             );
           })()
@@ -3168,9 +3178,8 @@ function StepSummary({
         </span>
         <h3>Take the full report into the editor</h3>
         <p>
-          The Job Score and all three agents become one checklist: every missing keyword, bullet
-          to quantify, and line to trim lands in the editor next to the section it affects. Build
-          the AI-tailored draft, or open the editor and apply them yourself.
+          Every fix lands in the editor, next to the section it affects. Build the AI-tailored
+          draft, or apply them yourself.
         </p>
         {user ? (
           <button
