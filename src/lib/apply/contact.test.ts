@@ -144,6 +144,17 @@ describe("contact parse/compose", () => {
     expect(fields.location).toBe("Sacramento, California, United States");
   });
 
+  it("strips a missing-field placeholder from the location", () => {
+    expect(
+      parseContact(
+        "you@email.com | Sacramento, California, United States, profile not provided",
+      ).location,
+    ).toBe("Sacramento, California, United States");
+    expect(parseContact("you@email.com | Austin, TX, location not specified").location).toBe(
+      "Austin, TX",
+    );
+  });
+
   it("strips trailing pronouns even without a title", () => {
     const fields = parseContact("you@email.com | Portland, OR, They/Them");
     expect(fields.location).toBe("Portland, OR");
