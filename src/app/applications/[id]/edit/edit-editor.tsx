@@ -22,6 +22,7 @@ import {
   PenLine,
   Plus,
   RotateCcw,
+  Sparkles,
   Target,
   Trash2,
   Ungroup,
@@ -87,7 +88,11 @@ function normForMatch(s: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
-function pruneResolvedFindings(points: ProofPoint[], doc: TailoredDoc): ProofPoint[] {
+function pruneResolvedFindings(
+  points: ProofPoint[],
+  doc: TailoredDoc,
+  initialHay: string,
+): ProofPoint[] {
   const hay = normForMatch(docPlainText(doc));
   return points.filter((p) => {
     if (!p.quote) return true; // "missing section" issues have no quote to verify
@@ -96,8 +101,12 @@ function pruneResolvedFindings(points: ProofPoint[], doc: TailoredDoc): ProofPoi
     const sp = q.indexOf(" ");
     if (sp > 0) q = q.slice(sp + 1);
     if (q.length < 12) return true; // too little to judge — keep
-    // Keep only while the quoted text is still present; once it's edited away the
-    // finding is considered resolved and disappears from the panel.
+    // If the quote never matched the freshly-structured doc, it's a structuring
+    // mismatch (not something the user resolved) — keep it, so the panel count
+    // matches what the handoff promised instead of silently dropping one.
+    if (initialHay && !initialHay.includes(q)) return true;
+    // Otherwise keep only while the quoted text is still present; once an edit
+    // removes it the finding is considered resolved and disappears.
     return hay.includes(q);
   });
 }
@@ -524,12 +533,17 @@ export default function EditEditor({
     () => [...proofPoints, ...manualProofPoints],
     [manualProofPoints, proofPoints],
   );
+  // The doc's text at mount, captured once via a lazy initializer.
+  // pruneResolvedFindings uses it so a finding is only dropped when an edit
+  // removes its quote — not when the quote never matched the freshly-structured
+  // doc (that kept the panel count below the number the audit handoff promised).
+  const [initialDocHay] = useState(() => normForMatch(docPlainText(doc)));
   const shownPoints = useMemo(
     () =>
-      pruneResolvedFindings(allProofPoints, doc).filter(
+      pruneResolvedFindings(allProofPoints, doc, initialDocHay).filter(
         (p) => !appliedSuggestionIds.has(suggestionId(p)),
       ),
-    [allProofPoints, appliedSuggestionIds, doc],
+    [allProofPoints, appliedSuggestionIds, doc, initialDocHay],
   );
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
@@ -1460,10 +1474,25 @@ export default function EditEditor({
         <Link className="tmE-back" href={backHref}>
           <ArrowLeft size={15} /> {backLabel}
         </Link>
-        <h1>
-          {kind === "resume" ? doc.headline?.trim() || "Base resume" : role}
-          {company && <span className="tmE-head-co"> at {company}</span>}
-        </h1>
+        <div className="tmE-head-title">
+          <h1>
+            {kind === "resume" ? doc.headline?.trim() || "Base resume" : role}
+            {company && <span className="tmE-head-co"> at {company}</span>}
+          </h1>
+          {(shownPoints.length > 0 || originalDoc) && (
+            <button
+              type="button"
+              className="tmE-optimized"
+              onClick={() => setMode("feedback")}
+              title="This resume has AI feedback — open the Feedback tab"
+            >
+              <Sparkles size={12} /> Optimized resume
+              {shownPoints.length > 0 && (
+                <span className="tmE-optimized-count">{shownPoints.length}</span>
+              )}
+            </button>
+          )}
+        </div>
         <div className="tmE-head-right">
           {/* Review-progress cluster: how much of the AI changes you've reviewed. */}
           {bulletDiffs.length > 0 && (
