@@ -610,6 +610,9 @@ export default function EditEditor({
   // where the résumé spills onto page 2+ (the downloaded PDF is the exact split).
   const docWrapRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
+  // The edit-fields column. On a section change we scroll THIS into view (never
+  // the résumé section), so switching sections keeps the text inputs visible.
+  const editMainRef = useRef<HTMLDivElement>(null);
   // After an applied edit, the exact preview anchor to scroll to, so an edit lands
   // visibly in the (continuously-scrolling) preview rather than off-screen.
   const [pendingJump, setPendingJump] = useState<string | null>(null);
@@ -702,33 +705,68 @@ export default function EditEditor({
       .slice(0, 2) || "Y";
   const prevAnchorRef = useRef<string | null>(null);
   useEffect(() => {
-    const compute = () => {
-      const vp = viewportRef.current;
+    // The off-screen thing we point an arrow at: a highlighted finding, else the
+    // section being edited.
+    const arrowTarget = (): HTMLElement | null =>
+      (previewRef.current?.querySelector(".mcv-hl") as HTMLElement | null) ||
+      (editingAnchor
+        ? (docWrapRef.current?.querySelector(`[data-field="${editingAnchor}"]`) as HTMLElement | null)
+        : null);
+    // Arrow direction: is the target above or below the viewport? null when in view.
+    const computeDir = () => {
+      const el = arrowTarget();
+      if (!el) {
+        setHlDir(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      setHlDir(r.bottom < 72 ? "up" : r.top > vh - 40 ? "down" : null);
+    };
+    // The "you are here" avatar sits at the section's offset inside the scroll
+    // content, so it tracks the résumé as the page scrolls.
+    const computeCursor = () => {
       const scaler = docWrapRef.current;
       const el = editingAnchor ? scaler?.querySelector(`[data-field="${editingAnchor}"]`) : null;
-      if (!vp || !scaler || !el) {
+      if (!scaler || !el) {
         setCursorTop(null);
         return;
       }
       const sr = scaler.getBoundingClientRect();
       const er = (el as HTMLElement).getBoundingClientRect();
-      // The avatar lives in the scroll content at the section's offset, so it
-      // scrolls with the résumé (the offset is stable while scrolling).
       setCursorTop(Math.max(2, er.top - sr.top));
-      // When the edited SECTION changes, scroll the PAGE so it's in view.
-      const anchorChanged = prevAnchorRef.current !== editingAnchor;
-      prevAnchorRef.current = editingAnchor;
-      if (anchorChanged) {
-        (el as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
-      }
     };
+    const compute = () => {
+      computeCursor();
+      computeDir();
+    };
+    // On a SECTION change, keep the edit fields in view (scroll UP to them only if
+    // needed) — never scroll DOWN to the résumé section. The arrow points there
+    // instead, and the user can tap it to jump.
+    const anchorChanged = prevAnchorRef.current !== editingAnchor;
+    prevAnchorRef.current = editingAnchor;
+    if (anchorChanged) {
+      // Target the section TITLE (small), not the tall column — scrollIntoView
+      // treats a viewport-spanning element as already "in view" and won't move.
+      const titleEl = editMainRef.current?.querySelector(".tmE-panel-title");
+      (titleEl ?? editMainRef.current)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
     const raf = requestAnimationFrame(compute);
     const t = setTimeout(compute, 200); // settle after reflow
+    // Keep the arrow accurate while the page scrolls (incl. our own smooth scroll).
+    let sraf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(sraf);
+      sraf = requestAnimationFrame(computeDir);
+    };
     window.addEventListener("resize", compute);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(sraf);
       clearTimeout(t);
       window.removeEventListener("resize", compute);
+      window.removeEventListener("scroll", onScroll);
     };
   }, [editingAnchor, docScale, doc, openEntries]);
   // After an apply, let the doc re-render, then scroll the edited block into view
@@ -1482,6 +1520,18 @@ export default function EditEditor({
       .forEach((e) => e.classList.remove("mcv-hl"));
     setHlDir(null);
   }
+  // Tapping the directional arrow jumps to whatever is off-screen: a highlighted
+  // finding, else the section being edited. User-initiated, so it's the one time
+  // we scroll the page to a preview block (section clicks never auto-scroll).
+  function jumpToArrowTarget() {
+    const target =
+      previewRef.current?.querySelector(".mcv-hl") ||
+      (editingAnchor
+        ? docWrapRef.current?.querySelector(`[data-field="${editingAnchor}"]`)
+        : null);
+    (target as HTMLElement | null)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHlDir(null);
+  }
   function highlightFinding(quote: string | undefined, section: Section) {
     const root = previewRef.current;
     if (!root) return;
@@ -1711,7 +1761,7 @@ export default function EditEditor({
         )}
 
         {/* ---- one section at a time ---- */}
-        <div className="tmE-main">
+        <div className="tmE-main" ref={editMainRef}>
           {kind === "application" && fit && (
             <div className="tmF-anim" style={{ marginBottom: "14px" }}>
               <FitPanel
@@ -2555,9 +2605,14 @@ export default function EditEditor({
         {/* ---- wide résumé-only preview ---- */}
         <div className="tmE-preview" ref={previewRef} data-testid="resume-live-preview">
           {hlDir === "up" && (
-            <div className="tmE-hl-arrow tmE-hl-arrow--up" aria-hidden="true">
-              <ChevronUp size={14} /> Highlighted above
-            </div>
+            <button
+              type="button"
+              className="tmE-hl-arrow tmE-hl-arrow--up"
+              onClick={jumpToArrowTarget}
+              title="Scroll up to it"
+            >
+              <ChevronUp size={14} /> Jump to it
+            </button>
           )}
           <div className="tmE-preview-head">
             <p className="tmE-preview-label">Live preview</p>
@@ -2642,9 +2697,14 @@ export default function EditEditor({
               )}
             </button>
             {hlDir === "down" && (
-              <div className="tmE-hl-arrow tmE-hl-arrow--down" aria-hidden="true">
-                <ChevronDown size={14} /> Highlighted below
-              </div>
+              <button
+                type="button"
+                className="tmE-hl-arrow tmE-hl-arrow--down"
+                onClick={jumpToArrowTarget}
+                title="Scroll down to it"
+              >
+                <ChevronDown size={14} /> Jump to it
+              </button>
             )}
           </div>
         </div>

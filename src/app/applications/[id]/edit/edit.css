@@ -1327,6 +1327,9 @@
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--tm-ink);
+  /* When a section change scrolls the title into view, leave breathing room
+     above it (it never pins flush to the window edge). */
+  scroll-margin-top: 20px;
 }
 .tmE-panel-sub {
   font-size: 12.5px;
@@ -1659,7 +1662,7 @@
    preview is position:sticky, so a sticky badge pins to the viewport edge. */
 .tmE-hl-arrow {
   position: sticky;
-  z-index: 6;
+  z-index: 7;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1667,14 +1670,25 @@
   width: max-content;
   max-width: 90%;
   margin: 0 auto;
-  padding: 5px 12px;
+  padding: 6px 13px;
+  border: 0;
   border-radius: 999px;
   background: var(--tm-blue-600);
   color: #fff;
+  font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   box-shadow: 0 4px 14px rgba(24, 24, 27, 0.22);
-  pointer-events: none;
+  cursor: pointer;
+  transition:
+    filter 0.12s ease,
+    transform 0.12s ease;
+}
+.tmE-hl-arrow:hover {
+  filter: brightness(0.94);
+}
+.tmE-hl-arrow:active {
+  transform: translateY(1px);
 }
 .tmE-hl-arrow--up {
   top: 24px;
