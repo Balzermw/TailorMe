@@ -7,6 +7,8 @@ import {
   ArrowLeft,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   Download,
   Eye,
@@ -539,6 +541,11 @@ export default function EditEditor({
   const docWrapRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [pageBreaks, setPageBreaks] = useState<number[]>([]);
+  // Page navigator: the viewport is one page tall and the scaler is translated to
+  // show the current page (1-based), like flipping sheets. pageHeight is one
+  // sheet's on-screen (scaled) height.
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageHeight, setPageHeight] = useState<number | null>(null);
   // The preview renders at a fixed document width and is scaled to fit the panel,
   // so the page layout (and therefore the page breaks) never change with the
   // window — only the on-screen zoom does. The PDF is the exact split.
@@ -571,6 +578,7 @@ export default function EditEditor({
       // computed on the true (fixed) document size, not the scaled-down view.
       const w = page.offsetWidth;
       const sheet = (w * 11) / 8.5; // a US Letter page at the document's true width
+      setPageHeight(Math.round(sheet * scale)); // one sheet, on-screen (scaled)
       // Markers live inside the scaler, so positions are measured in the scaler's
       // own (pre-transform) coordinates. getBoundingClientRect is post-transform;
       // dividing the gap from the scaler's top edge by `scale` converts back. The
@@ -636,6 +644,17 @@ export default function EditEditor({
     ro.observe(page);
     return () => ro.disconnect();
   }, [doc]);
+  // Page navigator: the viewport is one sheet tall and we translate the scaler up
+  // by the current page's break offset (page breaks are in the scaler's pre-scale
+  // coords, so they translate before the scale is applied). Clamp the page when
+  // the doc's pagination changes (an edit can add/remove a page).
+  const totalPages = pageBreaks.length + 1;
+  const paged = pageBreaks.length > 0 && pageHeight != null;
+  // Clamp at render so a pagination change (an edit added/removed a page) can't
+  // strand the indicator past the last page — no effect/setState needed.
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const pageTranslate = paged && safePage > 1 ? pageBreaks[safePage - 2] : 0;
+  const goToPage = (p: number) => setCurrentPage(Math.min(Math.max(1, p), totalPages));
   // Experience entries collapse to a one-line header; open entries that still
   // have AI rewrites to review so those aren't hidden.
   const [openEntries, setOpenEntries] = useState<Set<number>>(() => {
@@ -2280,12 +2299,21 @@ export default function EditEditor({
           <div
             className="tmE-doc-viewport"
             ref={viewportRef}
-            style={docHeight != null ? { height: `${docHeight}px` } : undefined}
+            style={{
+              height: paged
+                ? `${pageHeight}px`
+                : docHeight != null
+                  ? `${docHeight}px`
+                  : undefined,
+            }}
           >
             <div
               ref={docWrapRef}
               className="tmE-doc-scaler"
-              style={{ transform: `scale(${docScale})` }}
+              style={{
+                transform: `scale(${docScale}) translateY(${-pageTranslate}px)`,
+                transition: "transform 0.3s ease",
+              }}
             >
               <PrintDoc doc={doc} id={id} resumeOnly hideToolbar highlightKeywords={showMatches ? previewKeywords : undefined} />
               {pageBreaks.map((y, i) => (
@@ -2305,6 +2333,51 @@ export default function EditEditor({
               <ChevronDown size={14} /> Highlighted below
             </div>
           )}
+          <div className="tmE-preview-foot">
+            <span
+              className={`tmE-saved ${saving ? "is-saving" : dirty ? "is-dirty" : "is-saved"}`}
+              aria-live="polite"
+            >
+              {saving ? (
+                <>
+                  <Loader2 size={12} className="tmE-saved-spin" /> Saving…
+                </>
+              ) : dirty ? (
+                <>
+                  <span className="tmE-saved-dot" aria-hidden="true" /> Unsaved changes
+                </>
+              ) : (
+                <>
+                  <Check size={12} /> Saved
+                </>
+              )}
+            </span>
+            {totalPages > 1 && (
+              <div className="tmE-pager">
+                <button
+                  type="button"
+                  className="tmE-pager-btn"
+                  onClick={() => goToPage(safePage - 1)}
+                  disabled={safePage <= 1}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={15} />
+                </button>
+                <span className="tmE-pager-count">
+                  {safePage} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className="tmE-pager-btn"
+                  onClick={() => goToPage(safePage + 1)}
+                  disabled={safePage >= totalPages}
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={15} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
