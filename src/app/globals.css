@@ -3702,6 +3702,11 @@ body {
   animation: tmspin 0.8s linear infinite;
 }
 
+/* Michael review card placed on the dashboard (below the targeted-roles list). */
+.tmD-michael {
+  margin-top: 16px;
+}
+
 .tmF-michael {
   display: flex;
   gap: 20px;
@@ -4427,7 +4432,7 @@ body {
 }
 .tmD-thead {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) 150px 168px 72px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(200px, 1fr) 168px 72px 40px;
   gap: 16px;
   padding: 2px 18px 6px;
   margin-top: 12px;
@@ -4534,7 +4539,7 @@ body {
   border: 0.5px solid var(--tm-border);
   border-radius: 12px;
   display: grid;
-  grid-template-columns: minmax(0, 2fr) 150px 168px 72px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(200px, 1fr) 168px 72px 40px;
   gap: 16px;
   align-items: center;
   padding: 14px 18px;
@@ -4734,21 +4739,6 @@ body {
   font-weight: 500;
   white-space: nowrap;
 }
-/* Tiny improvement chip: how far the score has moved since the initial score. */
-.tmD-fit-chip {
-  flex: none;
-  font-size: 10.5px;
-  font-weight: 600;
-  line-height: 1;
-  padding: 2px 5px;
-  border-radius: 999px;
-  color: var(--tm-mint-700);
-  background: var(--tm-mint-50);
-}
-.tmD-fit-chip.is-down {
-  color: #946218;
-  background: #fdf6ec;
-}
 .tmD-fit-track {
   flex: 1 1 auto;
   min-width: 24px;
@@ -4877,7 +4867,7 @@ body {
     display: none;
   }
   .tmD-row {
-    grid-template-columns: minmax(0, 1fr) 140px 72px;
+    grid-template-columns: minmax(0, 1fr) minmax(140px, 1fr) 72px 40px;
   }
   .tmD-row .tmD-row-status {
     display: none;
@@ -4885,7 +4875,7 @@ body {
 }
 @media (max-width: 600px) {
   .tmD-row {
-    grid-template-columns: minmax(0, 1fr) 120px;
+    grid-template-columns: minmax(0, 1fr) minmax(120px, 1fr) 40px;
   }
   .tmD-row-date {
     display: none;

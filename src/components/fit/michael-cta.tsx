@@ -100,3 +100,42 @@ export function MichaelPitch() {
     </div>
   );
 }
+
+/**
+ * Dashboard escalation: once a person is managing tailored roles and one is a
+ * stretch, offer a professional review + optimization with Michael. Reuses the
+ * Michael card styling; the copy is dashboard/workflow-oriented.
+ */
+export function MichaelReviewCard({ weakCount }: { weakCount?: number }) {
+  return (
+    <div className="tm-card tmF-michael tmD-michael">
+      <Image src="/michael.png" alt="Michael, Head of Res.Me" width={72} height={72} />
+      <div className="tmF-michael-body">
+        <span className="tmF-michael-eyebrow">
+          <PenLine size={13} /> Professional review and optimization
+        </span>
+        <h3>Want an expert to take a stretch role further?</h3>
+        <p>
+          {weakCount && weakCount > 0
+            ? `${weakCount} of your targets ${weakCount === 1 ? "is" : "are"} a reach on paper. `
+            : "Some roles are a reach on paper. "}
+          Michael (Certified Professional Resume Writer, 650+ resumes) does a hands-on review,
+          rewrites and optimizes your resume for the role, and coaches you on how to position
+          yourself.
+        </p>
+        <div className="tmF-michael-foot">
+          <Link className="tm-btn tm-btn--primary tm-btn--sm" href={ROUTES.coaching}>
+            <PenLine size={13} /> Get a professional review
+          </Link>
+          <Link
+            className="tm-small"
+            href={ROUTES.bookSession}
+            style={{ color: "var(--tm-blue-600)", textDecoration: "none", fontSize: "12.5px" }}
+          >
+            or book a session
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

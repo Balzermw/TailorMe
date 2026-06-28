@@ -4,7 +4,6 @@
 // state surfaced here is a Michael hand-off (human review in flight).
 
 import type { ReactNode } from "react";
-import type { FitHistoryEntry } from "@/lib/types";
 import Link from "next/link";
 import { PenLine, Upload } from "lucide-react";
 import { ROUTES } from "@/components/landing/data";
@@ -124,34 +123,25 @@ export function ApplicationTableHead() {
 }
 
 /**
- * Compact fit cell: number + tier word over a slim bar. `building` = in flight.
- * `history` (optional) surfaces a tiny improvement chip once the score has moved
- * across re-checks (latest vs the initial score).
+ * Compact fit cell: number + tier word, then a bar that fills the rest of the
+ * (flexible) FIT column. `building` = in flight. The score-improvement history
+ * lives in the editor's fit panel, not here — the row shows current state.
  */
 export function ScoreBar({
   fit,
   building,
-  history,
 }: {
   fit: number | null;
   building?: boolean;
-  history?: FitHistoryEntry[];
 }) {
   if (building) return <span className="tmD-building">Building your documents...</span>;
   if (fit == null) return <span className="tmD-score--empty">Not scored yet</span>;
   const tier = fitTier(fit);
-  const improvement =
-    history && history.length > 1 ? fit - history[0].overall : 0;
   return (
     <span className="tmD-fit" data-tier={tier.tone} aria-label={`Job fit ${fit} of 100, ${tier.label}`}>
       <span className="tmD-fit-head">
         <b className="tmD-fit-num">{fit}</b>
         <span className="tmD-fit-tier">{tier.label}</span>
-        {improvement !== 0 && (
-          <span className={"tmD-fit-chip" + (improvement < 0 ? " is-down" : "")}>
-            {improvement > 0 ? `+${improvement}` : improvement}
-          </span>
-        )}
       </span>
       <span className="tmD-fit-track">
         <span className="tmD-fit-fill" style={{ width: `${fit}%` }} />
