@@ -69,6 +69,32 @@ describe("contact parse/compose", () => {
     );
   });
 
+  it("moves a portfolio URL embedded in city/state out to a trailing segment", () => {
+    const fields = parseContact(
+      "612-227-1149 | you@email.com | San Diego, CA, github.com/you | linkedin.com/in/you",
+    );
+
+    expect(fields.location).toBe("San Diego, CA");
+    expect(fields.extra).toBe("github.com/you");
+    expect(composeContact(fields)).toBe(
+      "612-227-1149 | you@email.com | San Diego, CA | linkedin.com/in/you | github.com/you",
+    );
+  });
+
+  it("keeps a standalone github link out of city/state", () => {
+    const fields = parseContact("you@email.com | Denver, CO | github.com/you");
+
+    expect(fields.location).toBe("Denver, CO");
+    expect(fields.extra).toBe("github.com/you");
+  });
+
+  it("does not mistake a normal city/state with periods for a URL", () => {
+    const fields = parseContact("612-227-1149 | you@email.com | St. Louis, MO");
+
+    expect(fields.location).toBe("St. Louis, MO");
+    expect(fields.extra).toBeUndefined();
+  });
+
   it("treats a linkedgin.com typo as LinkedIn contact info without rewriting it", () => {
     const fields = parseContact(
       "1222-121-2323 | fdfffgdg@gmail.com | dfdfamento, CA, linkedgin.com/2332323",

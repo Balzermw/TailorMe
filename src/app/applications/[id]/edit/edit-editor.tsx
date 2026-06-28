@@ -2300,6 +2300,15 @@ export default function EditEditor({
                       const id = suggestionId(p);
                       const draft = suggestionDrafts[id];
                       const rewriting = rewritingIds.has(id);
+                      // "Adds content" = net-new text (keywords, a summary), not a
+                      // rework of existing text. A quote means there's text to
+                      // rewrite; mechanics fixes (spacing/formatting/punctuation)
+                      // also rework existing text even when they carry no quote.
+                      const addsContent =
+                        !p.quote &&
+                        !/spac|whitespace|format|capitali|casing|punctuat|consisten|alignment|typo|grammar/i.test(
+                          `${p.title} ${p.category ?? ""} ${p.summary ?? ""}`,
+                        );
                       return (
                         <div
                           key={i}
@@ -2311,7 +2320,30 @@ export default function EditEditor({
                           onMouseEnter={() => highlightFinding(p.quote, target)}
                           onMouseLeave={clearHighlight}
                         >
-                          <b>{p.title}</b>
+                          <div className="tmE-fix-titlerow">
+                            <b>{p.title}</b>
+                            <span
+                              className={
+                                "tmE-fix-kind " +
+                                (addsContent ? "tmE-fix-kind--add" : "tmE-fix-kind--edit")
+                              }
+                              title={
+                                addsContent
+                                  ? "Adds new content — nothing in your resume is replaced"
+                                  : "Reworks text already in your resume"
+                              }
+                            >
+                              {addsContent ? (
+                                <>
+                                  <Plus size={11} /> Adds content
+                                </>
+                              ) : (
+                                <>
+                                  <PenLine size={11} /> Rewrites
+                                </>
+                              )}
+                            </span>
+                          </div>
                           {p.summary && <p className="tmE-fix-sum">{p.summary}</p>}
                           {p.quote && (
                             <p
