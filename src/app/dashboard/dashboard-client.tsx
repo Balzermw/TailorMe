@@ -22,6 +22,7 @@ import { loadBaseResumeDoc, loadSavedResume, setTargetResume, type SavedResume }
 import { docToResumeText } from "@/lib/apply/serialize";
 import { editHref, printHref } from "@/lib/apply/render";
 import { deleteLocalApplication, listLocalApplications } from "@/lib/local-applications";
+import { MichaelReviewCard } from "@/components/fit/michael-cta";
 import type { ApplicationRow, TailoredDoc } from "@/lib/types";
 import {
   AddResumeChoice,
@@ -263,7 +264,7 @@ export default function DashboardClient({ initialView = "apps" }: { initialView?
           <div>
             <h1>Your workspace</h1>
             <p className="tmD-sub">
-              Signed in as {session.name} - {session.email}
+              Signed in as <b className="tm-data">{session.name}</b> · {session.email}
             </p>
           </div>
           <div className="tmD-head-right">
@@ -337,7 +338,7 @@ export default function DashboardClient({ initialView = "apps" }: { initialView?
                                 <span>{app.company}</span>
                               </div>
                             </div>
-                            <ScoreBar fit={app.fitScore ?? null} building={app.status === "running"} history={app.result?.fitHistory} />
+                            <ScoreBar fit={app.fitScore ?? null} building={app.status === "running"} />
                             <RowStatus tone={step.tone} label={step.label} />
                             <span className="tmD-row-date">{formatDate(app.createdAt)}</span>
                           </Link>
@@ -355,6 +356,10 @@ export default function DashboardClient({ initialView = "apps" }: { initialView?
                 </div>
               </div>
             </section>
+            {(() => {
+              const weak = apps.filter((a) => a.fitScore != null && a.fitScore < 70).length;
+              return weak > 0 ? <MichaelReviewCard weakCount={weak} /> : null;
+            })()}
           </div>
         ) : (
           <div className="tm-card tmD-empty">

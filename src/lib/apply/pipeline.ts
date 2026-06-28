@@ -1,5 +1,6 @@
 import "server-only";
 import { structured, type Provider, type Step } from "@/lib/apply/llm";
+import { stripLogoArtifact } from "@/lib/text-clean";
 import {
   TAILOR_MODEL,
   TAILOR_PROVIDER,
@@ -763,8 +764,8 @@ export async function scoreFit(
   });
 
   return {
-    company: redactContactInfoForPublicOutput(data.company || ""),
-    role: redactContactInfoForPublicOutput(data.role || ""),
+    company: stripLogoArtifact(redactContactInfoForPublicOutput(data.company || "")),
+    role: stripLogoArtifact(redactContactInfoForPublicOutput(data.role || "")),
     fit,
   };
 }

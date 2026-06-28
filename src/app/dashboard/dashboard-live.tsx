@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { ROUTES } from "@/components/landing/data";
+import { MichaelReviewCard } from "@/components/fit/michael-cta";
 import { editHref, pdfHref } from "@/lib/apply/render";
 import { setTargetResume } from "@/lib/resume";
 import { docToResumeText } from "@/lib/apply/serialize";
@@ -229,7 +230,7 @@ export default function DashboardLive({
           <div>
             <h1>Your workspace</h1>
             <p className="tmD-sub">
-              Signed in as {user.name} - {user.email}
+              Signed in as <b className="tm-data">{user.name}</b> · {user.email}
             </p>
           </div>
           <div className="tmD-head-right">
@@ -355,7 +356,7 @@ export default function DashboardLive({
                               <span>{app.company}</span>
                             </div>
                           </div>
-                          <ScoreBar fit={app.fitScore ?? null} building={building} history={app.result?.fitHistory} />
+                          <ScoreBar fit={app.fitScore ?? null} building={building} />
                           <RowStatus tone={step.tone} label={step.label} />
                           <span className="tmD-row-date">{formatDate(app.createdAt)}</span>
                         </button>
@@ -471,6 +472,10 @@ export default function DashboardLive({
                 </div>
               ) : null}
             </div>
+            {(() => {
+              const weak = apps.filter((a) => a.fitScore != null && a.fitScore < 70).length;
+              return weak > 0 ? <MichaelReviewCard weakCount={weak} /> : null;
+            })()}
           </>
         ) : (
           <div className="tmD-docs">

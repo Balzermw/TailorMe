@@ -253,7 +253,7 @@ function Packages() {
           <div className="tmC-band-body">
             <h3>Already using TailorMe?</h3>
             <p>
-              Add Expert Feedback to any application for +$79, no package
+              Add expert feedback to any application for +$79, no package
               needed. Michael reviews the finished draft and returns feedback
               within 48 hours.
             </p>

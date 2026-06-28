@@ -202,7 +202,7 @@ function CoachingReferral() {
       <div className="tm-human-body">
         <h3>Want human eyes on a draft?</h3>
         <p>
-          Add Expert Feedback at checkout for a 48-hour review pass on one
+          Add expert feedback at checkout for a 48-hour review pass on one
           application. For a hands-on rewrite, revision, or 1-on-1 coaching,
           work with Michael, Head of Res.Me, directly.
         </p>
