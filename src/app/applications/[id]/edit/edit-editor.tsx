@@ -583,38 +583,22 @@ export default function EditEditor({
       setDocScale((prev) => (Math.abs(prev - scale) > 0.001 ? scale : prev));
       // One US-Letter sheet at the document's true (pre-zoom) width.
       const sheet = (page.offsetWidth * 11) / 8.5;
-      const els = Array.from(page.querySelectorAll<HTMLElement>(".mcv-head, .mcv-body > *"));
-      // Clear any previous page padding so we measure NATURAL positions first.
-      els.forEach((el) => {
-        el.style.marginTop = "";
-      });
-      const scalerTop = scaler.getBoundingClientRect().top;
-      const localY = (el: Element) => (el.getBoundingClientRect().top - scalerTop) / scale;
-      // Real pagination: when a block would cross a sheet edge, pad it down to the
-      // next sheet's top, so a page never splits a block (no cut lines) and every
-      // page ends up exactly one sheet tall.
-      let cum = 0; // cumulative padding added above the current block
-      let pageIdx = 0;
-      for (const el of els) {
-        const top = localY(el) + cum;
-        const bottom = top + el.offsetHeight;
-        const boundary = (pageIdx + 1) * sheet;
-        if (top > 2 && bottom > boundary + 1) {
-          const spacer = Math.round(boundary - top);
-          if (spacer > 0) {
-            el.style.marginTop = `${spacer}px`;
-            cum += spacer;
-          }
-          pageIdx += 1;
-        }
-      }
-      // Fill out whole sheets so the white page always reads as a full 8.5x11
-      // (a short page 2 shows white space at the bottom, like a real page).
-      const pages = pageIdx + 1;
-      page.style.minHeight = `${Math.round(pages * sheet)}px`;
+      // Clear our sheet-fill (and any stale per-block padding from older builds) so
+      // we measure the TRUE content height, then split it into whole sheets. We
+      // slice on the sheet edge — padding every block down to avoid splits left the
+      // pages looking half-empty and inflated the page count.
+      page.style.minHeight = "";
+      page
+        .querySelectorAll<HTMLElement>(".mcv-head, .mcv-body > *")
+        .forEach((el) => {
+          el.style.marginTop = "";
+        });
+      const contentH = page.offsetHeight;
+      const pages = Math.max(1, Math.ceil((contentH - 8) / sheet));
+      page.style.minHeight = `${Math.round(pages * sheet)}px`; // fill out whole sheets
       setSheetPx((prev) => (prev != null && Math.abs(prev - sheet) < 1 ? prev : Math.round(sheet)));
       setPageCount(pages);
-      setDocHeight(Math.round(scaler.offsetHeight * scale));
+      setDocHeight(Math.round(page.offsetHeight * scale));
     };
     measure();
     // One more pass after fonts/async settle (block heights can shift).
