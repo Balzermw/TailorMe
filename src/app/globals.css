@@ -1167,12 +1167,15 @@ body {
   margin-bottom: 6px;
 }
 .tmB-ev-head {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   display: flex;
   gap: 8px;
   align-items: center;
-  color: var(--tm-zinc);
+  color: var(--tm-ink);
+}
+.tmB-ev-head svg {
+  color: var(--tm-blue-600);
 }
 .tmB-ev-file {
   display: flex;
@@ -2914,9 +2917,10 @@ body {
   padding-left: 28px;
 }
 .tmF-p2-label {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--tm-zinc);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tm-slate);
+  letter-spacing: 0.02em;
   margin-bottom: 12px;
   display: flex;
   align-items: center;
@@ -3538,24 +3542,24 @@ body {
   }
 }
 
-/* Verdict hero — the score is the headline, with the role as context beneath it. */
+/* Verdict — compact + left-aligned to match the cards below it (was an oversized
+   centered hero). Score + tier read on one line, role beneath. */
 .tmSum-verdict {
-  padding: 22px 22px 20px;
-  text-align: center;
+  padding: 15px 18px;
+  text-align: left;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 5px;
 }
 .tmSum-verdict-score {
   display: flex;
   align-items: baseline;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 9px;
-  margin-top: 2px;
 }
 .tmSum-verdict-num {
-  font-size: 46px;
+  font-size: 38px;
   font-weight: 700;
   line-height: 1;
 }
