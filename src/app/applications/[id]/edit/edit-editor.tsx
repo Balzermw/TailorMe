@@ -213,6 +213,27 @@ type GroupSkillsResponse = {
 };
 type EditableSection = Exclude<Section, "fixes">;
 
+// The preview's data-field anchor for an editable section. List sections point at
+// a specific entry so a cross-page edit jumps to the exact item, not the section.
+function previewAnchorFor(target: EditableSection, entry = 0): string {
+  switch (target) {
+    case "summary":
+      return "summary";
+    case "skills":
+      return "skills";
+    case "experience":
+      return `exp-${entry}`;
+    case "projects":
+      return `proj-${entry}`;
+    case "education":
+      return `edu-${entry}`;
+    case "certifications":
+      return `cert-${entry}`;
+    default:
+      return "header";
+  }
+}
+
 // Top-level editor tabs (resume.co-style): Edit the content, pick a Design, or
 // review Feedback. The preview stays mounted across all three.
 type EditorMode = "edit" | "design" | "feedback";
@@ -569,6 +590,9 @@ export default function EditEditor({
   const [pageCount, setPageCount] = useState(1);
   const [sheetPx, setSheetPx] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  // After an applied edit, the exact preview anchor to flip the pager to, so an
+  // edit that lands on (or moves to) page 2 is shown, not left off-screen.
+  const [pendingJump, setPendingJump] = useState<string | null>(null);
   // "You are here": a small avatar in the preview, level with the section being
   // edited. Null = hidden (off the current page, or not in Edit mode).
   const [cursorTop, setCursorTop] = useState<number | null>(null);
@@ -713,6 +737,34 @@ export default function EditEditor({
       window.removeEventListener("resize", compute);
     };
   }, [editingAnchor, currentPage, docScale, sheetPx, pageCount, doc, openEntries]);
+  // After an apply, let the doc re-render + re-paginate, then flip the pager to
+  // the page that now holds the edited block (reads fresh geometry so it's robust
+  // to the reflow). Clears itself once it has navigated.
+  useEffect(() => {
+    if (!pendingJump) return;
+    let raf = 0;
+    const t = window.setTimeout(() => {
+      raf = requestAnimationFrame(() => {
+        const scaler = docWrapRef.current;
+        const page = scaler?.querySelector(".print-page") as HTMLElement | null;
+        const el = scaler?.querySelector(`[data-field="${pendingJump}"]`) as HTMLElement | null;
+        if (scaler && page && el) {
+          const sheet = (page.offsetWidth * 11) / 8.5;
+          if (sheet > 0) {
+            const pages = Math.max(1, Math.round(page.offsetHeight / sheet));
+            const scale = page.getBoundingClientRect().width / page.offsetWidth || 1;
+            const top = (el.getBoundingClientRect().top - scaler.getBoundingClientRect().top) / scale;
+            setCurrentPage(Math.min(pages, Math.max(1, Math.floor(top / sheet) + 1)));
+          }
+        }
+        setPendingJump(null);
+      });
+    }, 300);
+    return () => {
+      window.clearTimeout(t);
+      cancelAnimationFrame(raf);
+    };
+  }, [pendingJump, doc]);
   function toggleEntry(i: number) {
     setOpenEntries((prev) => {
       const next = new Set(prev);
@@ -984,8 +1036,10 @@ export default function EditEditor({
     const text = draft.trim();
     if (!text) return;
     const id = suggestionId(p);
+    let jumpEntry = 0; // which list entry the edit landed on (for the page jump)
     if (target === "experience") {
       const hit = findQuotedBullet(doc, p.quote);
+      jumpEntry = hit?.ei ?? 0;
       setDoc((d) => {
         if (hit && d.experience[hit.ei]?.bullets[hit.bi] != null) {
           return {
@@ -1080,6 +1134,9 @@ export default function EditEditor({
     });
     setMode("edit");
     setSection(target);
+    // Flip the preview to the page the edit landed on, so a change that moves to
+    // (or spans onto) page 2 is shown rather than left off-screen on page 1.
+    setPendingJump(previewAnchorFor(target, jumpEntry));
     markSuggestionApplied(id);
     touch();
   }
