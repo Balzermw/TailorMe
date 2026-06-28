@@ -7,6 +7,7 @@
 import { renderResumeTex } from "@/lib/apply/latex";
 import { evaluateResumeRules } from "@/lib/resume-rules/evaluateResumeRules";
 import type { ResumeRuleFinding } from "@/lib/resume-rules/resumeAdviceRule.types";
+import { parseContact } from "@/lib/apply/contact";
 import type { ProofPoint, TailoredDoc } from "@/lib/types";
 
 // Bump when the rules/routing change so stale cached feedback is recomputed.
@@ -83,6 +84,46 @@ function filterContradictedProofPoints(doc: TailoredDoc, proofPoints: ProofPoint
   });
 }
 
+// A resume with no email or no phone is hard for a recruiter or ATS to act on.
+// We read the doc's OWN contact line (parseContact is the single source of truth;
+// the LaTeX round-trip is lossy) and surface any gap as a header finding, ahead
+// of style suggestions. Header category, so the template-owned suppression never
+// hides a real content gap. Skipped when the legacy LLM already raised the same
+// gap, so we never double-surface it.
+function contactGapProofPoints(doc: TailoredDoc, existing: ProofPoint[]): ProofPoint[] {
+  const contact = parseContact(doc.contact || "");
+  const alreadyRaised = (re: RegExp) =>
+    existing.some((p) => re.test(`${p.title} ${p.summary} ${p.fix}`));
+  const gaps: ProofPoint[] = [];
+  if (!contact.email && !alreadyRaised(/\bemail\b/i)) {
+    gaps.push({
+      title: "Add an email address",
+      summary:
+        "Your header has no email. It is the primary way recruiters reply and the field most ATS forms require, so a resume without one can stall.",
+      why: "Email is the default reply channel for recruiters and is required by most online applications.",
+      fix: "Add a professional email to the header line (Phone | Email | LinkedIn | City, ST).",
+      severity: "high",
+      ruleId: "header_missing_email",
+      category: "header",
+      targetSection: "header",
+    });
+  }
+  if (!contact.phone && !alreadyRaised(/\bphone\b/i)) {
+    gaps.push({
+      title: "Add a phone number",
+      summary:
+        "Your header has no phone number. Many recruiters call or text first, and some ATS forms expect one.",
+      why: "A direct line is often the fastest way a recruiter follows up on a strong resume.",
+      fix: "Add a phone number to the header line (Phone | Email | LinkedIn | City, ST).",
+      severity: "medium",
+      ruleId: "header_missing_phone",
+      category: "header",
+      targetSection: "header",
+    });
+  }
+  return gaps;
+}
+
 // Fold the LLM proof points + deterministic rule findings into one deduped,
 // ranked, capped set. Falls back to the raw proof points if the doc can't be
 // rendered to LaTeX (the engine's detectors read LaTeX structure).
@@ -101,17 +142,20 @@ export function refineFeedback(
     const rawProofPoints = result.surfaced.map(findingToProofPoint);
     const filteredProofPoints = filterContradictedProofPoints(doc, rawProofPoints);
     const contradictionSuppressed = rawProofPoints.length - filteredProofPoints.length;
+    // Missing email/phone leads the list — a real content gap the user must fix.
+    const contactGaps = contactGapProofPoints(doc, filteredProofPoints);
     return {
-      proofPoints: filteredProofPoints,
+      proofPoints: [...contactGaps, ...filteredProofPoints],
       stats: {
         rulesLoaded: result.stats.rulesLoaded,
         candidates: result.stats.candidateFindingsCount,
         deduped: result.stats.dedupedFindingsCount,
-        surfaced: filteredProofPoints.length,
+        surfaced: filteredProofPoints.length + contactGaps.length,
         suppressed: result.stats.suppressedCount + contradictionSuppressed,
       },
     };
   } catch {
-    return { proofPoints, stats: null };
+    // LaTeX render failed; still surface the deterministic contact-gap checks.
+    return { proofPoints: [...contactGapProofPoints(doc, proofPoints), ...proofPoints], stats: null };
   }
 }
