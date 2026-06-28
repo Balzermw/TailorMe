@@ -1636,14 +1636,8 @@ export default function EditEditor({
           >
             <Download size={14} /> PDF
           </a>
-          <button
-            type="button"
-            className={"tm-btn tm-btn--sm " + (onTargetJob ? "tm-btn--outline" : "tm-btn--primary")}
-            onClick={() => void save()}
-            disabled={saving || !dirty}
-          >
-            {saving ? "Saving…" : dirty ? (kind === "resume" ? "Save resume" : "Save edits") : "Saved"}
-          </button>
+          {/* Save lives on the preview's bottom-left pill (tmE-saved), so no
+              duplicate save button up here. */}
         </div>
       </div>
 
@@ -2608,9 +2602,15 @@ export default function EditEditor({
             </div>
           )}
           <div className="tmE-preview-foot">
-            <span
+            <button
+              type="button"
               className={`tmE-saved ${saving ? "is-saving" : dirty ? "is-dirty" : "is-saved"}`}
+              onClick={() => {
+                if (dirty && !saving) void save();
+              }}
+              disabled={saving || !dirty}
               aria-live="polite"
+              title={dirty ? "Save your changes" : "All changes saved"}
             >
               {saving ? (
                 <>
@@ -2618,14 +2618,14 @@ export default function EditEditor({
                 </>
               ) : dirty ? (
                 <>
-                  <span className="tmE-saved-dot" aria-hidden="true" /> Unsaved changes
+                  <span className="tmE-saved-dot" aria-hidden="true" /> Save changes
                 </>
               ) : (
                 <>
                   <Check size={12} /> Saved
                 </>
               )}
-            </span>
+            </button>
             {totalPages > 1 && (
               <div className="tmE-pager">
                 <button
