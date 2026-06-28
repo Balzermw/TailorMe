@@ -39,16 +39,16 @@ export default function SettingsContent() {
   const bulletCount =
     baseResume?.experience.reduce((sum, role) => sum + role.bullets.length, 0) ?? 0;
   const skillCount = baseResume?.skills.length ?? 0;
-  const profileSummary = baseResume
-    ? [
-        baseResume.headline,
-        `${roleCount} role${roleCount === 1 ? "" : "s"}`,
-        `${bulletCount} bullet${bulletCount === 1 ? "" : "s"}`,
-        `${skillCount} skill${skillCount === 1 ? "" : "s"}`,
-      ]
-        .filter(Boolean)
-        .join(" · ")
-    : "Build or import a resume to create your master profile.";
+  const profileSummary = baseResume ? (
+    <>
+      {baseResume.headline ? <>{baseResume.headline} · </> : null}
+      <b className="tm-data">{roleCount}</b> role{roleCount === 1 ? "" : "s"} ·{" "}
+      <b className="tm-data">{bulletCount}</b> bullet{bulletCount === 1 ? "" : "s"} ·{" "}
+      <b className="tm-data">{skillCount}</b> skill{skillCount === 1 ? "" : "s"}
+    </>
+  ) : (
+    "Build or import a resume to create your master profile."
+  );
 
   async function deleteEverything() {
     await clearSavedResume();

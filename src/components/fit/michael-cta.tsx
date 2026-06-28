@@ -116,9 +116,14 @@ export function MichaelReviewCard({ weakCount }: { weakCount?: number }) {
         </span>
         <h3>Want an expert to take a stretch role further?</h3>
         <p>
-          {weakCount && weakCount > 0
-            ? `${weakCount} of your targets ${weakCount === 1 ? "is" : "are"} a reach on paper. `
-            : "Some roles are a reach on paper. "}
+          {weakCount && weakCount > 0 ? (
+            <>
+              <b className="tm-data">{weakCount}</b> of your targets{" "}
+              {weakCount === 1 ? "is" : "are"} a reach on paper.{" "}
+            </>
+          ) : (
+            "Some roles are a reach on paper. "
+          )}
           Michael (Certified Professional Resume Writer, 650+ resumes) does a hands-on review,
           rewrites and optimizes your resume for the role, and coaches you on how to position
           yourself.

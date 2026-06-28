@@ -230,7 +230,7 @@ export default function DashboardLive({
           <div>
             <h1>Your workspace</h1>
             <p className="tmD-sub">
-              Signed in as {user.name} - {user.email}
+              Signed in as <b className="tm-data">{user.name}</b> · {user.email}
             </p>
           </div>
           <div className="tmD-head-right">

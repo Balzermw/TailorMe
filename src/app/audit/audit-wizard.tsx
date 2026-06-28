@@ -1115,7 +1115,7 @@ function StepUpload({
                   <AlertTriangle size={16} style={{ color: "#ba7517", flex: "none", marginTop: "1px" }} />
                   <div>
                     <p style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--tm-ink)" }}>
-                      We found {fixCount} thing{fixCount === 1 ? "" : "s"} to tighten in your resume.
+                      We found <b className="tm-data">{fixCount}</b> thing{fixCount === 1 ? "" : "s"} to tighten in your resume.
                     </p>
                     <p className="tm-small" style={{ marginTop: "3px", fontSize: "12.5px" }}>
                       You’ll see each one, with the fix, in your summary after the job match.

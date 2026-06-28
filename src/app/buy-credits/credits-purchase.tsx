@@ -158,7 +158,7 @@ export default function CreditsPurchase() {
                     )}
                   </span>
                   <span className="tmCR-pack-meta block">
-                    {p.credits} applications · {p.per}/app
+                    <b className="tm-data">{p.credits}</b> applications · <b className="tm-data">{p.per}</b>/app
                   </span>
                 </span>
                 <span className="tmCR-pack-price">{money(p.amountCents)}</span>
@@ -210,7 +210,7 @@ export default function CreditsPurchase() {
               <Check size={12} /> payment complete
             </span>
             <h3>{plan.credits} credits added</h3>
-            <p>Your balance is now {plan.credits + 1} applications.</p>
+            <p>Your balance is now <b className="tm-data">{plan.credits + 1}</b> applications.</p>
             <Link className="tm-btn tm-btn--primary" href={ROUTES.dashboard}>
               Go to dashboard
             </Link>

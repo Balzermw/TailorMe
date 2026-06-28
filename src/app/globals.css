@@ -26,6 +26,14 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Live, data-derived values interpolated into sentences (counts, names, the
+   user's own numbers). Emphasized so they read as the user's real data, not
+   generic copy. Use on a <b>/<span> wrapping the dynamic value. */
+.tm-data {
+  font-weight: 600;
+  color: var(--tm-ink);
+}
+
 /* ============================================================
    TailorMe by Res.Me — landing page (design handoff, Direction B)
    Brief rules: flat, white surfaces, 0.5px borders, radius 8–16,
@@ -4719,8 +4727,9 @@ body {
 .tmD-fit {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 13px;
   min-width: 0;
+  padding-right: 8px;
 }
 .tmD-fit-head {
   display: flex;
@@ -4742,6 +4751,7 @@ body {
 .tmD-fit-track {
   flex: 1 1 auto;
   min-width: 24px;
+  max-width: 132px;
   height: 4px;
   border-radius: 999px;
   background: var(--tm-gray);

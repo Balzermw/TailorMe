@@ -264,7 +264,7 @@ export default function DashboardClient({ initialView = "apps" }: { initialView?
           <div>
             <h1>Your workspace</h1>
             <p className="tmD-sub">
-              Signed in as {session.name} - {session.email}
+              Signed in as <b className="tm-data">{session.name}</b> · {session.email}
             </p>
           </div>
           <div className="tmD-head-right">
