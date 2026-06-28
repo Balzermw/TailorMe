@@ -343,6 +343,61 @@ export function hasResumeDraft(): boolean {
   }
 }
 
+// In-progress import INPUT (the pasted text), saved as the user types so they can
+// "pick up where you left off" on a later visit. Distinct from tm_resume_draft
+// (a finished doc handed to the editor): this is the raw, unstructured input.
+const WIP_KEY = "tm_resume_wip";
+const WIP_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // a week
+
+export interface ResumeWip {
+  kind: "import";
+  text: string;
+  savedAt: string; // ISO
+}
+
+export function saveResumeWip(text: string): void {
+  if (typeof window === "undefined") return;
+  const trimmed = text.trim();
+  try {
+    if (trimmed.length < 40) {
+      window.localStorage.removeItem(WIP_KEY); // too little to be worth resuming
+      return;
+    }
+    const wip: ResumeWip = { kind: "import", text, savedAt: new Date().toISOString() };
+    window.localStorage.setItem(WIP_KEY, JSON.stringify(wip));
+  } catch {
+    /* quota / private mode — non-fatal */
+  }
+}
+
+/** The saved in-progress import, if it exists and is recent (else cleared). */
+export function loadResumeWip(): ResumeWip | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(WIP_KEY);
+    if (!raw) return null;
+    const wip = JSON.parse(raw) as ResumeWip;
+    if (!wip?.text?.trim()) return null;
+    const age = Date.now() - new Date(wip.savedAt).getTime();
+    if (!Number.isFinite(age) || age > WIP_MAX_AGE_MS) {
+      window.localStorage.removeItem(WIP_KEY);
+      return null;
+    }
+    return wip;
+  } catch {
+    return null;
+  }
+}
+
+export function clearResumeWip(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(WIP_KEY);
+  } catch {
+    /* non-fatal */
+  }
+}
+
 const TARGET_KEY = "tm_target_resume"; // handoff: base resume -> audit job step
 const TARGET_ID_KEY = "tm_target_resume_id"; // links the tailored version to its base resume
 
