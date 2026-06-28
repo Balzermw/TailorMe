@@ -4039,7 +4039,7 @@ body {
 .tmD-sub {
   font-size: 13px;
   color: var(--tm-zinc);
-  margin-top: 4px;
+  margin-top: 7px;
 }
 .tmD-notice {
   margin-top: 16px;
@@ -4550,7 +4550,7 @@ body {
 .tmD-doc-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   flex: 1;
   min-width: 0;
 }
@@ -4813,7 +4813,9 @@ body {
 }
 .tmD-prow {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(140px, 0.85fr) 132px auto;
+  /* Fixed fit/status/actions columns so they line up across rows (each row is
+     its own grid; an auto column would shift when the Cover badge appears). */
+  grid-template-columns: minmax(0, 1fr) 248px 132px 252px;
   gap: 16px;
   align-items: center;
   padding: 12px 16px;
