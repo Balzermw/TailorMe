@@ -3023,15 +3023,79 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  padding: 28px;
 }
 .tmF-gate h3 {
   font-size: var(--h3);
   font-weight: 500;
 }
+.tmF-gate-sub {
+  font-size: var(--small);
+  color: var(--tm-zinc);
+  max-width: 52ch;
+  margin: 0 auto;
+}
 .tmF-gate p {
   font-size: var(--small);
   color: var(--tm-zinc);
   max-width: 44ch;
+}
+/* Two on-ramps into the same editor — AI applies the fixes vs you apply them. */
+.tmF-onramps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  width: 100%;
+  margin-top: 8px;
+  text-align: left;
+}
+.tmF-onramp {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px;
+  border: 0.5px solid var(--tm-border);
+  border-radius: 12px;
+}
+.tmF-onramp.is-primary {
+  border-color: rgba(67, 115, 219, 0.4);
+  background: var(--tm-blue-50);
+}
+.tmF-onramp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tm-zinc);
+}
+.tmF-onramp.is-primary .tmF-onramp-tag {
+  color: var(--tm-blue-600);
+}
+.tmF-onramp-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tm-ink);
+}
+.tmF-onramp-desc {
+  font-size: 12.5px;
+  color: var(--tm-zinc);
+  line-height: 1.5;
+  flex: 1 1 auto;
+  margin: 0;
+  max-width: none;
+}
+.tmF-onramp .tm-btn {
+  width: 100%;
+  margin-top: 4px;
+}
+@media (max-width: 640px) {
+  .tmF-onramps {
+    grid-template-columns: 1fr;
+  }
 }
 .tmF-actions {
   display: flex;

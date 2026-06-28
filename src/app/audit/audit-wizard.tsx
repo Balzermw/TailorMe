@@ -25,6 +25,7 @@ import {
   PenLine,
   Plus,
   Quote,
+  Sparkles,
   TrendingUp,
   Upload,
   User,
@@ -33,6 +34,7 @@ import { ROUTES, SCORES } from "@/components/landing/data";
 import type {
   ApplyResult,
   AuditAgent,
+  FitBreakdown,
   ProofPoint,
   ResumeStats,
   RoleContext,
@@ -47,11 +49,11 @@ import {
   loadTargetResume,
   loadTargetResumeId,
   saveResume,
-  setResumeDraft,
   statsAreEmpty,
   statsFromDoc,
   type SavedResume,
 } from "@/lib/resume";
+import { saveLocalApplication } from "@/lib/local-applications";
 import { SAMPLE_DOC } from "@/lib/apply/sample";
 import { fixSection, SECTION_LABEL } from "@/lib/apply/sections";
 import { isPlaceholderName } from "@/lib/apply/placeholder-name";
@@ -170,6 +172,32 @@ function toView(result: ApplyResult): FitView {
     })),
     keywords: fit.keywords ?? [],
     recommendReview: fit.recommendReview,
+  };
+}
+
+// Reverse of toView: rebuild a FitBreakdown from the audit's view model so the
+// free "Open editor" handoff can stash a real scored application and the editor
+// shows the same fit panel + coaching the paid path does.
+function fitViewToBreakdown(v: FitView | null): FitBreakdown {
+  if (!v) {
+    return { overall: 0, verdict: "", dimensions: [], locationPass: false, locationNote: "", summary: "" };
+  }
+  return {
+    overall: v.overall,
+    verdict: v.verdict,
+    dimensions: v.dims.map((d) => ({
+      label: d.label,
+      score: d.score,
+      matched: d.plus,
+      gaps: d.gaps,
+      why: d.why,
+    })),
+    locationStatus: v.locationStatus,
+    locationPass: v.locationStatus === "pass",
+    locationNote: v.locationNote,
+    summary: v.summary,
+    keywords: v.keywords,
+    recommendReview: v.recommendReview,
   };
 }
 
@@ -2974,9 +3002,11 @@ function StepSummary({
     agents: auditAgents ?? (useSample || auditSample ? DEMO_AGENTS : null),
   });
 
-  // Free handoff: structure the user's resume into an editable doc and open the
-  // base-resume editor, carrying the parse fixes into its Suggestions panel. No
-  // credit, no sign-in. Demo (no LLM) falls back to a saved/sample doc.
+  // Free on-ramp: structure the resume, then stash it as a scored local
+  // application and open the SAME editor the paid path uses. The fixes are
+  // staged in the Suggestions panel (not pre-applied) and the fit score shows
+  // read-only with the coaching pitch. No credit, no sign-in. Demo (no LLM)
+  // falls back to a saved/sample doc.
   const openEditor = async () => {
     setError(null);
     setBusy(true);
@@ -2995,9 +3025,23 @@ function StepSummary({
         else if (res.ok && data.doc) doc = data.doc as TailoredDoc;
         else throw new Error(data.error || "Couldn’t open the editor. Try again.");
       }
-      const existingBase = await loadSavedResume();
-      setResumeDraft(doc, combinedSuggestions, { persistOnLoad: !existingBase?.doc });
-      router.push(ROUTES.resumeEdit);
+      const [rolePart, companyPart] = (fitView?.header ?? "Target role").split(" · ");
+      const app = saveLocalApplication(
+        {
+          company: (companyPart ?? "").trim(),
+          role: (rolePart ?? "Target role").trim(),
+          fit: fitViewToBreakdown(fitView),
+          bullets: [],
+          keywords: fitView?.keywords?.map((k) => k.term) ?? [],
+          agentNotes: [],
+          agents: auditAgents ?? (useSample || auditSample ? DEMO_AGENTS : undefined),
+          doc,
+          postingText: posting,
+          proofPoints: combinedSuggestions,
+        },
+        resumeId,
+      );
+      router.push(`/applications/${app.id}/edit`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn’t open the editor. Try again.");
       setBusy(false);
@@ -3205,44 +3249,60 @@ function StepSummary({
           tab (and the agent breakdown on the previous step), so the Summary stays
           a distilled recap + handoff rather than repeating them here. */}
 
-      {/* primary, free handoff — explain the mechanism */}
-      <div className="tm-card tmF-gate" style={{ padding: "30px" }}>
+      {/* Two on-ramps into the SAME editor — the choice is who makes the edits. */}
+      <div className="tm-card tmF-gate">
         <span className="tm-pill tm-pill--mint">
           <Check size={12} />{" "}
           {combinedSuggestions.length > 0
             ? `${combinedSuggestions.length} suggestion${combinedSuggestions.length === 1 ? "" : "s"} ready`
             : "Your full report"}
         </span>
-        <h3>Take the full report into the editor</h3>
-        <p>
-          Every fix lands in the editor, next to the section it affects. Build the AI-tailored
-          draft, or apply them yourself.
+        <h3>Take it into the editor</h3>
+        <p className="tmF-gate-sub">
+          Both open the same editor, with your fit score and every suggestion. The only choice is
+          who makes the edits.
         </p>
-        {user ? (
-          <button
-            type="button"
-            className="tm-btn tm-btn--primary tm-btn--lg"
-            onClick={runFull}
-          >
-            Build tailored draft <ArrowRight size={15} />
-          </button>
-        ) : (
-          <Link className="tm-btn tm-btn--primary tm-btn--lg" href={ROUTES.signIn}>
-            Create free account <ArrowRight size={15} />
-          </Link>
-        )}
-        <button
-          type="button"
-          className="tm-btn tm-btn--outline tm-btn--lg"
-          onClick={() => void openEditor()}
-          disabled={busy}
-        >
-          {busy
-            ? "Opening..."
-            : combinedSuggestions.length > 0
-              ? `Open editor with all ${combinedSuggestions.length} suggestion${combinedSuggestions.length === 1 ? "" : "s"}`
-              : "Open the editor"}
-        </button>
+        <div className="tmF-onramps">
+          <div className="tmF-onramp is-primary">
+            <span className="tmF-onramp-tag">
+              <Sparkles size={13} /> AI does it
+            </span>
+            <b className="tmF-onramp-title">Build the tailored draft</b>
+            <p className="tmF-onramp-desc">
+              {combinedSuggestions.length > 0
+                ? `We apply all ${combinedSuggestions.length} fix${combinedSuggestions.length === 1 ? "" : "es"} for you, then you review every change and adjust.`
+                : "We tailor your resume to the job, then you review every change and adjust."}
+            </p>
+            {user ? (
+              <button type="button" className="tm-btn tm-btn--primary tm-btn--lg" onClick={runFull}>
+                Build tailored draft <ArrowRight size={15} />
+              </button>
+            ) : (
+              <Link className="tm-btn tm-btn--primary tm-btn--lg" href={ROUTES.signIn}>
+                Create free account <ArrowRight size={15} />
+              </Link>
+            )}
+          </div>
+          <div className="tmF-onramp">
+            <span className="tmF-onramp-tag">
+              <PenLine size={13} /> You do it
+            </span>
+            <b className="tmF-onramp-title">Open the editor yourself</b>
+            <p className="tmF-onramp-desc">
+              {combinedSuggestions.length > 0
+                ? `All ${combinedSuggestions.length} suggestion${combinedSuggestions.length === 1 ? "" : "s"} are staged. Apply them at your own pace, line by line.`
+                : "Edit your resume at your own pace, with suggestions on hand."}
+            </p>
+            <button
+              type="button"
+              className="tm-btn tm-btn--outline tm-btn--lg"
+              onClick={() => void openEditor()}
+              disabled={busy}
+            >
+              {busy ? "Opening..." : "Open editor"}
+            </button>
+          </div>
+        </div>
         {busy && (
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px" }}>
             <style>{`@keyframes tmspin{to{transform:rotate(360deg)}}`}</style>
