@@ -3043,9 +3043,9 @@ function StepSummary({
     router.push("/applications/tailoring");
   };
 
-  // Three buckets — the clear payoff: what's strong, what to change, what to add.
+  // Distilled buckets: what's strong + what to change (counts). The full fix list
+  // and missing-keyword chips live in the editor, so they're not repeated here.
   const matchedKw = fitView?.keywords?.filter((k) => k.inResume) ?? [];
-  const missingKw = fitView?.keywords?.filter((k) => !k.inResume) ?? [];
   const strongDims = (fitView?.dims ?? []).filter((d) => d.score >= 78);
   const quantified = stats?.metricBullets ?? 0;
   // A short, real example of an already-quantified bullet, so "1 bullet carries a
@@ -3158,60 +3158,40 @@ function StepSummary({
               </span>
             </div>
             <p className="tmSum-sub" style={{ marginTop: "4px" }}>
-              Rewrites pulled from your resume, each tagged with the section it lives in.
+              Your top fix is below. Open the editor to work through all {proofPoints.length} — each is
+              tagged with its section and applies in a click.
             </p>
           </div>
-          {changeGroups.map(([sev, items]) =>
-            items.length === 0 ? null : (
-              <div key={sev} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <span
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                    color: SEV_COLOR[sev],
-                  }}
-                >
-                  {SEV_LABEL[sev]} · {items.length}
-                </span>
-                {items.map((p, i) => (
-                  <ProofPointCard key={`${sev}-${i}`} p={p} />
+          {(() => {
+            const top = changeGroups.find(([, items]) => items.length > 0)?.[1][0];
+            return top ? <ProofPointCard p={top} /> : null;
+          })()}
+          {proofPoints.length > 1 && (
+            <div className="tmSum-pills">
+              {changeGroups
+                .filter(([, items]) => items.length > 0)
+                .map(([sev, items]) => (
+                  <span
+                    key={sev}
+                    className="tm-pill"
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      color: SEV_COLOR[sev],
+                      background: "var(--tm-gray)",
+                    }}
+                  >
+                    {items.length} {SEV_LABEL[sev].toLowerCase()}
+                  </span>
                 ))}
-              </div>
-            ),
+            </div>
           )}
         </div>
       )}
 
-      {/* 3 · what to add (missing keywords) */}
-      {missingKw.length > 0 && (
-        <div className="tm-card tmSum-card">
-          <div className="tmSum-head">
-            <AlertTriangle size={15} style={{ color: SEMANTIC.missing.ink }} />
-            <b>Missing keywords</b>
-            <span className="tmSum-count">{missingKw.length}</span>
-          </div>
-          <p className="tmSum-sub">
-            The posting screens for these and your resume misses them. Tailoring adds them only where
-            your experience genuinely backs them.
-          </p>
-          <div className="tmSum-pills">
-            {missingKw.map((k) => (
-              <span
-                key={k.term}
-                className="tm-pill"
-                style={{ fontSize: "11px", background: "#fdf3e7", color: "#854f0b" }}
-              >
-                {k.term}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* The full fit + agent breakdown already lives on the previous step; the
-          Summary stays focused on the distilled, actionable buckets + handoff. */}
+      {/* The full fix list + missing-keyword chips live in the editor's Feedback
+          tab (and the agent breakdown on the previous step), so the Summary stays
+          a distilled recap + handoff rather than repeating them here. */}
 
       {/* primary, free handoff — explain the mechanism */}
       <div className="tm-card tmF-gate" style={{ padding: "30px" }}>
