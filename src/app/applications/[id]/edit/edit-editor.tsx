@@ -38,7 +38,7 @@ import type {
 import { FitPanel } from "@/components/fit/fit-panel";
 import { ensureInitialHistory } from "@/lib/apply/fit-history";
 import { pdfHref } from "@/lib/apply/render";
-import { RESUME_TEMPLATES, DEFAULT_TEMPLATE, templateName } from "@/lib/apply/templates";
+import { RESUME_TEMPLATES, DEFAULT_TEMPLATE } from "@/lib/apply/templates";
 import { feedbackHash } from "@/lib/apply/hash";
 import { track, getSessionId } from "@/lib/track";
 import { ROUTES } from "@/components/landing/data";
@@ -203,6 +203,10 @@ type GroupSkillsResponse = {
   error?: string;
 };
 type EditableSection = Exclude<Section, "fixes">;
+
+// Top-level editor tabs (resume.co-style): Edit the content, pick a Design, or
+// review Feedback. The preview stays mounted across all three.
+type EditorMode = "edit" | "design" | "feedback";
 type ManualSuggestionForm = {
   section: EditableSection;
   title: string;
@@ -482,11 +486,13 @@ export default function EditEditor({
   const [rechecking, setRechecking] = useState(false);
   // Deep link: the dashboard "View feedback" link lands here as
   // /resume/edit#feedback — open the Feedback section directly, not the header.
-  const [section, setSection] = useState<Section>(() =>
-    typeof window !== "undefined" && window.location.hash === "#feedback" ? "fixes" : "header",
+  const [section, setSection] = useState<Section>("header");
+  // Feedback used to be a left-nav item; it's now its own tab/mode, still
+  // deep-linkable via /resume/edit#feedback (e.g. the dashboard "View feedback").
+  const [mode, setMode] = useState<EditorMode>(() =>
+    typeof window !== "undefined" && window.location.hash === "#feedback" ? "feedback" : "edit",
   );
   const [saving, setSaving] = useState(false);
-  const [templateOpen, setTemplateOpen] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
   const [coverEditing, setCoverEditing] = useState(false);
   const [msg, setMsg] = useState<{ text: string; err: boolean } | null>(null);
@@ -969,6 +975,7 @@ export default function EditEditor({
       severity: p.severity,
       section: target,
     });
+    setMode("edit");
     setSection(target);
     markSuggestionApplied(id);
     touch();
@@ -1262,7 +1269,6 @@ export default function EditEditor({
   // Pick a résumé template. Free (a recompile, never an AI call). Persist
   // immediately with the explicit doc so the PDF/download reflects it at once.
   function chooseTemplate(id: string) {
-    setTemplateOpen(false);
     if ((doc.template ?? DEFAULT_TEMPLATE) === id) return;
     track("template_select", { template: id, kind: kind ?? "application" });
     const next = { ...doc, template: id };
@@ -1279,16 +1285,10 @@ export default function EditEditor({
     { key: "education", label: "Education" },
     { key: "certifications", label: "Certifications" },
     { key: "skills", label: "Skills" },
-    ...(shownPoints.length || onGetFeedback
-      ? [
-          {
-            key: "fixes" as Section,
-            label: onGetFeedback ? "Feedback" : "Suggestions",
-            badge: shownPoints.length || undefined,
-          },
-        ]
-      : []),
   ];
+  // Feedback is a top-level tab now (not a nav row); its label/badge live there.
+  const feedbackLabel = onGetFeedback ? "Feedback" : "Suggestions";
+  const showFeedbackTab = shownPoints.length > 0 || Boolean(onGetFeedback);
 
   // Keywords to tint green in the preview: the posting's role keywords when this
   // résumé is targeted at a job, else the résumé's own skills/tools (the terms an
@@ -1367,12 +1367,12 @@ export default function EditEditor({
 
   const reviewableChangeCount = collectChanges().length;
   const wideEditMode =
+    mode !== "edit" || // Design + Feedback want the wider working layout
     section === "experience" ||
     section === "projects" ||
     section === "education" ||
     section === "certifications" ||
-    section === "skills" ||
-    section === "fixes";
+    section === "skills";
 
   return (
     <div className={"tmE-wrap" + (wideEditMode ? " is-workmode" : "")}>
@@ -1445,51 +1445,6 @@ export default function EditEditor({
               <Target size={14} /> Target a job
             </button>
           )}
-          <div className="tmE-tplpick">
-            <button
-              type="button"
-              className="tm-btn tm-btn--outline tm-btn--sm"
-              onClick={() => setTemplateOpen((o) => !o)}
-              aria-expanded={templateOpen}
-              title="Choose a résumé style — free to switch"
-            >
-              <LayoutTemplate size={14} /> {templateName(doc.template)}
-              <ChevronDown size={13} />
-            </button>
-            {templateOpen && (
-              <>
-                <div className="tmE-tplbackdrop" onClick={() => setTemplateOpen(false)} />
-                <div className="tmE-tplmenu" role="menu">
-                  <p className="tmE-tplmenu-head">Résumé style</p>
-                  {RESUME_TEMPLATES.map((t) => {
-                    const on = (doc.template ?? DEFAULT_TEMPLATE) === t.id;
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        className={"tmE-tplopt" + (on ? " is-on" : "")}
-                        onClick={() => chooseTemplate(t.id)}
-                      >
-                        <span className="tmE-tplopt-top">
-                          <span className="tmE-tplopt-name">
-                            {t.name}
-                            {on && <Check size={12} />}
-                          </span>
-                          <span className={"tmE-tplopt-ats tmE-ats-" + t.ats}>
-                            {t.ats === "safe" ? "ATS-safe" : "ATS-friendly"}
-                          </span>
-                        </span>
-                        <span className="tmE-tplopt-blurb">{t.blurb}</span>
-                      </button>
-                    );
-                  })}
-                  <p className="tmE-tplmenu-foot">
-                    Sets the style of your downloaded PDF. Switching is always free.
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
           {(doc.coverLetter ?? "").trim() && (
             <button
               type="button"
@@ -1520,21 +1475,58 @@ export default function EditEditor({
         </div>
       </div>
 
-      <div className="tmE-grid3">
-        {/* ---- section nav ---- */}
-        <nav className="tmE-tree">
-          {NAV.map((n) => (
-            <button
-              key={n.key}
-              type="button"
-              className={"tmE-tree-item" + (section === n.key ? " is-active" : "")}
-              onClick={() => setSection(n.key)}
-            >
-              <span className="tmE-tree-label">{n.label}</span>
-              {n.badge ? <span className="tmE-tree-badge">{n.badge}</span> : null}
-            </button>
-          ))}
-        </nav>
+      <div className="tmE-modetabs" role="tablist" aria-label="Editor mode">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "edit"}
+          className={"tmE-modetab" + (mode === "edit" ? " is-active" : "")}
+          onClick={() => setMode("edit")}
+        >
+          <PenLine size={14} /> Edit
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "design"}
+          className={"tmE-modetab" + (mode === "design" ? " is-active" : "")}
+          onClick={() => setMode("design")}
+        >
+          <LayoutTemplate size={14} /> Design
+        </button>
+        {showFeedbackTab && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "feedback"}
+            className={"tmE-modetab" + (mode === "feedback" ? " is-active" : "")}
+            onClick={() => setMode("feedback")}
+          >
+            <ListChecks size={14} /> {feedbackLabel}
+            {shownPoints.length > 0 && (
+              <span className="tmE-modetab-badge">{shownPoints.length}</span>
+            )}
+          </button>
+        )}
+      </div>
+
+      <div className={"tmE-grid3" + (mode !== "edit" ? " is-flat" : "")}>
+        {/* ---- section nav (Edit mode only) ---- */}
+        {mode === "edit" && (
+          <nav className="tmE-tree">
+            {NAV.map((n) => (
+              <button
+                key={n.key}
+                type="button"
+                className={"tmE-tree-item" + (section === n.key ? " is-active" : "")}
+                onClick={() => setSection(n.key)}
+              >
+                <span className="tmE-tree-label">{n.label}</span>
+                {n.badge ? <span className="tmE-tree-badge">{n.badge}</span> : null}
+              </button>
+            ))}
+          </nav>
+        )}
 
         {/* ---- one section at a time ---- */}
         <div className="tmE-main">
@@ -1604,6 +1596,8 @@ export default function EditEditor({
                 ))}
             </div>
           )}
+          {mode === "edit" && (
+            <>
           {section === "header" && (
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Header</h2>
@@ -2024,8 +2018,45 @@ export default function EditEditor({
               )}
             </section>
           )}
+            </>
+          )}
 
-          {section === "fixes" && (
+          {mode === "design" && (
+            <section className="tmE-panel tmF-anim tmE-design">
+              <h2 className="tmE-panel-title">Design</h2>
+              <p className="tmE-panel-sub">
+                Pick a resume style. It sets the look of your downloaded PDF, and switching is
+                always free.
+              </p>
+              <div className="tmE-design-grid">
+                {RESUME_TEMPLATES.map((t) => {
+                  const on = (doc.template ?? DEFAULT_TEMPLATE) === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={"tmE-design-opt" + (on ? " is-on" : "")}
+                      onClick={() => chooseTemplate(t.id)}
+                      aria-pressed={on}
+                    >
+                      <span className="tmE-design-opt-top">
+                        <span className="tmE-design-opt-name">
+                          {t.name}
+                          {on && <Check size={13} />}
+                        </span>
+                        <span className={"tmE-tplopt-ats tmE-ats-" + t.ats}>
+                          {t.ats === "safe" ? "ATS-safe" : "ATS-friendly"}
+                        </span>
+                      </span>
+                      <span className="tmE-design-opt-blurb">{t.blurb}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {mode === "feedback" && (
             <section className="tmE-panel tmF-anim">
               <div className="tmE-fix-top">
                 <div>
@@ -2203,6 +2234,7 @@ export default function EditEditor({
                                   severity: p.severity,
                                   section: target,
                                 });
+                                setMode("edit");
                                 setSection(target);
                               }}
                             >
