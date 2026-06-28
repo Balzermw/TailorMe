@@ -552,6 +552,9 @@ export default function EditEditor({
   // sheet's on-screen (scaled) height.
   const [currentPage, setCurrentPage] = useState(1);
   const [pageHeight, setPageHeight] = useState<number | null>(null);
+  // "You are here": a small avatar in the preview, level with the section being
+  // edited. Null = hidden (off the current page, or not in Edit mode).
+  const [cursorTop, setCursorTop] = useState<number | null>(null);
   // The preview renders at a fixed document width and is scaled to fit the panel,
   // so the page layout (and therefore the page breaks) never change with the
   // window — only the on-screen zoom does. The PDF is the exact split.
@@ -668,6 +671,73 @@ export default function EditEditor({
     bulletDiffs.forEach((d) => s.add(d.entry));
     return s;
   });
+  // "You are here" avatar: map the active edit section to a preview anchor
+  // (data-field on PrintDoc), then track that block's on-screen position.
+  const editingAnchor =
+    mode !== "edit"
+      ? null
+      : section === "header"
+        ? "header"
+        : section === "summary"
+          ? "summary"
+          : section === "experience"
+            ? `exp-${openEntries.size ? Math.min(...openEntries) : 0}`
+            : section === "projects"
+              ? "proj-0"
+              : section === "education"
+                ? "edu-0"
+                : section === "certifications"
+                  ? "cert-0"
+                  : section === "skills"
+                    ? "skills"
+                    : null;
+  const avatarInitials =
+    (doc.name || "You")
+      .split(/\s+/)
+      .map((w) => w[0] ?? "")
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "Y";
+  const prevAnchorRef = useRef<string | null>(null);
+  useEffect(() => {
+    const compute = () => {
+      const vp = viewportRef.current;
+      const scaler = docWrapRef.current;
+      const el = editingAnchor ? scaler?.querySelector(`[data-field="${editingAnchor}"]`) : null;
+      if (!vp || !scaler || !el) {
+        setCursorTop(null);
+        return;
+      }
+      const vr = vp.getBoundingClientRect();
+      const sr = scaler.getBoundingClientRect();
+      const er = (el as HTMLElement).getBoundingClientRect();
+      // When the SECTION changes (not on manual paging), flip the pager to the
+      // page holding it so the avatar is on-screen. (er.top - sr.top) is
+      // translate-invariant, so divide by the scale for the unscaled offset.
+      const anchorChanged = prevAnchorRef.current !== editingAnchor;
+      prevAnchorRef.current = editingAnchor;
+      if (anchorChanged && pageBreaks.length > 0 && docScale > 0) {
+        const unscaledTop = (er.top - sr.top) / docScale;
+        const targetPage = 1 + pageBreaks.filter((b) => unscaledTop >= b - 4).length;
+        if (targetPage !== currentPage) {
+          setCurrentPage(targetPage);
+          return; // reposition on the re-run after the flip
+        }
+      }
+      const top = er.top - vr.top;
+      // Only show it when the anchored block is on the visible page.
+      setCursorTop(top >= -10 && top <= vr.height - 10 ? Math.max(2, top) : null);
+    };
+    // rAF + a post-transition pass; never set state synchronously in the effect.
+    const raf = requestAnimationFrame(compute);
+    const t = setTimeout(compute, 350); // settle after a page-flip transition
+    window.addEventListener("resize", compute);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t);
+      window.removeEventListener("resize", compute);
+    };
+  }, [editingAnchor, currentPage, docScale, pageHeight, doc, openEntries, pageBreaks]);
   function toggleEntry(i: number) {
     setOpenEntries((prev) => {
       const next = new Set(prev);
@@ -2359,6 +2429,11 @@ export default function EditEditor({
                 </div>
               ))}
             </div>
+            {cursorTop != null && (
+              <div className="tmE-cursor" style={{ top: `${cursorTop}px` }} aria-hidden="true">
+                <span className="tmE-cursor-badge">{avatarInitials}</span>
+              </div>
+            )}
           </div>
           {hlDir === "down" && (
             <div className="tmE-hl-arrow tmE-hl-arrow--down" aria-hidden="true">

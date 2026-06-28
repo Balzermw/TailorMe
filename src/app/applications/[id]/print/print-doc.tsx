@@ -134,7 +134,7 @@ export default function PrintDoc({
 
       {/* Résumé — the template skins the preview (the compiled PDF is exact). */}
       <article className={`print-page${tplClass}`}>
-        <header className="mcv-head">
+        <header className="mcv-head" data-field="header">
           <div className="mcv-name">
             {first} {last && <span>{last}</span>}
           </div>
@@ -144,7 +144,7 @@ export default function PrintDoc({
         <div className="mcv-body">
           {doc.summary && (
             <>
-              <h2 className="mcv-sec">Summary</h2>
+              <h2 className="mcv-sec" data-field="summary">Summary</h2>
               <p className="mcv-summary">{hl(doc.summary)}</p>
             </>
           )}
@@ -153,7 +153,7 @@ export default function PrintDoc({
             <>
               <h2 className="mcv-sec">Experience</h2>
               {doc.experience.map((e, i) => (
-                <div key={i} className="mcv-entry">
+                <div key={i} className="mcv-entry" data-field={`exp-${i}`}>
                   <div className="mcv-entry-dates">{shortDates(e.dates)}</div>
                   <div>
                     <div className="mcv-entry-role">{e.role}</div>
@@ -173,7 +173,7 @@ export default function PrintDoc({
             <>
               <h2 className="mcv-sec">Education</h2>
               {doc.education.map((ed, i) => (
-                <div key={i} className="mcv-entry">
+                <div key={i} className="mcv-entry" data-field={`edu-${i}`}>
                   <div className="mcv-entry-dates">{shortDates(ed.dates)}</div>
                   <div>
                     <div className="mcv-entry-role">{ed.degree}</div>
@@ -188,7 +188,7 @@ export default function PrintDoc({
             <>
               <h2 className="mcv-sec">Projects</h2>
               {doc.projects.map((p, i) => (
-                <div key={i} className="mcv-entry">
+                <div key={i} className="mcv-entry" data-field={`proj-${i}`}>
                   <div className="mcv-entry-dates" />
                   <div>
                     <div className="mcv-entry-role">{p.name}</div>
@@ -212,7 +212,7 @@ export default function PrintDoc({
             <>
               <h2 className="mcv-sec">Certifications</h2>
               {doc.certifications.map((c, i) => (
-                <div key={i} className="mcv-entry">
+                <div key={i} className="mcv-entry" data-field={`cert-${i}`}>
                   <div className="mcv-entry-dates">{shortDates(c.date)}</div>
                   <div>
                     <div className="mcv-entry-role">{c.name}</div>
@@ -225,7 +225,7 @@ export default function PrintDoc({
 
           {(doc.skillGroups?.length || doc.skills.length > 0) && (
             <>
-              <h2 className="mcv-sec">Skills</h2>
+              <h2 className="mcv-sec" data-field="skills">Skills</h2>
               {doc.skillGroups?.length ? (
                 <div className="mcv-skillgroups">
                   {doc.skillGroups.map((g) => (

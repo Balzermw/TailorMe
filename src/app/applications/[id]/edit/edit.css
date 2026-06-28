@@ -1259,9 +1259,39 @@
   justify-content: center;
   align-items: flex-start;
   overflow: hidden;
+  /* positioning context for the "you are here" avatar */
+  position: relative;
   /* take the column's width (not the 760px child's) so the doc scales to fit */
   width: 100%;
   min-width: 0;
+}
+
+/* "You are here" avatar, level with the section being edited. */
+.tmE-cursor {
+  position: absolute;
+  left: 6px;
+  z-index: 4;
+  pointer-events: none;
+  transition: top 0.3s ease;
+}
+.tmE-cursor-badge {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--tm-blue-600);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tmE-cursor {
+    transition: none;
+  }
 }
 .tmE-doc-scaler {
   position: relative;
