@@ -2418,16 +2418,6 @@ export default function EditEditor({
               }}
             >
               <PrintDoc doc={doc} id={id} resumeOnly hideToolbar highlightKeywords={showMatches ? previewKeywords : undefined} />
-              {pageBreaks.map((y, i) => (
-                <div
-                  key={i}
-                  className="tmE-pagebreak"
-                  style={{ top: `${y}px` }}
-                  aria-hidden="true"
-                >
-                  <span>Page {i + 2}</span>
-                </div>
-              ))}
             </div>
             {cursorTop != null && (
               <div className="tmE-cursor" style={{ top: `${cursorTop}px` }} aria-hidden="true">
