@@ -3785,6 +3785,69 @@ body {
 .tmFit-spin {
   animation: tmspin 0.8s linear infinite;
 }
+/* AI-changes review progress, shown with the score (moved out of the toolbar). */
+.tmFit-reviewrow {
+  display: flex;
+  align-items: center;
+  padding-top: 2px;
+}
+/* Compact, animated human-coaching nudge under the fit score (weak fit only).
+   Smaller + tighter than the dashboard card so it doesn't crowd the panel. */
+.tmFit-michael {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  margin-top: 4px;
+  padding: 12px 14px;
+  border: 0.5px solid rgba(67, 115, 219, 0.28);
+  background: var(--tm-blue-50);
+  border-radius: 10px;
+  animation: tmFit-fadein 0.35s ease both;
+}
+@keyframes tmFit-fadein {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tmFit-michael {
+    animation: none;
+  }
+}
+.tmFit-michael-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 0.5px solid var(--tm-border);
+  flex: none;
+}
+.tmFit-michael-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.tmFit-michael-line {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tm-ink);
+  line-height: 1.4;
+}
+.tmFit-michael-sub {
+  font-size: 12px;
+  color: var(--tm-zinc);
+  line-height: 1.45;
+}
+.tmFit-michael .tmF-manual-cta {
+  align-self: flex-start;
+  margin-top: 3px;
+}
 
 /* Michael review card placed on the dashboard (below the targeted-roles list). */
 .tmD-michael {

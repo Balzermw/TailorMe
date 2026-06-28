@@ -375,6 +375,11 @@
   background: var(--tm-mint-500);
   border-color: var(--tm-mint-500);
 }
+/* Visible now that it sits in the FitPanel (was screen-reader-only in the toolbar). */
+.tmE-reviewprog-label {
+  font-size: 12px;
+  font-weight: 500;
+}
 .tmE-sr {
   position: absolute;
   width: 1px;

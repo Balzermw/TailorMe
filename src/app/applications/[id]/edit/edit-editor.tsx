@@ -1551,6 +1551,29 @@ export default function EditEditor({
   }, [lockedFinding, doc]);
 
   const reviewableChangeCount = collectChanges().length;
+  // AI-changes review progress — rendered inside the FitPanel (next to Re-check)
+  // so "what changed" reads with the score, not as a detached toolbar chip.
+  const reviewProgressNode =
+    bulletDiffs.length > 0 ? (
+      <span
+        className={"tmE-reviewprog" + (totalPending === 0 ? " is-done" : "")}
+        data-testid="revision-reviewed-count"
+        title={`${bulletDiffs.length - totalPending} of ${bulletDiffs.length} AI changes reviewed`}
+      >
+        {totalPending === 0 ? <Check size={13} /> : <ListChecks size={13} />}
+        <span className="tmE-reviewprog-dots" aria-hidden="true">
+          {bulletDiffs.map((d, i) => (
+            <i
+              key={bulletKey(d.entry, d.bullet)}
+              className={i < bulletDiffs.length - totalPending ? "is-done" : ""}
+            />
+          ))}
+        </span>
+        <span className="tmE-reviewprog-label">
+          {bulletDiffs.length - totalPending}/{bulletDiffs.length} changes reviewed
+        </span>
+      </span>
+    ) : null;
   const wideEditMode =
     mode !== "edit" || // Design + Feedback want the wider working layout
     section === "experience" ||
@@ -1582,32 +1605,6 @@ export default function EditEditor({
           )}
         </div>
         <div className="tmE-head-right">
-          {/* Review-progress cluster: how much of the AI changes you've reviewed. */}
-          {bulletDiffs.length > 0 && (
-            <div className="tmE-status">
-              {bulletDiffs.length > 0 && (
-                <span
-                  className={"tmE-reviewprog" + (totalPending === 0 ? " is-done" : "")}
-                  data-testid="revision-reviewed-count"
-                  title={`${bulletDiffs.length - totalPending} of ${bulletDiffs.length} AI changes reviewed`}
-                >
-                  {totalPending === 0 ? <Check size={13} /> : <ListChecks size={13} />}
-                  <span className="tmE-reviewprog-dots" aria-hidden="true">
-                    {bulletDiffs.map((d, i) => (
-                      <i
-                        key={bulletKey(d.entry, d.bullet)}
-                        className={i < bulletDiffs.length - totalPending ? "is-done" : ""}
-                      />
-                    ))}
-                  </span>
-                  {/* Kept for screen readers (and the visible string the e2e suite asserts). */}
-                  <span className="tmE-sr">
-                    {bulletDiffs.length - totalPending}/{bulletDiffs.length} changes reviewed
-                  </span>
-                </span>
-              )}
-            </div>
-          )}
           {msg?.err && <span className="tmE-save-status is-err">{msg.text}</span>}
           {reviewableChangeCount > 0 && originalDoc && (
             <button
@@ -1729,6 +1726,7 @@ export default function EditEditor({
                 onRecheck={canRecheck ? runRecheck : undefined}
                 rechecking={rechecking}
                 pendingChanges={dirty}
+                reviewProgress={reviewProgressNode}
               />
             </div>
           )}
