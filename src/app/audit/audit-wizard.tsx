@@ -1689,7 +1689,6 @@ function StepJob({
   // fit score AND the three agents), so the score and the agent review land
   // together on one screen — no separate step or second loader.
   const [agents, setAgents] = useState<AuditAgent[]>(DEMO_AGENTS);
-  const [auditRole, setAuditRole] = useState<string | null>(null);
   const [auditSample, setAuditSample] = useState(false);
 
   // Advance the loading status messages while scoring (stops at the last step).
@@ -1800,7 +1799,6 @@ function StepJob({
 
     let v = DEMO_VIEW;
     let ag: AuditAgent[] = DEMO_AGENTS;
-    let role: string | null = null;
     let sample = false;
     let msg: string | null = null;
     try {
@@ -1823,7 +1821,6 @@ function StepJob({
       if (data.result) {
         const r = data.result as ApplyResult;
         v = toView(r);
-        role = r.role ?? null;
         if (r.agents && r.agents.length) ag = r.agents;
         else sample = true; // fit came back but no agents → keep the sample agents
       } else if (res.status === 429 || res.status === 413) {
@@ -1848,7 +1845,6 @@ function StepJob({
     setNote(msg);
     setView(v);
     setAgents(ag);
-    setAuditRole(role);
     setAuditSample(sample);
     onScored?.(v); // lift the fit result so the Summary step can reuse it
     onAudited?.(ag, sample); // lift the agents too — same single call
@@ -2045,7 +2041,7 @@ function StepJob({
       )}
       {/* the three specialist agents — same single call returns them, so they
           render right below the score instead of behind a separate step. */}
-      <AgentAudit agents={agents} sample={auditSample} role={auditRole ?? undefined} />
+      <AgentAudit agents={agents} sample={auditSample} />
 
       {/* Michael escalation sits at the bottom, after the analysis, not above it. */}
       {view.recommendReview && <ManualReviewCTA overall={view.overall} />}
@@ -2266,15 +2262,6 @@ function ImpactEvidence({ a }: { a: AuditAgent }) {
               <span style={{ color: "var(--tm-zinc)", fontWeight: 400 }}>/{total} bullets have a number</span>
             </span>
           </div>
-          <p className="tm-small" style={{ marginTop: "6px", fontSize: "11.5px", color: "var(--tm-zinc)" }}>
-            <span style={{ color: SEMANTIC.present.ink, fontWeight: 600 }}>Green</span> = already quantified.
-            {gap > 0 && (
-              <>
-                {" "}
-                <span style={{ color: SEMANTIC.missing.ink, fontWeight: 600 }}>Amber</span> = bullets still missing a number.
-              </>
-            )}
-          </p>
         </div>
       )}
 
@@ -2699,11 +2686,9 @@ function AgentAuditSequence({ agents }: { agents: AuditAgent[] }) {
 function AgentAudit({
   agents,
   sample,
-  role,
 }: {
   agents: AuditAgent[];
   sample?: boolean;
-  role?: string;
 }) {
   if (!agents || agents.length === 0) return null;
   const sequenceKey = agents.map((a) => `${a.id}:${a.title}:${a.footer}`).join("|");
@@ -2716,26 +2701,6 @@ function AgentAudit({
         Each pass reads the resume and posting in sequence: ATS terms, measurable impact,
         then role fit{sample ? " (sample audit shown)" : ""}. Cards appear as each check finishes.
       </p>
-      {role && (
-        <div
-          style={{
-            marginTop: "12px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "9px 12px",
-            borderRadius: "10px",
-            background: "var(--tm-blue-50)",
-            border: "0.5px solid rgba(67,115,219,.25)",
-          }}
-        >
-          <Briefcase size={14} style={{ color: "var(--tm-blue-600)", flex: "none" }} />
-          <span className="tm-small" style={{ fontSize: "12.5px" }}>
-            Running the agents on your resume for{" "}
-            <strong style={{ fontWeight: 600, color: "var(--tm-ink)" }}>{role}</strong>
-          </span>
-        </div>
-      )}
       <AgentAuditSequence key={sequenceKey} agents={agents} />
     </div>
   );
