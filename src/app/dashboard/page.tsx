@@ -28,7 +28,7 @@ export default async function DashboardPage({
       : review === "canceled"
         ? "The expert review checkout was canceled. Nothing was changed."
         : null;
-  let body = <DashboardClient initialView={initialView} />; // demo mode (no Supabase)
+  let body = <DashboardClient />; // demo mode (no Supabase)
 
   if (supabaseConfigured) {
     const user = await getServerUser();
