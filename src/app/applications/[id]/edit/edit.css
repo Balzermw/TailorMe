@@ -1780,6 +1780,41 @@
   border-color: rgba(133, 79, 11, 0.4);
   background: #fffdf9;
 }
+/* Placeholder highlight layer. A backdrop mirrors the textarea's text and marks
+   each [bracket] slot so the user can see exactly WHERE to fill in. The textarea
+   sits transparent on top; its real (opaque) glyphs land over the marks. The
+   backdrop must match the textarea's box metrics EXACTLY or the marks drift. */
+.tmE-draft-input {
+  position: relative;
+}
+.tmE-draft-marks {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 9px 11px;
+  border: 0.5px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  overflow: hidden;
+  color: transparent;
+  pointer-events: none;
+}
+.tmE-draft-input.has-ph .tmE-draft-ta {
+  position: relative;
+  background: transparent; /* let the marks show through behind the text */
+}
+.tmE-ph {
+  color: transparent;
+  background: #fbd999;
+  border-radius: 3px;
+  /* fatten the highlight a touch without shifting any text metrics */
+  box-shadow: 0 0 0 1.5px #fbd999;
+}
 
 @media (max-width: 1180px) {
   .tmE-wrap.is-workmode .tmE-grid3 {

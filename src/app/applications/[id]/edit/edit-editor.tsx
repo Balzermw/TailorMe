@@ -2297,6 +2297,8 @@ export default function EditEditor({
                       const id = suggestionId(p);
                       const draft = suggestionDrafts[id];
                       const rewriting = rewritingIds.has(id);
+                      // [bracket] slots in the draft the user must fill before applying.
+                      const phCount = draft ? (draft.match(/\[[^\]]+\]/g) || []).length : 0;
                       // "Adds content" = net-new text (keywords, a summary), not a
                       // rework of existing text. A quote means there's text to
                       // rewrite; mechanics fixes (spacing/formatting/punctuation)
@@ -2389,22 +2391,50 @@ export default function EditEditor({
                                   with AI…
                                 </p>
                               ) : (
-                                /\[[^\]]+\]/.test(draft) && (
+                                phCount > 0 && (
                                   <p className="tmE-draft-hint">
                                     <span className="tmE-draft-token">[ ]</span>
-                                    Replace anything in brackets with your own details before
-                                    applying.
+                                    {phCount === 1
+                                      ? "1 highlighted spot needs your details"
+                                      : `${phCount} highlighted spots need your details`}{" "}
+                                    before applying.
                                   </p>
                                 )
                               )}
-                              <textarea
-                                className={
-                                  "tmE-textarea" +
-                                  (/\[[^\]]+\]/.test(draft) ? " tmE-textarea--hasplaceholder" : "")
-                                }
-                                value={draft}
-                                onChange={(e) => updateSuggestionDraft(id, e.target.value)}
-                              />
+                              <div className={"tmE-draft-input" + (phCount > 0 ? " has-ph" : "")}>
+                                {phCount > 0 && (
+                                  <div className="tmE-draft-marks" aria-hidden="true">
+                                    {draft.split(/(\[[^\]]+\])/g).map((seg, j) =>
+                                      /^\[[^\]]+\]$/.test(seg) ? (
+                                        <mark key={j} className="tmE-ph">
+                                          {seg}
+                                        </mark>
+                                      ) : (
+                                        <span key={j}>{seg}</span>
+                                      ),
+                                    )}
+                                    {"\n"}
+                                  </div>
+                                )}
+                                <textarea
+                                  className={
+                                    "tmE-textarea tmE-draft-ta" +
+                                    (phCount > 0 ? " tmE-textarea--hasplaceholder" : "")
+                                  }
+                                  value={draft}
+                                  onChange={(e) => updateSuggestionDraft(id, e.target.value)}
+                                  onScroll={(e) => {
+                                    const marks =
+                                      e.currentTarget.parentElement?.querySelector(
+                                        ".tmE-draft-marks",
+                                      );
+                                    if (marks instanceof HTMLElement) {
+                                      marks.scrollTop = e.currentTarget.scrollTop;
+                                      marks.scrollLeft = e.currentTarget.scrollLeft;
+                                    }
+                                  }}
+                                />
+                              </div>
                               <div className="tmE-fix-card-actions">
                                 <button
                                   type="button"
