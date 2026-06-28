@@ -136,4 +136,21 @@ describe("contact parse/compose", () => {
     expect(fields.location).toBe("Visalia, CA");
     expect(fields.extra).toBeUndefined();
   });
+
+  it("strips a LinkedIn header title + pronouns from the location", () => {
+    const fields = parseContact(
+      "you@email.com | Sacramento, California, United States, Advisory Solutions Consultant @ ServiceNow, He/Him",
+    );
+    expect(fields.location).toBe("Sacramento, California, United States");
+  });
+
+  it("strips trailing pronouns even without a title", () => {
+    const fields = parseContact("you@email.com | Portland, OR, They/Them");
+    expect(fields.location).toBe("Portland, OR");
+  });
+
+  it("leaves a normal multi-part location untouched", () => {
+    const fields = parseContact("you@email.com | San Diego, California, United States");
+    expect(fields.location).toBe("San Diego, California, United States");
+  });
 });

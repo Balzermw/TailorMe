@@ -27,6 +27,10 @@ const CONTACT_SPLIT_RE = /\s*[|\u00b7]\s*/;
 // segments. These are not a city/state, so we peel them out of `location`.
 const WORK_AUTH_RE =
   /\b(?:u\.?\s?s\.?\s?)?citizen(?:ship)?\b|authorized to work|work authoriz(?:ation|ed)|work permit|green ?card|permanent resident|lawful permanent|\bvisa\b|\bh-?1b\b|\bead\b|\bopt\b|\bcpt\b|\btn visa\b|right to work|naturalized/i;
+// Pronoun strings ("He/Him", "She/Her", "They/Them") that LinkedIn headers tack
+// on after the location. A place is never a slashed pronoun pair, so we drop it.
+const PRONOUN_RE =
+  /^(?:he|she|they|him|her|them|his|hers|theirs|ze|zie|xe|xem)(?:\s*\/\s*(?:he|she|they|him|her|them|his|hers|theirs|ze|zie|xe|xem))+$/i;
 const LINKEDIN_URL_RE =
   /\b(?:https?:\/\/)?(?:www\.)?(?:linkedin|linkedgin)\.com\/[^\s"'<>|,;]+/gi;
 const LINKEDIN_LABEL_RE = /\b(?:linkedin|linkedgin)\b\s*[:\-]?/gi;
@@ -43,6 +47,20 @@ function cleanLooseSeparators(value: string): string {
     .replace(/^[\s,;|:()[\].-]+|[\s,;|:()[\].-]+$/g, "")
     .replace(/\s+,/g, ",")
     .trim();
+}
+
+// LinkedIn profile headers append a job title ("Advisory Solutions Consultant @
+// ServiceNow") and pronouns ("He/Him") after the location, comma-joined into a
+// single segment. Keep only the leading place segments, stopping at the first
+// title (`@`) or pronoun pair.
+function cleanLocation(value: string): string {
+  const segs = (value || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const kept: string[] = [];
+  for (const s of segs) {
+    if (s.includes("@") || PRONOUN_RE.test(s)) break;
+    kept.push(s);
+  }
+  return kept.join(", ");
 }
 
 function normalizePhone(value: string): string {
@@ -100,6 +118,7 @@ export function normalizeContactFields(fields: ContactFields): ContactFields {
   } else {
     next.location = cleanLooseSeparators(next.location);
   }
+  next.location = cleanLocation(next.location);
 
   const fromLinkedin = extractLinkedin(next.linkedin);
   if (fromLinkedin.linkedin) {
