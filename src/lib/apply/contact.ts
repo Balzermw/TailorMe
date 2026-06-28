@@ -31,6 +31,10 @@ const WORK_AUTH_RE =
 // on after the location. A place is never a slashed pronoun pair, so we drop it.
 const PRONOUN_RE =
   /^(?:he|she|they|him|her|them|his|hers|theirs|ze|zie|xe|xem)(?:\s*\/\s*(?:he|she|they|him|her|them|his|hers|theirs|ze|zie|xe|xem))+$/i;
+// Placeholder junk a scrape/paste leaves when a field is missing ("profile not
+// provided", "not specified", "N/A"). Never a real city/state.
+const LOCATION_PLACEHOLDER_RE =
+  /\bnot (?:provided|specified|available|listed|disclosed|given|set|found)\b|\bn\/a\b|\bunavailable\b|\bunknown\b/i;
 const LINKEDIN_URL_RE =
   /\b(?:https?:\/\/)?(?:www\.)?(?:linkedin|linkedgin)\.com\/[^\s"'<>|,;]+/gi;
 const LINKEDIN_LABEL_RE = /\b(?:linkedin|linkedgin)\b\s*[:\-]?/gi;
@@ -50,14 +54,15 @@ function cleanLooseSeparators(value: string): string {
 }
 
 // LinkedIn profile headers append a job title ("Advisory Solutions Consultant @
-// ServiceNow") and pronouns ("He/Him") after the location, comma-joined into a
-// single segment. Keep only the leading place segments, stopping at the first
-// title (`@`) or pronoun pair.
+// ServiceNow"), pronouns ("He/Him"), and missing-field placeholders ("profile
+// not provided") after the location, comma-joined into a single segment. Keep
+// only the leading place segments, stopping at the first title (`@`), pronoun
+// pair, or placeholder.
 function cleanLocation(value: string): string {
   const segs = (value || "").split(",").map((s) => s.trim()).filter(Boolean);
   const kept: string[] = [];
   for (const s of segs) {
-    if (s.includes("@") || PRONOUN_RE.test(s)) break;
+    if (s.includes("@") || PRONOUN_RE.test(s) || LOCATION_PLACEHOLDER_RE.test(s)) break;
     kept.push(s);
   }
   return kept.join(", ");
