@@ -1264,6 +1264,11 @@
   /* take the column's width (not the 760px child's) so the doc scales to fit */
   width: 100%;
   min-width: 0;
+  /* frame the one-sheet view so it reads as a real page (8.5x11) */
+  background: #fff;
+  border: 1px solid var(--tm-border);
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.07);
 }
 
 /* "You are here" avatar, level with the section being edited. */

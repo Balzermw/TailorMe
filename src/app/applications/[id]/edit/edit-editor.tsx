@@ -608,8 +608,12 @@ export default function EditEditor({
           pageIdx += 1;
         }
       }
+      // Fill out whole sheets so the white page always reads as a full 8.5x11
+      // (a short page 2 shows white space at the bottom, like a real page).
+      const pages = pageIdx + 1;
+      page.style.minHeight = `${Math.round(pages * sheet)}px`;
       setSheetPx((prev) => (prev != null && Math.abs(prev - sheet) < 1 ? prev : Math.round(sheet)));
-      setPageCount(pageIdx + 1);
+      setPageCount(pages);
       setDocHeight(Math.round(scaler.offsetHeight * scale));
     };
     measure();
