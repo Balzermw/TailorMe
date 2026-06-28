@@ -11,7 +11,6 @@ import Link from "next/link";
 import {
   Check,
   Download,
-  FileCheck,
   FileText,
   ListChecks,
   PenLine,
@@ -32,14 +31,10 @@ import type { SessionUser as AuthUser } from "@/lib/auth";
 import {
   AddResumeChoice,
   ApplicationTableHead,
-  DashboardDocumentEmpty,
-  DashboardDocumentGroup,
   DashboardSectionHeader,
   RowStatus,
   ScoreBar,
 } from "./dashboard-bits";
-
-type View = "apps" | "docs";
 
 const STATUS_LABEL: Record<string, string> = {
   ready: "Targeted draft ready",
@@ -50,10 +45,6 @@ const STATUS_LABEL: Record<string, string> = {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function targetLabel(app: ApplicationRow) {
-  return `${app.role} - ${app.company}`;
 }
 
 /** Whether an expert (human) review is in flight for this application. */
@@ -84,10 +75,6 @@ function needRank(app: ApplicationRow) {
 
 function sortByNeed(items: ApplicationRow[]) {
   return [...items].sort((a, b) => needRank(a) - needRank(b));
-}
-
-function sortByFit(items: ApplicationRow[]) {
-  return [...items].sort((a, b) => (b.fitScore ?? -1) - (a.fitScore ?? -1));
 }
 
 function fitBand(fit: number | null) {
@@ -128,7 +115,6 @@ export default function DashboardLive({
   sourceResumeName,
   sourceResumeText,
   sourceFeedbackCount = 0,
-  initialView = "apps",
   reviewNotice,
 }: {
   user: AuthUser;
@@ -139,7 +125,6 @@ export default function DashboardLive({
   sourceResumeName?: string | null;
   sourceResumeText?: string | null;
   sourceFeedbackCount?: number;
-  initialView?: View;
   reviewNotice?: string | null;
 }) {
   const router = useRouter();
@@ -150,7 +135,6 @@ export default function DashboardLive({
     ? apps.filter((a) => a.resumeId === baseResumeId).length
     : 0;
   const ranked = sortByNeed(apps);
-  const [view, setView] = useState<View>(initialView);
   const [openId, setOpenId] = useState<string | null>(ranked[0]?.id ?? null);
   const [requesting, setRequesting] = useState(false);
   const [reviewMsg, setReviewMsg] = useState<string | null>(reviewNotice ?? null);
@@ -179,10 +163,6 @@ export default function DashboardLive({
     }
   }
 
-  const ready = apps.filter((a) => a.status === "ready" && a.result?.doc);
-  const reviewApps = sortByNeed(
-    apps.filter((a) => michaelInReview(a) || a.michaelStatus === "returned"),
-  );
   const rawSourceText = baseResume ? "" : (sourceResumeText ?? "").trim();
   const hasSourceProfile = Boolean(baseResume || rawSourceText);
   const sourceDisplayName =
@@ -190,9 +170,6 @@ export default function DashboardLive({
     baseResume?.name ||
     sourceResumeName ||
     "Saved source profile";
-  // Count packages a person recognizes: the source profile + each targeted
-  // resume. A resume and its cover letter are one package, not two documents.
-  const docsCount = (hasSourceProfile ? 1 : 0) + ready.length;
 
   const open = openId ? ranked.find((a) => a.id === openId) ?? null : null;
   const openStatus = open?.status ?? null;
@@ -292,28 +269,7 @@ export default function DashboardLive({
           </div>
         )}
 
-        <div className="tmD-tabs" role="tablist" aria-label="Dashboard views">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "apps"}
-            className={"tmD-tab" + (view === "apps" ? " is-on" : "")}
-            onClick={() => setView("apps")}
-          >
-            Targeted roles <i>{apps.length}</i>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "docs"}
-            className={"tmD-tab" + (view === "docs" ? " is-on" : "")}
-            onClick={() => setView("docs")}
-          >
-            Documents <i>{docsCount}</i>
-          </button>
-        </div>
-
-        {apps.length === 0 && view === "apps" ? (
+        {apps.length === 0 ? (
           <div className="tm-card tmD-empty">
             <FileText size={28} strokeWidth={1.6} />
             <h2>{hasSourceProfile ? "No targeted roles yet" : "Add your resume to get started"}</h2>
@@ -324,11 +280,11 @@ export default function DashboardLive({
             </p>
             {!hasSourceProfile && <AddResumeChoice />}
           </div>
-        ) : view === "apps" ? (
+        ) : (
           <>
             <DashboardSectionHeader
-              title="Targeted roles"
-              meta={`${apps.length} total - the ones that need attention come first`}
+              title="Targeted resumes"
+              meta={`${apps.length} ${apps.length === 1 ? "package" : "packages"}, fit-ranked - the ones that need attention come first`}
             />
             <ApplicationTableHead />
 
@@ -477,142 +433,6 @@ export default function DashboardLive({
               return weak > 0 ? <MichaelReviewCard weakCount={weak} /> : null;
             })()}
           </>
-        ) : (
-          <div className="tmD-docs">
-            {docsCount === 0 ? (
-              <div className="tm-card tmD-empty">
-                <FileText size={28} strokeWidth={1.6} />
-                <p>Your saved resume and targeted packages will appear here.</p>
-              </div>
-            ) : (
-              <>
-                {hasSourceProfile && (
-                  <DashboardDocumentGroup
-                    title="Source resume"
-                    detail="Your reusable experience, skills, and outcomes. Every targeted resume starts from this."
-                    count="1 item"
-                  >
-                    {baseResume ? (
-                      <div className="tm-card tmD-doc">
-                        <span className="tmD-doc-thumb">
-                          <FileText size={20} strokeWidth={1.5} />
-                        </span>
-                        <div className="tmD-doc-body">
-                          <b>Resume info</b>
-                          <span>{sourceDisplayName}</span>
-                          <span className="tmD-doc-file"><FileText size={12} /> Experience, roles, skills, and outcomes</span>
-                        </div>
-                        <div className="tmD-doc-side">
-                          <span className="tm-pill">source</span>
-                          <Link className="tm-btn tm-btn--outline tm-btn--sm" href={ROUTES.resumeEdit}>
-                            <PenLine size={13} /> Edit
-                          </Link>
-                        </div>
-                      </div>
-                    ) : rawSourceText ? (
-                      <div className="tm-card tmD-doc">
-                        <span className="tmD-doc-thumb">
-                          <FileText size={20} strokeWidth={1.5} />
-                        </span>
-                        <div className="tmD-doc-body">
-                          <b>Source profile</b>
-                          <span>{sourceDisplayName}</span>
-                          <span className="tmD-doc-file"><FileText size={12} /> Saved resume/profile text</span>
-                        </div>
-                        <div className="tmD-doc-side">
-                          <span className="tm-pill">source</span>
-                          <Link className="tm-btn tm-btn--outline tm-btn--sm" href={ROUTES.resumeImport}>
-                            <PenLine size={13} /> Update
-                          </Link>
-                        </div>
-                      </div>
-                    ) : null}
-                  </DashboardDocumentGroup>
-                )}
-
-                <DashboardDocumentGroup
-                  title="Targeted resumes"
-                  detail="Role-specific resumes (with cover letters) ranked by fit. Reopen to review changes or export."
-                  count={`${ready.length} ${ready.length === 1 ? "package" : "packages"}`}
-                >
-                  {ready.length > 0 ? (
-                    sortByFit(ready).map((app) => (
-                      <div key={app.id} className="tm-card tmD-doc">
-                        <span className="tmD-doc-thumb">
-                          <FileCheck size={20} strokeWidth={1.5} />
-                        </span>
-                        <div className="tmD-doc-body">
-                          <b>{targetLabel(app)}</b>
-                          <span>
-                            Resume{(app.result?.doc?.coverLetter ?? "").trim() ? " + cover letter" : ""} - {formatDate(app.createdAt)}
-                          </span>
-                          {(app.fitScore ?? 100) < 70 && (
-                            <span className="tmD-doc-advice">Low fit - a manual edit pass is recommended.</span>
-                          )}
-                        </div>
-                        <div className="tmD-doc-side">
-                          <span className="tm-pill">{app.fitScore == null ? "unscored" : `${app.fitScore} fit`}</span>
-                          <Link className="tm-btn tm-btn--outline tm-btn--sm" href={editHref(app.id)}>
-                            <PenLine size={13} /> Edit
-                          </Link>
-                          <Link
-                            className="tm-btn tm-btn--outline tm-btn--sm"
-                            href={pdfHref(app.id)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Download size={13} /> PDF
-                          </Link>
-                          <button
-                            type="button"
-                            className="tm-btn tm-btn--outline tm-btn--sm tmD-del-btn"
-                            aria-label={`Delete ${targetLabel(app)}`}
-                            onClick={() => requestDelete(app.id, targetLabel(app))}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <DashboardDocumentEmpty>Target a role to create your first targeted resume.</DashboardDocumentEmpty>
-                  )}
-                </DashboardDocumentGroup>
-
-                {reviewApps.length > 0 && (
-                  <DashboardDocumentGroup
-                    title="Expert review"
-                    detail="Targeted packages sent for a human expert pass, in progress or returned."
-                    count={`${reviewApps.length} ${reviewApps.length === 1 ? "package" : "packages"}`}
-                  >
-                    {reviewApps.map((app) => (
-                      <div key={app.id} className="tm-card tmD-doc">
-                        <span className="tmD-doc-thumb">
-                          <UserCheck size={20} strokeWidth={1.5} />
-                        </span>
-                        <div className="tmD-doc-body">
-                          <b>{targetLabel(app)}</b>
-                          <span>
-                            {app.michaelStatus === "returned" ? "Expert notes returned" : "In expert review"} - {formatDate(app.createdAt)}
-                          </span>
-                        </div>
-                        <div className="tmD-doc-side">
-                          <span className={app.michaelStatus === "returned" ? "tm-pill tm-pill--mint" : "tm-pill"}>
-                            {app.michaelStatus === "returned" ? "returned" : "in review"}
-                          </span>
-                          {app.result?.doc && (
-                            <Link className="tm-btn tm-btn--outline tm-btn--sm" href={editHref(app.id)}>
-                              <PenLine size={13} /> Open
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </DashboardDocumentGroup>
-                )}
-              </>
-            )}
-          </div>
         )}
       </div>
       {pendingDelete && (

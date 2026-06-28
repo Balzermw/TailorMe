@@ -20,8 +20,6 @@ export default async function DashboardPage({
 }) {
   const params = searchParams ? await searchParams : {};
   const review = Array.isArray(params.review) ? params.review[0] : params.review;
-  const viewParam = Array.isArray(params.view) ? params.view[0] : params.view;
-  const initialView = viewParam === "docs" ? "docs" : "apps";
   const reviewNotice =
     review === "requested"
       ? "Michael's review has been requested. We'll show it here as soon as checkout is confirmed."
@@ -48,7 +46,6 @@ export default async function DashboardPage({
         sourceResumeName={base?.name ?? null}
         sourceResumeText={base?.text ?? null}
         sourceFeedbackCount={base?.proofPoints?.length ?? 0}
-        initialView={initialView}
         reviewNotice={reviewNotice}
       />
     );
