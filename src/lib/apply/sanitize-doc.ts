@@ -112,7 +112,21 @@ export function normalizeHeadline(input: unknown, fallback?: string): string {
     return compactFallback;
   }
 
-  return compactHeadline(raw);
+  const compacted = compactHeadline(raw);
+  // Recover a truncated title: if the headline is just a short prefix of the
+  // fuller target role (e.g. "Lead" of "Lead, Product Management" — an older
+  // import truncated it at the comma), prefer the role so the real title shows.
+  if (
+    compactFallback &&
+    compactFallback.length <= HEADLINE_MAX_CHARS &&
+    words(compactFallback).length <= HEADLINE_MAX_WORDS &&
+    compacted.length < compactFallback.length &&
+    compactFallback.toLowerCase().startsWith(compacted.toLowerCase())
+  ) {
+    return compactFallback;
+  }
+
+  return compacted;
 }
 
 // Validate + bound an incoming (client-edited or builder-assembled) doc so a

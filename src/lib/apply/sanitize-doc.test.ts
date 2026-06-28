@@ -22,6 +22,24 @@ describe("normalizeHeadline", () => {
   it("keeps concise role titles intact", () => {
     expect(normalizeHeadline("Senior Platform Engineer")).toBe("Senior Platform Engineer");
   });
+
+  it("preserves a multi-part role title (does not truncate at the comma)", () => {
+    expect(normalizeHeadline("Lead, Product Management")).toBe("Lead, Product Management");
+  });
+
+  it("still collapses a pipe-separated buzzword pile to the lead role", () => {
+    expect(
+      normalizeHeadline("Senior Product Leader | SaaS & AI Innovator | Growth Driver"),
+    ).toBe("Senior Product Leader");
+  });
+
+  it("recovers a title truncated to a prefix of the target role", () => {
+    expect(normalizeHeadline("Lead", "Lead, Product Management")).toBe("Lead, Product Management");
+  });
+
+  it("does not over-extend an unrelated longer headline", () => {
+    expect(normalizeHeadline("Senior Platform Engineer", "Engineer")).toBe("Senior Platform Engineer");
+  });
 });
 
 describe("sanitizeDoc", () => {
