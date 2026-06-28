@@ -1975,7 +1975,7 @@ export default function EditEditor({
                           <div className="tmE-diff-actions">
                             <button
                               type="button"
-                              className={"tmE-diff-btn" + (decision === "accepted" ? " is-on is-accept" : "")}
+                              className={"tmE-diff-btn is-accept" + (decision === "accepted" ? " is-on" : "")}
                               onClick={() => decide(ei, bi, "accepted")}
                               aria-pressed={decision === "accepted"}
                               data-testid={`revision-accept-${ei}-${bi}`}
@@ -1984,7 +1984,7 @@ export default function EditEditor({
                             </button>
                             <button
                               type="button"
-                              className={"tmE-diff-btn" + (decision === "rejected" ? " is-on is-reject" : "")}
+                              className={"tmE-diff-btn is-reject" + (decision === "rejected" ? " is-on" : "")}
                               onClick={() => decide(ei, bi, "rejected")}
                               aria-pressed={decision === "rejected"}
                               data-testid={`revision-reject-${ei}-${bi}`}
@@ -1993,7 +1993,7 @@ export default function EditEditor({
                             </button>
                             <button
                               type="button"
-                              className={"tmE-diff-btn" + (decision === "edited" ? " is-on is-edit" : "")}
+                              className={"tmE-diff-btn is-edit" + (decision === "edited" ? " is-on" : "")}
                               onClick={() => decide(ei, bi, "edited")}
                               aria-pressed={decision === "edited"}
                               data-testid={`revision-edit-${ei}-${bi}`}

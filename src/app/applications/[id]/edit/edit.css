@@ -647,10 +647,38 @@
   color: var(--tm-ink);
   background: rgba(24, 24, 27, 0.04);
 }
-/* Accept is the suggested action — give it a quiet outline by default. */
+/* Color-code the three choices so they read at a glance: Accept green, Reject
+   red, Edit neutral-blue. A soft tint + colored text at rest; a solid fill when
+   selected (is-on). */
 .tmE-diff-btn.is-accept {
-  border-color: var(--tm-border);
-  color: var(--tm-slate);
+  color: var(--tm-mint-700);
+  border-color: rgba(33, 146, 107, 0.3);
+  background: var(--tm-mint-50);
+}
+.tmE-diff-btn.is-accept:hover {
+  border-color: var(--tm-mint-500);
+  color: var(--tm-mint-700);
+  background: var(--tm-mint-50);
+}
+.tmE-diff-btn.is-reject {
+  color: #b3261e;
+  border-color: rgba(179, 38, 30, 0.28);
+  background: #fdecea;
+}
+.tmE-diff-btn.is-reject:hover {
+  border-color: rgba(179, 38, 30, 0.5);
+  color: #b3261e;
+  background: #fdecea;
+}
+.tmE-diff-btn.is-edit {
+  color: var(--tm-blue-800);
+  border-color: var(--tm-blue-200, rgba(67, 115, 219, 0.22));
+  background: var(--tm-blue-50);
+}
+.tmE-diff-btn.is-edit:hover {
+  border-color: var(--tm-blue-400);
+  color: var(--tm-blue-800);
+  background: var(--tm-blue-50);
 }
 .tmE-diff-btn.is-on.is-accept {
   background: var(--tm-mint-500);
@@ -658,12 +686,14 @@
   color: #fff;
 }
 .tmE-diff-btn.is-on.is-reject {
-  background: rgba(217, 84, 77, 0.12);
-  color: #c0392f;
+  background: #b3261e;
+  border-color: #b3261e;
+  color: #fff;
 }
 .tmE-diff-btn.is-on.is-edit {
-  background: var(--tm-blue-50);
-  color: var(--tm-blue-800);
+  background: var(--tm-blue-600);
+  border-color: var(--tm-blue-600);
+  color: #fff;
 }
 .tmE-preview-label {
   font-size: 11px;
