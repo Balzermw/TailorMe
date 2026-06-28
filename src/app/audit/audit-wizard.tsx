@@ -1379,16 +1379,13 @@ function ScoringLoader({
 // prose verdict is trimmed to a one-line lead — the ranked rows carry the "why".
 function FitResult({ view, shown }: { view: FitView; shown: boolean }) {
   const [openDims, setOpenDims] = useState<Set<number>>(new Set());
-  // Drop a "Why 84 — strong fit:" lead the model sometimes prefixes, then keep
-  // only the first sentence; the dimension rows + keyword chips do the rest.
-  const ci = view.summary.indexOf(":");
-  const summaryFull = (ci >= 0 ? view.summary.slice(ci + 1) : view.summary).trim();
-  const summaryLead = summaryFull.match(/^[^.!?]*[.!?]/)?.[0] ?? summaryFull;
   const ranked = [...view.dims].sort((a, b) => b.score - a.score);
   const theme = fitTheme(view.overall);
-  const keywords = view.keywords ?? [];
-  const kwMatched = keywords.filter((k) => k.inResume);
-  const kwMissing = keywords.filter((k) => !k.inResume);
+  // Lead with a concrete, data-derived takeaway — the top strength and biggest
+  // gap from THIS resume vs THIS posting — instead of a generic LLM sentence.
+  // Keyword coverage lives in the ATS (Ada) agent, so it isn't repeated here.
+  const top = ranked[0];
+  const focus = ranked.length > 1 ? ranked[ranked.length - 1] : null;
 
   return (
     <Fragment>
@@ -1429,12 +1426,19 @@ function FitResult({ view, shown }: { view: FitView; shown: boolean }) {
           >
             {heroHeadline(view.overall)}
           </h3>
-          {summaryLead && (
+          {top && (
             <p
               className="tm-small"
               style={{ marginTop: "8px", fontSize: "13px", lineHeight: 1.55 }}
             >
-              {summaryLead}
+              Strongest on{" "}
+              <b style={{ color: "var(--tm-ink)", fontWeight: 600 }}>{top.label}</b> ({top.score}).
+              {focus && (
+                <>
+                  {" "}Most room to grow:{" "}
+                  <b style={{ color: "var(--tm-ink)", fontWeight: 600 }}>{focus.label}</b> ({focus.score}).
+                </>
+              )}
             </p>
           )}
         </div>
@@ -1646,34 +1650,6 @@ function FitResult({ view, shown }: { view: FitView; shown: boolean }) {
             </span>
           </div>
 
-          {/* keyword coverage — exactly which posting terms the resume hits/misses */}
-          {keywords.length > 0 && (
-            <div style={{ borderTop: "0.5px solid var(--tm-border)", paddingTop: "14px", marginTop: "2px" }}>
-              <span className="tmF-p2-label">
-                Keywords the posting screens for ({kwMatched.length}/{keywords.length})
-              </span>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
-                {kwMatched.map((k) => (
-                  <span
-                    key={`m-${k.term}`}
-                    className="tm-pill tm-pill--mint"
-                    style={{ fontSize: "11px" }}
-                  >
-                    <Check size={11} /> {k.term}
-                  </span>
-                ))}
-                {kwMissing.map((k) => (
-                  <span
-                    key={`x-${k.term}`}
-                    className="tm-pill"
-                    style={{ fontSize: "11px", background: "#fdf3e7", color: "#854f0b" }}
-                  >
-                    <Plus size={11} style={{ transform: "rotate(45deg)" }} /> {k.term}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </Fragment>
