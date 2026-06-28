@@ -710,17 +710,16 @@ export default function EditEditor({
         setCursorTop(null);
         return;
       }
-      const vr = vp.getBoundingClientRect();
       const sr = scaler.getBoundingClientRect();
       const er = (el as HTMLElement).getBoundingClientRect();
       // The avatar lives in the scroll content at the section's offset, so it
       // scrolls with the résumé (the offset is stable while scrolling).
       setCursorTop(Math.max(2, er.top - sr.top));
-      // When the edited SECTION changes, scroll it comfortably into view.
+      // When the edited SECTION changes, scroll the PAGE so it's in view.
       const anchorChanged = prevAnchorRef.current !== editingAnchor;
       prevAnchorRef.current = editingAnchor;
       if (anchorChanged) {
-        vp.scrollTo({ top: vp.scrollTop + (er.top - vr.top) - 48, behavior: "smooth" });
+        (el as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
       }
     };
     const raf = requestAnimationFrame(compute);
@@ -739,15 +738,10 @@ export default function EditEditor({
     let raf = 0;
     const t = window.setTimeout(() => {
       raf = requestAnimationFrame(() => {
-        const vp = viewportRef.current;
         const el = docWrapRef.current?.querySelector(
           `[data-field="${pendingJump}"]`,
         ) as HTMLElement | null;
-        if (vp && el) {
-          const vr = vp.getBoundingClientRect();
-          const er = el.getBoundingClientRect();
-          vp.scrollTo({ top: vp.scrollTop + (er.top - vr.top) - 48, behavior: "smooth" });
-        }
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
         setPendingJump(null);
       });
     }, 300);

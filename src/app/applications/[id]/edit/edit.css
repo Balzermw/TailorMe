@@ -313,8 +313,9 @@
   color: var(--tm-zinc);
 }
 .tmE-preview {
-  position: sticky;
-  top: 20px;
+  /* Flows with the page (no sticky/internal scroll) so the whole page scrolls
+     the résumé as one document. */
+  position: relative;
 }
 /* "AI-tailored for this role" badge — marks the doc as an auto-generated draft */
 .tmE-tailored {
@@ -1351,9 +1352,8 @@
   position: relative;
   width: 100%;
   min-width: 0;
-  max-height: calc(100vh - 132px);
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* No inner scrollbox — the résumé flows full-height and the PAGE scrolls. */
+  overflow: visible;
   background: #fff;
   border: 1px solid var(--tm-border);
   border-radius: 4px;
@@ -1445,11 +1445,11 @@
 /* Floats over the scrolling résumé, bottom-right, so it stays in view without a
    footer row. Quiet when saved, amber + clickable when there are changes. */
 .tmE-saved--float {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  z-index: 6;
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.16);
+  position: fixed;
+  right: 24px;
+  bottom: 22px;
+  z-index: 40;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
 }
 .tmE-saved--float.is-saved {
   opacity: 0.85;
