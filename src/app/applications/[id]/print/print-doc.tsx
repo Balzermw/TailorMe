@@ -163,8 +163,8 @@ export default function PrintDoc({
                     <div className="mcv-entry-role">{e.role}</div>
                     <div className="mcv-entry-company">{e.company}</div>
                     <ul>
-                      {e.bullets.map((b, i) => (
-                        <li key={i}>{hl(b)}</li>
+                      {e.bullets.map((b, bi) => (
+                        <li key={bi} data-field={`exp-${i}-bullet-${bi}`}>{hl(b)}</li>
                       ))}
                     </ul>
                   </div>

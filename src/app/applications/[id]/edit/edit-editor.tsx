@@ -596,6 +596,11 @@ export default function EditEditor({
   // After an applied edit, the exact preview anchor to flip the pager to, so an
   // edit that lands on (or moves to) page 2 is shown, not left off-screen.
   const [pendingJump, setPendingJump] = useState<string | null>(null);
+  // While a suggestion's draft is open, keep its targeted line highlighted in the
+  // preview (not just on hover) so the user always sees WHAT they're editing.
+  const [lockedFinding, setLockedFinding] = useState<{ quote?: string; section: Section } | null>(
+    null,
+  );
   // "You are here": a small avatar in the preview, level with the section being
   // edited. Null = hidden (off the current page, or not in Edit mode).
   const [cursorTop, setCursorTop] = useState<number | null>(null);
@@ -972,6 +977,11 @@ export default function EditEditor({
   function openSuggestionDraft(p: ProofPoint, target: EditableSection) {
     const id = suggestionId(p);
     if (suggestionDrafts[id] != null) return; // already open
+    // Show the user exactly which line this fix targets: flip the preview to its
+    // page and keep it highlighted for as long as the draft stays open.
+    const jumpEntry = target === "experience" ? findQuotedBullet(doc, p.quote)?.ei ?? 0 : 0;
+    setPendingJump(previewAnchorFor(target, jumpEntry));
+    setLockedFinding({ quote: p.quote, section: target });
     const fallback = draftFromFinding(p, target);
     // Open with an EMPTY draft + the AI spinner; the box stays blank until the
     // rewrite returns. Only fall back to the template draft in demo/no-LLM/error,
@@ -1024,6 +1034,9 @@ export default function EditEditor({
       delete next[id];
       return next;
     });
+    // Release the persistent preview highlight once the draft is gone.
+    setLockedFinding(null);
+    clearHighlight();
   }
 
   function markSuggestionApplied(id: string) {
@@ -1529,6 +1542,18 @@ export default function EditEditor({
       setHlDir(null);
     }
   }
+
+  // Re-apply the locked highlight after the preview re-renders or flips pages, so
+  // the targeted line stays lit while the draft is open. Defined after
+  // highlightFinding so the compiler can track it.
+  useEffect(() => {
+    if (!lockedFinding) return;
+    const raf = requestAnimationFrame(() =>
+      highlightFinding(lockedFinding.quote, lockedFinding.section),
+    );
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockedFinding, currentPage, doc]);
 
   const reviewableChangeCount = collectChanges().length;
   const wideEditMode =
@@ -2387,7 +2412,11 @@ export default function EditEditor({
                           data-suggestion-title={p.title}
                           data-rule-id={p.ruleId ?? ""}
                           onMouseEnter={() => highlightFinding(p.quote, target)}
-                          onMouseLeave={clearHighlight}
+                          onMouseLeave={() =>
+                            lockedFinding
+                              ? highlightFinding(lockedFinding.quote, lockedFinding.section)
+                              : clearHighlight()
+                          }
                         >
                           <div className="tmE-fix-titlerow">
                             <b>{p.title}</b>
