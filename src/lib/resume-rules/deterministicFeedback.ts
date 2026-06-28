@@ -40,6 +40,22 @@ function findingToProofPoint(f: ResumeRuleFinding): ProofPoint {
   };
 }
 
+// LLM findings sometimes assert a fabricated count ("Quantify 28 bullets", "Trim
+// 4 low-relevance bullets") that rarely matches the actual doc. Strip such counts
+// from legacy (no-ruleId) titles so we never surface a hallucinated number. The
+// lookbehind leaves real thresholds intact ("exceed 2 lines", "up to 3 items").
+function stripUnverifiableCounts(p: ProofPoint): ProofPoint {
+  if (p.ruleId) return p; // rules-engine counts are computed, not guessed
+  const title = p.title
+    .replace(
+      /(?<!\b(?:than|over|under|exceeds?|least|most|up to|within|to)\s)\b\d+\s+(?=(?:[a-z-]+\s+){0,2}(?:bullets?|lines?|items?|points?)\b)/gi,
+      "",
+    )
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return title === p.title ? p : { ...p, title };
+}
+
 function normalizedQuote(value: string | undefined): string {
   return (value ?? "")
     .toLowerCase()
@@ -149,7 +165,7 @@ export function refineFeedback(
       tier: "paid", // the editor is an engaged workspace → allow up to 10
       templated: true, // base resume renders in our template (it owns layout/ATS)
     });
-    const rawProofPoints = result.surfaced.map(findingToProofPoint);
+    const rawProofPoints = result.surfaced.map(findingToProofPoint).map(stripUnverifiableCounts);
     const filteredProofPoints = filterContradictedProofPoints(doc, rawProofPoints);
     const contradictionSuppressed = rawProofPoints.length - filteredProofPoints.length;
     // Missing email/phone leads the list — a real content gap the user must fix.

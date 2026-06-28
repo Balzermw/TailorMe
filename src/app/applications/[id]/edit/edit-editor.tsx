@@ -2393,7 +2393,7 @@ export default function EditEditor({
                                 setSection(target);
                               }}
                             >
-                              Edit {SECTION_LABEL[target]} →
+                              Edit manually →
                             </button>
                           </div>
                           {draft != null && (
