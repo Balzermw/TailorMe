@@ -1487,9 +1487,6 @@ export default function EditEditor({
               title="This resume has AI feedback — open the Feedback tab"
             >
               <Sparkles size={12} /> Optimized resume
-              {shownPoints.length > 0 && (
-                <span className="tmE-optimized-count">{shownPoints.length}</span>
-              )}
             </button>
           )}
         </div>
