@@ -8,10 +8,14 @@ import { Fragment, type ReactNode } from "react";
 // %, $amounts, 40k / 2.4M / 3x, p95, or any standalone 2+ digit run.
 const METRIC_RE =
   /(\d[\d.,]*\s?%|\$\s?\d[\d.,]*|\b\d[\d.,]*\s?[kmbx]\b|\bp\d{2,}\b|\b\d{2,}[\d.,]*\b)/gi;
+// "[add %]", "[industry/field]" — fill-in-the-blank slots an AI draft or template
+// leaves behind. Split these FIRST so the metric matcher can't carve up a slot.
+const PLACEHOLDER_RE = /\[[^\]]+\]/g;
 
-type Piece = { t: string; kind: "kw" | "metric" | null };
+type PieceKind = "kw" | "metric" | "ph" | null;
+type Piece = { t: string; kind: PieceKind };
 
-function splitTag(parts: Piece[], re: RegExp, kind: "kw" | "metric"): Piece[] {
+function splitTag(parts: Piece[], re: RegExp, kind: Exclude<PieceKind, null>): Piece[] {
   const out: Piece[] = [];
   for (const p of parts) {
     if (p.kind) {
@@ -49,9 +53,14 @@ export function highlightHits(
   return { kw, metric };
 }
 
-export function highlight(text: string, keywords: string[] = []): ReactNode {
+export function highlight(
+  text: string,
+  keywords: string[] = [],
+  opts?: { placeholders?: boolean },
+): ReactNode {
   if (!text) return text;
   let parts: Piece[] = [{ t: text, kind: null }];
+  if (opts?.placeholders) parts = splitTag(parts, PLACEHOLDER_RE, "ph");
   parts = splitTag(parts, METRIC_RE, "metric");
 
   const kw = [...new Set(keywords.map((k) => k.trim()).filter((k) => k.length > 1))]
@@ -62,7 +71,9 @@ export function highlight(text: string, keywords: string[] = []): ReactNode {
   }
 
   return parts.map((p, i) =>
-    p.kind === "metric" ? (
+    p.kind === "ph" ? (
+      <mark key={i} className="tm-ph">{p.t}</mark>
+    ) : p.kind === "metric" ? (
       <mark key={i} className="tm-m">{p.t}</mark>
     ) : p.kind === "kw" ? (
       <mark key={i} className="tm-k">{p.t}</mark>

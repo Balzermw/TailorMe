@@ -249,6 +249,18 @@ body {
   border-radius: 6px;
   font-weight: 500;
 }
+/* Unfilled [bracket] slot in the editor preview — a clear yellow flag so the user
+   remembers to replace it with real details. Editor-only; never in the PDF. */
+.tm-ph {
+  background: #fde047;
+  color: #713f12;
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(161, 98, 7, 0.45);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
 
 /* ---------- card ---------- */
 .tm-card {

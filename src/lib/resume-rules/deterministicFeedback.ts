@@ -80,6 +80,16 @@ function filterContradictedProofPoints(doc: TailoredDoc, proofPoints: ProofPoint
     if (point.ruleId === "include_start_end_dates_on_all_roles" && allExperienceHasDates) {
       return false;
     }
+    // "Add 'Phone:'/'Email:' labels before each contact item" is a persistent LLM
+    // myth — modern resumes and ATS parse an unlabeled contact line fine, and the
+    // labels only clutter the header. Drop it (legacy LLM finding, no ruleId; our
+    // real contact-gap checks below use ruleIds, so they're untouched).
+    if (!point.ruleId) {
+      const blob = `${point.title} ${point.summary} ${point.fix}`.toLowerCase();
+      if (/\blabels?\b/.test(blob) && (/\bcontact\b/.test(blob) || /(?:phone|email)\s*:/.test(blob))) {
+        return false;
+      }
+    }
     return true;
   });
 }

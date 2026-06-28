@@ -918,9 +918,16 @@ export default function EditEditor({
     const id = suggestionId(p);
     if (suggestionDrafts[id] != null) return; // already open
     const fallback = draftFromFinding(p, target);
-    setSuggestionDrafts((drafts) => (drafts[id] != null ? drafts : { ...drafts, [id]: fallback }));
+    // Open with an EMPTY draft + the AI spinner; the box stays blank until the
+    // rewrite returns. Only fall back to the template draft in demo/no-LLM/error,
+    // and only while the user hasn't started typing (draft still "").
+    setSuggestionDrafts((drafts) => (drafts[id] != null ? drafts : { ...drafts, [id]: "" }));
     setRewritingIds((s) => new Set(s).add(id));
     void (async () => {
+      const applyFallback = () =>
+        setSuggestionDrafts((drafts) =>
+          drafts[id] === "" ? { ...drafts, [id]: fallback } : drafts,
+        );
       try {
         const res = await fetch("/api/resume/rewrite", {
           method: "POST",
@@ -935,11 +942,13 @@ export default function EditEditor({
         const data = await res.json().catch(() => ({}));
         if (res.ok && typeof data.rewrite === "string" && data.rewrite.trim()) {
           setSuggestionDrafts((drafts) =>
-            drafts[id] === fallback ? { ...drafts, [id]: data.rewrite.trim() } : drafts,
+            drafts[id] === "" ? { ...drafts, [id]: data.rewrite.trim() } : drafts,
           );
+        } else {
+          applyFallback(); // demo mode ({ demo: true }) or empty response
         }
       } catch {
-        /* keep the template fallback */
+        applyFallback();
       } finally {
         setRewritingIds((s) => {
           const n = new Set(s);
@@ -2299,14 +2308,19 @@ export default function EditEditor({
                       const rewriting = rewritingIds.has(id);
                       // [bracket] slots in the draft the user must fill before applying.
                       const phCount = draft ? (draft.match(/\[[^\]]+\]/g) || []).length : 0;
-                      // "Adds content" = net-new text (keywords, a summary), not a
-                      // rework of existing text. A quote means there's text to
-                      // rewrite; mechanics fixes (spacing/formatting/punctuation)
-                      // also rework existing text even when they carry no quote.
+                      // "Adds content" = net-new material (keywords, a summary), not a
+                      // rework or removal of existing text. Require a genuine add-intent
+                      // AND no rework/remove verb; a quote always means there's existing
+                      // text to edit. Keeps Trim/Quantify/Spacing out of "Adds content".
+                      const fixText =
+                        `${p.title} ${p.category ?? ""} ${p.summary ?? ""} ${p.fix ?? ""}`.toLowerCase();
+                      // Stems anchored with a LEADING \b only (no trailing boundary) so
+                      // "spac" matches "spaces/spacing" but "cut" can't match "execute".
                       const addsContent =
                         !p.quote &&
-                        !/spac|whitespace|format|capitali|casing|punctuat|consisten|alignment|typo|grammar/i.test(
-                          `${p.title} ${p.category ?? ""} ${p.summary ?? ""}`,
+                        /\b(?:add|include|incorporate|introduce|missing|lack|absent)\b/.test(fixText) &&
+                        !/\b(?:trim|cut|remov|delet|drop|shorten|condens|quantif|metric|measur|number|spac|whitespace|format|capitali|casing|punctuat|consisten|align|reorder|reorganiz|rephras|reword|clarif|overlap|date|grammar|typo|tense)/.test(
+                          fixText,
                         );
                       return (
                         <div
@@ -2523,7 +2537,7 @@ export default function EditEditor({
                 transition: "transform 0.3s ease",
               }}
             >
-              <PrintDoc doc={doc} id={id} resumeOnly hideToolbar highlightKeywords={showMatches ? previewKeywords : undefined} />
+              <PrintDoc doc={doc} id={id} resumeOnly hideToolbar markPlaceholders highlightKeywords={showMatches ? previewKeywords : undefined} />
             </div>
             {cursorTop != null && (
               <div className="tmE-cursor" style={{ top: `${cursorTop}px` }} aria-hidden="true">
