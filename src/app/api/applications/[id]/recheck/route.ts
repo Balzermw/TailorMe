@@ -7,7 +7,7 @@ import { scoreFit } from "@/lib/apply/pipeline";
 import { withAiRun } from "@/lib/apply/ai-telemetry";
 import { docToResumeText } from "@/lib/apply/serialize";
 import { sanitizeDoc } from "@/lib/apply/sanitize-doc";
-import { appendFitEntry, ensureInitialHistory } from "@/lib/apply/fit-history";
+import { appendFitEntry, ensureInitialHistory, capRecheckScore } from "@/lib/apply/fit-history";
 import type { ApplyResult } from "@/lib/types";
 
 // Re-checks the fit of an application's CURRENT (possibly just-edited) resume
@@ -81,9 +81,15 @@ export async function POST(
   }
 
   const resumeText = docToResumeText(doc);
-  const { fit } = await withAiRun("score", { userId: user.id }, () =>
+  const { fit: rawFit } = await withAiRun("score", { userId: user.id }, () =>
     scoreFit(resumeText, postingText),
   );
+  // Keep the re-score honest: cap how far a single re-check can lift the score so
+  // a small edit can't jump it double digits on model variance. Declines pass
+  // through. Improvements still accumulate across successive re-checks.
+  const prevOverall = existing.fit?.overall ?? rawFit.overall;
+  const cappedOverall = capRecheckScore(prevOverall, rawFit.overall);
+  const fit = cappedOverall === rawFit.overall ? rawFit : { ...rawFit, overall: cappedOverall };
 
   const history = appendFitEntry(
     ensureInitialHistory(existing, new Date().toISOString()),
