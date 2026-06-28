@@ -56,3 +56,71 @@ describe("refineFeedback contact-gap detection", () => {
     expect(proofPoints.filter((p) => p.ruleId === "header_missing_email")).toHaveLength(0);
   });
 });
+
+// Email + phone present so contact gaps don't crowd these assertions.
+function docWithExperience(experience: TailoredDoc["experience"]): TailoredDoc {
+  return {
+    name: "Michael Balzer",
+    headline: "Advisory Solutions Consultant",
+    contact: "612-227-1149 | you@example.com | Sacramento, CA",
+    summary: "Senior consultant with enterprise cloud-platform experience.",
+    experience,
+    skills: ["ServiceNow", "ITSM"],
+    coverLetter: "",
+  };
+}
+
+describe("refineFeedback sparse-experience detection", () => {
+  it("flags a role with fewer than two real bullets", () => {
+    const { proofPoints } = refineFeedback(
+      docWithExperience([
+        {
+          role: "Consultant",
+          company: "ServiceNow",
+          dates: "2021 - Present",
+          bullets: ["Delivered platform rollouts for enterprise clients."],
+        },
+      ]),
+      [],
+    );
+    const sparse = proofPoints.filter((p) => p.ruleId === "experience_sparse_bullets");
+    expect(sparse).toHaveLength(1);
+    expect(sparse[0].targetSection).toBe("experience");
+  });
+
+  it("does not nag a role that already has two or more real bullets", () => {
+    const { proofPoints } = refineFeedback(
+      docWithExperience([
+        {
+          role: "Consultant",
+          company: "ServiceNow",
+          dates: "2021 - Present",
+          bullets: [
+            "Delivered platform rollouts for enterprise clients.",
+            "Cut onboarding time 40% across three teams.",
+          ],
+        },
+      ]),
+      [],
+    );
+    expect(proofPoints.filter((p) => p.ruleId === "experience_sparse_bullets")).toHaveLength(0);
+  });
+
+  it("surfaces a single finding for multiple thin roles and counts the rest", () => {
+    const { proofPoints } = refineFeedback(
+      docWithExperience([
+        {
+          role: "Consultant",
+          company: "ServiceNow",
+          dates: "2021 - Present",
+          bullets: ["Delivered platform rollouts for enterprise clients."],
+        },
+        { role: "Analyst", company: "Acme", dates: "2019 - 2021", bullets: [] },
+      ]),
+      [],
+    );
+    const sparse = proofPoints.filter((p) => p.ruleId === "experience_sparse_bullets");
+    expect(sparse).toHaveLength(1);
+    expect(sparse[0].summary).toMatch(/other role/i);
+  });
+});

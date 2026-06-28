@@ -783,6 +783,10 @@ function StepUpload({
     }
     setParseStep(0);
     setPhase("parsing");
+    // A new upload supersedes any previously-cached resume. Drop the stale "use
+    // your saved resume" offer NOW so its (different) person can't be re-applied
+    // over the file being parsed — the bug where an upload showed another name.
+    setSaved(null);
     const startedAt = performance.now();
     try {
       const fd = new FormData();

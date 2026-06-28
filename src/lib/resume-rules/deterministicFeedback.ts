@@ -150,6 +150,40 @@ function contactGapProofPoints(doc: TailoredDoc, existing: ProofPoint[]): ProofP
   return gaps;
 }
 
+// A role with zero or one real bullet reads as filler and wastes prime résumé
+// space. We suggest CREATING bullets (not revising) for thin entries. Counted
+// straight from the structured doc (entry.bullets) so the number is computed,
+// never fabricated. Surfaced ahead of style nits, like the contact-gap checks.
+function sparseExperienceProofPoints(doc: TailoredDoc): ProofPoint[] {
+  const isRealBullet = (b: string) => b.trim().length >= 8;
+  const sparse = (doc.experience ?? []).filter(
+    (entry) => entry.bullets.filter(isRealBullet).length < 2,
+  );
+  if (!sparse.length) return [];
+  const first = sparse[0];
+  const label = [first.role, first.company].filter((s) => s && s.trim()).join(" at ") || "a role";
+  const others = sparse.length - 1;
+  const summary =
+    `The ${label} entry has fewer than two accomplishment bullets` +
+    (others > 0
+      ? ` (and ${others} other role${others > 1 ? "s are" : " is"} thin too).`
+      : ".") +
+    " Roles with one or no bullets read as filler and waste prime resume space.";
+  return [
+    {
+      title: "Add bullets to a thin role",
+      summary,
+      why: "Recruiters spend the most time on recent roles. A role with no accomplishments signals little impact and weakens the whole section.",
+      fix: "Add 2 to 4 accomplishment bullets for this role. Start each with a strong verb and a concrete result or scope (what you did and what changed).",
+      quote: undefined,
+      severity: "high",
+      ruleId: "experience_sparse_bullets",
+      category: "experience",
+      targetSection: "experience",
+    },
+  ];
+}
+
 // Fold the LLM proof points + deterministic rule findings into one deduped,
 // ranked, capped set. Falls back to the raw proof points if the doc can't be
 // rendered to LaTeX (the engine's detectors read LaTeX structure).
@@ -168,20 +202,29 @@ export function refineFeedback(
     const rawProofPoints = result.surfaced.map(findingToProofPoint).map(stripUnverifiableCounts);
     const filteredProofPoints = filterContradictedProofPoints(doc, rawProofPoints);
     const contradictionSuppressed = rawProofPoints.length - filteredProofPoints.length;
-    // Missing email/phone leads the list — a real content gap the user must fix.
+    // Real content gaps lead the list: missing email/phone, then thin roles that
+    // need bullets written. Both are computed from the doc, ahead of style nits.
     const contactGaps = contactGapProofPoints(doc, filteredProofPoints);
+    const sparseGaps = sparseExperienceProofPoints(doc);
     return {
-      proofPoints: [...contactGaps, ...filteredProofPoints],
+      proofPoints: [...contactGaps, ...sparseGaps, ...filteredProofPoints],
       stats: {
         rulesLoaded: result.stats.rulesLoaded,
         candidates: result.stats.candidateFindingsCount,
         deduped: result.stats.dedupedFindingsCount,
-        surfaced: filteredProofPoints.length + contactGaps.length,
+        surfaced: filteredProofPoints.length + contactGaps.length + sparseGaps.length,
         suppressed: result.stats.suppressedCount + contradictionSuppressed,
       },
     };
   } catch {
-    // LaTeX render failed; still surface the deterministic contact-gap checks.
-    return { proofPoints: [...contactGapProofPoints(doc, proofPoints), ...proofPoints], stats: null };
+    // LaTeX render failed; still surface the deterministic doc-based checks.
+    return {
+      proofPoints: [
+        ...contactGapProofPoints(doc, proofPoints),
+        ...sparseExperienceProofPoints(doc),
+        ...proofPoints,
+      ],
+      stats: null,
+    };
   }
 }
