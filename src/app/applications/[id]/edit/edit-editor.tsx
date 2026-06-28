@@ -45,6 +45,7 @@ import { track, getSessionId } from "@/lib/track";
 import { ROUTES } from "@/components/landing/data";
 import { bulletKey, diffMap, wordDiff } from "@/lib/apply/redline";
 import { highlightHits } from "@/lib/highlight";
+import { groundFindings } from "@/lib/resume-rules/groundFindings";
 import {
   composeContact,
   normalizeContactFields,
@@ -550,15 +551,17 @@ export default function EditEditor({
   // What the panel actually shows: findings whose quoted text still exists in the
   // doc. Derived (not stored) so it updates live as the user edits — applying a
   // suggested change drops its finding, and structuring-fixed ones never surface.
-  const allProofPoints = useMemo(
-    () => [...proofPoints, ...manualProofPoints],
-    [manualProofPoints, proofPoints],
-  );
-  // The doc's text at mount, captured once via a lazy initializer.
-  // pruneResolvedFindings uses it so a finding is only dropped when an edit
-  // removes its quote — not when the quote never matched the freshly-structured
-  // doc (that kept the panel count below the number the audit handoff promised).
+  // The doc's text at mount, captured once via a lazy initializer. Used to ground
+  // findings (was the quoted evidence ever real in this résumé?) and by
+  // pruneResolvedFindings (drop a finding only once an edit removes its quote).
   const [initialDocHay] = useState(() => normForMatch(docPlainText(doc)));
+  // Trust layer: drop template-owned / myth findings and any whose quoted
+  // evidence can't be verified in the résumé BEFORE the panel shows them. Manual
+  // (user-added) suggestions are never grounded away.
+  const allProofPoints = useMemo(
+    () => [...groundFindings(proofPoints, initialDocHay, { templated: true }), ...manualProofPoints],
+    [manualProofPoints, proofPoints, initialDocHay],
+  );
   const shownPoints = useMemo(
     () =>
       pruneResolvedFindings(allProofPoints, doc, initialDocHay).filter(

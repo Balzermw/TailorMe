@@ -57,6 +57,7 @@ import { fixSection, SECTION_LABEL } from "@/lib/apply/sections";
 import { isPlaceholderName } from "@/lib/apply/placeholder-name";
 import { ManualReviewCTA, MichaelPitch } from "@/components/fit/michael-cta";
 import { stripLogoArtifact } from "@/lib/text-clean";
+import { groundFindings, normalizeForMatch } from "@/lib/resume-rules/groundFindings";
 
 const SHOW_SAMPLE_WORKFLOWS = process.env.NEXT_PUBLIC_SHOW_SAMPLE_WORKFLOWS === "1";
 
@@ -448,17 +449,6 @@ function normalizeProofPointFix(p: ProofPoint): string {
   }
 
   return fix;
-}
-
-// A "words run together / missing spaces" finding almost always reflects our own
-// text extraction (e.g. a multi-column skills block pasted as one run), not a real
-// defect in the candidate's resume — so we hide it rather than flag a parsing
-// artifact as their error.
-function isExtractionSpacingArtifact(p: ProofPoint): boolean {
-  const blob = `${p.title} ${p.summary} ${p.fix ?? ""}`.toLowerCase();
-  return /concatenat|without spaces|missing spaces|no spaces between|run together|inconsistent spacing|spacing (?:error|issue)/.test(
-    blob,
-  );
 }
 
 // A single proof point: headline + summary up front, the verbatim resume quote
@@ -2967,8 +2957,13 @@ function StepSummary({
     if (!user) track("paywall_seen", { trigger: "download" });
   }, [user]);
 
-  const proofPoints = (useSample ? SAMPLE_PROFILE.proofPoints ?? [] : stats?.proofPoints ?? []).filter(
-    (p) => !isExtractionSpacingArtifact(p),
+  // Trust layer: only surface findings that are real (evidence verifiable in the
+  // résumé text) and not about template-owned layout/formatting/ATS. Same screen
+  // the editor uses, so the audit promises what the editor will actually show.
+  const proofPoints = groundFindings(
+    useSample ? SAMPLE_PROFILE.proofPoints ?? [] : stats?.proofPoints ?? [],
+    normalizeForMatch(resumeText ?? ""),
+    { templated: true },
   );
   const name = useSample ? SAMPLE_PROFILE.name : stats?.name;
   // The unified handoff: parse fixes + Job Score + agent findings as ONE list.
