@@ -1680,6 +1680,20 @@
   line-height: 1.45;
   color: #854f0b;
 }
+/* While the AI rewrite is generating, the hint reads blue (not the amber
+   placeholder warning) with a small spinner. */
+.tmE-draft-hint--ai {
+  color: var(--tm-blue-700, var(--tm-blue-600));
+}
+.tmE-draft-spin {
+  flex: none;
+  animation: tmE-spin 0.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tmE-draft-spin {
+    animation: none;
+  }
+}
 .tmE-draft-token {
   flex: none;
   font-weight: 700;
