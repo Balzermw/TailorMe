@@ -265,6 +265,18 @@ function suggestionId(p: ProofPoint): string {
   return [p.ruleId || "feedback", p.title, p.quote ?? "", p.fix].join("|");
 }
 
+// Whether an AI draft makes sense for this finding. Contact-detail gaps need the
+// user's own info (the AI can't invent an email or phone number), so those offer
+// only "Edit manually" — no "Draft fix with AI".
+function canAiDraft(p: ProofPoint): boolean {
+  if (p.ruleId === "header_missing_email" || p.ruleId === "header_missing_phone") return false;
+  const blob = `${p.title} ${p.summary} ${p.fix ?? ""}`.toLowerCase();
+  return !(
+    /\b(?:add|include|provide|enter|missing|no)\b/.test(blob) &&
+    /\b(?:email address|e-?mail|phone number|telephone|mobile number)\b/.test(blob)
+  );
+}
+
 function manualSection(p: ProofPoint): EditableSection | null {
   const raw = p.ruleId?.match(/^manual:(header|summary|experience|projects|education|certifications|skills):/)?.[1];
   return raw && EDITABLE_SECTIONS.includes(raw as EditableSection)
@@ -2453,16 +2465,18 @@ export default function EditEditor({
                           )}
                           {p.fix && <p className="tmE-fix-fix"><span>Fix:</span> {p.fix}</p>}
                           <div className="tmE-fix-card-actions">
+                            {canAiDraft(p) && (
+                              <button
+                                type="button"
+                                className="tmE-fix-apply"
+                                onClick={() => openSuggestionDraft(p, target)}
+                              >
+                                <PenLine size={13} /> {draft == null ? "Draft fix with AI" : "Edit draft"}
+                              </button>
+                            )}
                             <button
                               type="button"
-                              className="tmE-fix-apply"
-                              onClick={() => openSuggestionDraft(p, target)}
-                            >
-                              <PenLine size={13} /> {draft == null ? "Draft fix with AI" : "Edit draft"}
-                            </button>
-                            <button
-                              type="button"
-                              className="tmE-fix-goto"
+                              className={canAiDraft(p) ? "tmE-fix-goto" : "tmE-fix-apply"}
                               onClick={() => {
                                 // Per-suggestion telemetry — counts/ids/categories
                                 // only, never résumé content. rule_id is present
