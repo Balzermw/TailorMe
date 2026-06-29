@@ -157,6 +157,8 @@ export interface AuditAgent {
   after?: string;
   stats?: { value: string; label: string }[];
   quantified?: { count: number; total: number }; // experience lines carrying a hard number, of total
+  needsMetric?: { text: string; hint: string }[]; // bullets with no number yet + the metric that fits
+  needsMetricMore?: number; // count of further metric-less bullets beyond the shown sample
   // kind: "ranking"
   lines?: {
     rank: number;

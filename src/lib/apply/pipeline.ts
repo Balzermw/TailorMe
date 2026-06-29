@@ -1716,6 +1716,44 @@ async function rankLines(
   return { lines, impactStats };
 }
 
+// True when a line carries a hard number that isn't just a year or a date.
+function hasHardMetric(line: string): boolean {
+  return /\d/.test(
+    line.replace(/\b(19|20)\d{2}\b/g, "").replace(/\b\d{1,2}[/-]\d{1,2}\b/g, ""),
+  );
+}
+// Pull accomplishment bullets out of the raw résumé and split them by whether they
+// already carry a number. Max reads this to name the exact lines still missing one
+// (the free audit has no tailored bullets to inspect, so we read the text).
+function impactBullets(resumeText: string): { withNum: string[]; needsNum: string[] } {
+  const marked = resumeText
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => /^[•\-*●▪·]\s+/.test(l))
+    .map((l) => l.replace(/^[•\-*●▪·]\s+/, "").trim())
+    .filter((l) => l.length >= 25 && /[a-z]/i.test(l));
+  return {
+    withNum: marked.filter(hasHardMetric),
+    needsNum: marked.filter((l) => !hasHardMetric(l)),
+  };
+}
+// A concrete, deterministic nudge for the KIND of number a bullet could take, from
+// its leading verb — no LLM call, just orientation for the user.
+function metricHint(text: string): string {
+  const t = text.toLowerCase();
+  if (/\b(led|managed|mentored|onboarded|coached|supervised|directed|hired|trained)\b/.test(t))
+    return "team size or # of people";
+  if (/\b(improved|increased|reduced|cut|accelerated|streamlined|boosted|grew|raised|decreased|saved|optimized)\b/.test(t))
+    return "% change or time saved";
+  if (/\b(drove|generated|delivered|closed|achieved|won|secured|sold)\b/.test(t))
+    return "$ or % impact";
+  if (/\b(built|created|developed|launched|shipped|designed|automated|implemented|standardized)\b/.test(t))
+    return "count or scale";
+  if (/\b(supported|maintained|handled|served|advised|prepared)\b/.test(t))
+    return "# of accounts or volume";
+  return "a number";
+}
+
 /** Assemble the three review agents from real pipeline outputs + one rank call. */
 export async function buildAgents(
   resumeText: string,
@@ -1785,17 +1823,28 @@ export async function buildAgents(
     value: s.value,
     label: s.label,
   }));
-  // Roughly how many substantive lines carry a hard number (not just a year) —
-  // a quick read on how quantified the resume is overall, shown as a meter.
-  const quant = (() => {
-    const lines = resumeText
-      .split(/\r?\n/)
-      .map((l) => l.replace(/^[\s•\-*●▪·]+/, "").trim())
-      .filter((l) => l.length >= 40 && /[a-z]/i.test(l));
-    const hasMetric = (l: string) =>
-      /\d/.test(l.replace(/\b(19|20)\d{2}\b/g, "").replace(/\b\d{1,2}[/-]\d{1,2}\b/g, ""));
-    return { count: lines.filter(hasMetric).length, total: lines.length };
-  })();
+  // How many accomplishment bullets carry a hard number, and exactly which ones
+  // still need one. Prefer real bullet lines so the meter + list describe
+  // accomplishments, not summary/skills lines; fall back to the looser
+  // all-substantive-lines read only when a résumé has no bullet markers.
+  const { withNum, needsNum } = impactBullets(resumeText);
+  const haveBullets = withNum.length + needsNum.length >= 3;
+  const quant = haveBullets
+    ? { count: withNum.length, total: withNum.length + needsNum.length }
+    : (() => {
+        const lines = resumeText
+          .split(/\r?\n/)
+          .map((l) => l.replace(/^[\s•\-*●▪·]+/, "").trim())
+          .filter((l) => l.length >= 40 && /[a-z]/i.test(l));
+        return { count: lines.filter(hasHardMetric).length, total: lines.length };
+      })();
+  const needsList = haveBullets
+    ? needsNum.slice(0, 6).map((text) => ({
+        text: text.length > 96 ? text.slice(0, 95).trimEnd() + "…" : text,
+        hint: metricHint(text),
+      }))
+    : [];
+  const needsMore = haveBullets ? Math.max(0, needsNum.length - needsList.length) : 0;
   const impact: AuditAgent = {
     id: "impact",
     ...AGENT_META.impact,
@@ -1810,6 +1859,8 @@ export async function buildAgents(
     after: pair?.after,
     stats,
     quantified: quant.total > 0 ? quant : undefined,
+    needsMetric: needsList.length ? needsList : undefined,
+    needsMetricMore: needsMore,
   };
   const rolefit: AuditAgent = {
     id: "rolefit",

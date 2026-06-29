@@ -2091,77 +2091,126 @@ function ImpactEvidence({ a }: { a: AuditAgent }) {
   const count = a.quantified?.count ?? 0;
   const gap = Math.max(0, total - count);
   const hasStats = !!(a.stats && a.stats.length > 0);
+  const hasNeeds = !!(a.needsMetric && a.needsMetric.length > 0);
   return (
-    <div>
-      {/* meter — green portion = bullets that already carry a number */}
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {/* meter — green portion = experience bullets that already carry a number */}
       {total > 0 && (
-        <div style={{ marginBottom: "16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ flex: 1, height: "8px", borderRadius: "999px", background: SEMANTIC.missing.bg, overflow: "hidden" }}>
             <div
               style={{
-                flex: 1,
-                height: "8px",
+                width: `${Math.round((count / total) * 100)}%`,
+                height: "100%",
                 borderRadius: "999px",
-                background: SEMANTIC.missing.bg,
-                overflow: "hidden",
+                background: SEMANTIC.present.fill,
               }}
-            >
-              <div
-                style={{
-                  width: `${Math.round((count / total) * 100)}%`,
-                  height: "100%",
-                  borderRadius: "999px",
-                  background: SEMANTIC.present.fill,
-                }}
-              />
-            </div>
-            <span
-              style={{
-                fontSize: "13px",
-                fontWeight: 600,
-                color: "var(--tm-ink)",
-                fontVariantNumeric: "tabular-nums",
-                flex: "none",
-              }}
-            >
-              {count}
-              <span style={{ color: "var(--tm-zinc)", fontWeight: 400 }}>/{total} bullets have a number</span>
-            </span>
+            />
           </div>
+          <span
+            style={{
+              fontSize: "13px",
+              fontWeight: 600,
+              color: "var(--tm-ink)",
+              fontVariantNumeric: "tabular-nums",
+              flex: "none",
+            }}
+          >
+            {count}
+            <span style={{ color: "var(--tm-zinc)", fontWeight: 400 }}>/{total} bullets are quantified</span>
+          </span>
         </div>
       )}
 
-      {/* GREEN — numbers already on the resume (all one color: these are all "present") */}
+      {/* AMBER — the actual lines still missing a number, with a metric hint each.
+          The actionable core: which bullets to quantify, and with what. */}
+      {a.needsMetric && a.needsMetric.length > 0 && (
+        <div>
+          <EvidenceGroupLabel tone="missing" icon={<Plus size={12} />}>
+            Lines that need a number ({gap})
+          </EvidenceGroupLabel>
+          <ul
+            style={{ listStyle: "none", margin: "8px 0 0", padding: 0, display: "flex", flexDirection: "column" }}
+          >
+            {a.needsMetric.map((m, i) => (
+              <li
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "8px 0",
+                  borderTop: i ? "0.5px solid var(--tm-border)" : "none",
+                }}
+              >
+                <span
+                  style={{
+                    flex: "1 1 auto",
+                    minWidth: 0,
+                    fontSize: "12.5px",
+                    color: "var(--tm-ink)",
+                    lineHeight: 1.4,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {m.text}
+                </span>
+                <span
+                  style={{
+                    flex: "none",
+                    fontSize: "10px",
+                    fontWeight: 600,
+                    color: SEMANTIC.missing.ink,
+                    background: SEMANTIC.missing.bg,
+                    border: `0.5px solid ${SEMANTIC.missing.border}`,
+                    borderRadius: "999px",
+                    padding: "3px 9px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  + {m.hint}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {!!a.needsMetricMore && a.needsMetricMore > 0 && (
+            <p className="tm-small" style={{ marginTop: "8px", fontSize: "11.5px", color: "var(--tm-zinc)" }}>
+              + {a.needsMetricMore} more line{a.needsMetricMore === 1 ? "" : "s"} without a number.
+              Tailoring adds one only where your work genuinely supports it.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* GREEN — figures already in the resume (summary, awards, bullets): material
+          to weave into the lines above. Compact chips, not big boxes. */}
       {hasStats && (
         <div>
           <EvidenceGroupLabel tone="present" icon={<Check size={12} />}>
             Numbers already in your resume ({a.stats!.length})
           </EvidenceGroupLabel>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))",
-              gap: "8px",
-              marginTop: "8px",
-            }}
-          >
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
             {a.stats!.map((s, i) => (
-              <div
+              <span
                 key={i}
                 style={{
-                  borderRadius: "10px",
+                  display: "inline-flex",
+                  alignItems: "baseline",
+                  gap: "5px",
+                  maxWidth: "100%",
+                  borderRadius: "8px",
                   background: SEMANTIC.present.bg,
                   border: `0.5px solid ${SEMANTIC.present.border}`,
-                  padding: "10px 12px",
+                  padding: "5px 10px",
                 }}
               >
-                <div style={{ fontSize: "18px", fontWeight: 600, color: SEMANTIC.present.ink }}>
+                <b style={{ fontSize: "12px", fontWeight: 600, color: SEMANTIC.present.ink }}>
                   {s.value}
-                </div>
-                <div className="tm-small" style={{ fontSize: "11px", marginTop: "2px" }}>
-                  {s.label}
-                </div>
-              </div>
+                </b>
+                <span className="tm-small" style={{ fontSize: "11px" }}>{s.label}</span>
+              </span>
             ))}
           </div>
         </div>
@@ -2169,7 +2218,7 @@ function ImpactEvidence({ a }: { a: AuditAgent }) {
 
       {/* example — one vague line rewritten with its own numbers */}
       {(a.before || a.after) && (
-        <div style={{ marginTop: hasStats ? "16px" : 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <span
             style={{
               fontSize: "11px",
@@ -2204,11 +2253,11 @@ function ImpactEvidence({ a }: { a: AuditAgent }) {
         </div>
       )}
 
-      {/* AMBER — bullets that still need a number */}
-      {gap > 0 && (
+      {/* Fallback amber callout when we know the count but not the exact lines
+          (e.g. a résumé with no bullet markers to read). */}
+      {gap > 0 && !hasNeeds && (
         <div
           style={{
-            marginTop: "16px",
             borderRadius: "10px",
             border: `0.5px dashed ${SEMANTIC.missing.border}`,
             background: SEMANTIC.missing.bg,
@@ -2532,6 +2581,13 @@ const DEMO_AGENTS: AuditAgent[] = [
       { value: "6", label: "engineers mentored" },
       { value: "52%", label: "faster deploys" },
     ],
+    needsMetric: [
+      { text: "Led the migration to a new observability stack.", hint: "team size or # of people" },
+      { text: "Improved checkout reliability for the platform team.", hint: "% change or time saved" },
+      { text: "Built internal tools to streamline deploys.", hint: "count or scale" },
+      { text: "Supported enterprise customers through onboarding.", hint: "# of accounts or volume" },
+    ],
+    needsMetricMore: 0,
   },
   {
     id: "rolefit",
