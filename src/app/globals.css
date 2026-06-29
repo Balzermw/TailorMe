@@ -169,6 +169,7 @@ body {
 .tm-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   font-family: var(--tm-font);
   font-size: 15px;
