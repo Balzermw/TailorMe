@@ -1406,7 +1406,7 @@ function FitResult({ view, shown }: { view: FitView; shown: boolean }) {
   const loc = LOCATION_STATE[view.locationStatus];
 
   return (
-    <div className="tm-card tmSc" style={{ "--sc-tint": theme.card } as CSSProperties}>
+    <div className="tm-card tmSc">
       <div className="tmSc-left">
         <ScoreRing score={view.overall} run={shown} color={theme.ring} />
         <span className="tmSc-verdict" style={{ color: theme.ink }}>
@@ -1890,8 +1890,11 @@ function StepJob({
         </p>
       )}
       {/* the three specialist agents — same single call returns them, so they
-          render right below the score instead of behind a separate step. */}
-      <AgentAudit agents={agents} sample={auditSample} />
+          render below the score (with extra space so "job score" and "agent
+          review" read as two distinct groups). */}
+      <div style={{ marginTop: "14px" }}>
+        <AgentAudit agents={agents} sample={auditSample} />
+      </div>
 
       {/* Michael escalation sits at the bottom, after the analysis, not above it. */}
       {view.recommendReview && <ManualReviewCTA overall={view.overall} />}

@@ -5684,7 +5684,10 @@ body {
   text-align: center;
   gap: 11px;
   padding: 22px 18px;
-  background: var(--sc-tint);
+  /* Neutral rail (was a saturated fit-tier tint) — the ring + verdict pill carry
+     the color, so the card reads calmer. */
+  background: var(--tm-gray);
+  border-right: 0.5px solid var(--tm-border);
 }
 .tmSc-verdict {
   display: inline-flex;
@@ -5957,7 +5960,9 @@ body {
   align-items: center;
   gap: 12px;
   padding: 15px 18px;
-  background: var(--ag-tint);
+  /* Softer than the full agent tint so the drawer isn't a saturated block. */
+  background: color-mix(in srgb, var(--ag-tint) 55%, #fff);
+  border-bottom: 0.5px solid var(--tm-border);
 }
 .tmAg-dhead-img {
   width: 38px;
