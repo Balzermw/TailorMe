@@ -7,7 +7,7 @@
 //         Signed-in → run the full tailored application (spends 1 credit),
 //         showing the real tailored bullets, agent notes, and a PDF download.
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -2497,223 +2497,146 @@ const AGENT_VISUALS: Record<AuditAgent["id"], { image: string; icon: typeof List
   rolefit: { image: "/agents/remy.svg", icon: FileText },
 };
 
-const RUN_STAGES = ["Reading resume", "Matching posting", "Building evidence"];
-const RUN_STAGE_DURATIONS = [720, 1120, 860, 980, 760, 1290, 840, 1040, 930];
-
-// A single 0–100 headline score per agent, so each card leads with an overall
-// grade (not just raw counts): keyword coverage %, quantified %, or the average
-// relevance of the ranked bullets.
-function agentOverall(a: AuditAgent): number | null {
+// One headline number per agent for its gallery card, derived from the SAME
+// evidence the drawer shows so the card and detail can never disagree.
+function agentBig(a: AuditAgent): { value: string; label: string } {
   if (a.kind === "coverage") {
-    const total = a.total ?? a.keywords?.length ?? 0;
     const matched = a.matched ?? a.keywords?.filter((k) => k.matched).length ?? 0;
-    return total ? Math.round((matched / total) * 100) : null;
+    const total = a.total ?? a.keywords?.length ?? 0;
+    return { value: `${matched}/${total}`, label: "keywords matched" };
   }
   if (a.kind === "impact") {
-    const total = a.quantified?.total ?? 0;
-    return total ? Math.round(((a.quantified?.count ?? 0) / total) * 100) : null;
+    const q = a.quantified;
+    if (q) {
+      const gap = Math.max(0, q.total - q.count);
+      return { value: String(gap), label: gap === 1 ? "bullet needs a number" : "bullets need a number" };
+    }
+    return { value: String(a.stats?.length ?? 0), label: "metrics found" };
   }
-  if (a.kind === "ranking") {
-    const lines = a.lines ?? [];
-    if (!lines.length) return null;
-    return Math.round(lines.reduce((s, l) => s + (l.score ?? 0), 0) / lines.length);
-  }
-  return null;
+  const lines = a.lines ?? [];
+  const kept = lines.filter((l) => l.status === "kept-top" || l.status === "kept").length;
+  const trimmed = lines.length - kept;
+  return { value: String(kept), label: trimmed ? `lines kept, ${trimmed} trimmed` : "lines kept" };
 }
 
-function AgentCard({ a }: { a: AuditAgent }) {
+// The selected agent's evidence in the drawer — reuses the per-kind renderers so
+// there's a single source of truth for each layout.
+function AgentDrawerBody({ a }: { a: AuditAgent }) {
   const ac = ACCENT[a.accent];
-  const visual = AGENT_VISUALS[a.id];
-  const Icon = visual.icon;
-  const overall = agentOverall(a);
-  const ob = overall != null ? band(overall) : null;
   return (
-    <div
-      className="tmF-agent-card"
-      style={{
-        border: "0.5px solid var(--tm-border)",
-        borderRadius: "14px",
-        background: "#fff",
-        overflow: "hidden",
-        display: "flex",
-        flexWrap: "wrap",
-      }}
-    >
-      <div
-        className="tmF-agent-side"
-        style={{
-          background: ac.tint,
-          padding: "20px",
-          flex: "1 1 180px",
-          minWidth: "168px",
-          maxWidth: "230px",
-          borderRight: "0.5px solid var(--tm-border)",
-        }}
-      >
-        <div className="tmF-agent-avatar">
-          <Image
-            src={visual.image}
-            alt={`${a.persona} agent portrait`}
-            width={64}
-            height={64}
-            unoptimized
-            className="tmF-agent-avatar-img"
-          />
-          <span className="tmF-agent-avatar-ic" style={{ color: ac.ink }} aria-hidden="true">
-            <Icon size={14} />
+    <div className="tmAg-dbody">
+      <div className="tmAg-dtitle">
+        <b>{a.title}</b>
+        <p>{a.subtitle}</p>
+        {a.chip && (
+          <span className="tm-pill tm-pill--gray" style={{ marginTop: "6px", fontSize: "10.5px" }}>
+            {a.chip}
           </span>
-        </div>
-        <div style={{ marginTop: "12px" }}>
-          <b style={{ fontSize: "15px", color: "var(--tm-ink)" }}>{a.persona}</b>
-          <div style={{ fontSize: "12.5px", color: ac.ink, fontWeight: 500 }}>{a.archetype}</div>
-        </div>
-        <span
-          className="tm-pill"
-          style={{
-            marginTop: "10px",
-            fontSize: "10.5px",
-            color: ac.ink,
-            background: "#fff",
-            border: "0.5px solid var(--tm-border)",
-          }}
-        >
-          <Icon size={11} />
-          {a.specialty}
-        </span>
-        <p className="tm-small" style={{ marginTop: "12px", fontSize: "12px", lineHeight: 1.45, fontStyle: "italic" }}>
-          {a.reads}
-        </p>
-      </div>
-      <div style={{ padding: "20px", flex: "3 1 300px", minWidth: "240px" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <b style={{ fontSize: "14px", color: "var(--tm-ink)" }}>{a.title}</b>
-            <p className="tm-small" style={{ fontSize: "12px", marginTop: "1px" }}>{a.subtitle}</p>
-            {a.chip && (
-              <span
-                className="tm-pill tm-pill--gray"
-                style={{ marginTop: "6px", fontSize: "10.5px" }}
-              >
-                {a.chip}
-              </span>
-            )}
-          </div>
-          {/* overall grade for this agent — the headline number for the card */}
-          {overall != null && ob && (
-            <div style={{ flex: "none", textAlign: "right", minWidth: "62px" }}>
-              <div style={{ fontSize: "24px", fontWeight: 600, lineHeight: 1, color: ob.pillInk }}>
-                {overall}
-                <span style={{ fontSize: "12px", fontWeight: 400, color: "var(--tm-zinc)" }}>/100</span>
-              </div>
-              <span
-                className="tm-pill"
-                style={{
-                  marginTop: "5px",
-                  fontSize: "10px",
-                  fontWeight: 600,
-                  background: ob.pillBg,
-                  color: ob.pillInk,
-                }}
-              >
-                {ob.tag}
-              </span>
-            </div>
-          )}
-        </div>
-        <div style={{ marginTop: "14px" }}>
-          {a.kind === "coverage" && <CoverageEvidence a={a} />}
-          {a.kind === "impact" && <ImpactEvidence a={a} />}
-          {a.kind === "ranking" && <RankingEvidence a={a} />}
-        </div>
-        {a.footer && (
-          <p className="tm-small" style={{ marginTop: "14px", fontSize: "12px", color: ac.ink }}>
-            {a.footer}
-          </p>
         )}
-        <DeepDive label={`How ${a.persona} read it`}>
-          <p className="tm-small" style={{ fontSize: "13px", lineHeight: 1.55, color: "var(--tm-ink)" }}>
-            {a.detail}
-          </p>
-        </DeepDive>
       </div>
+      {a.kind === "coverage" && <CoverageEvidence a={a} />}
+      {a.kind === "impact" && <ImpactEvidence a={a} />}
+      {a.kind === "ranking" && <RankingEvidence a={a} />}
+      {a.footer && (
+        <p className="tmAg-action" style={{ color: ac.ink }}>
+          {a.footer}
+        </p>
+      )}
+      <DeepDive label={`How ${a.persona} read it`}>
+        <p className="tm-small" style={{ fontSize: "13px", lineHeight: 1.55, color: "var(--tm-ink)" }}>
+          {a.detail}
+        </p>
+      </DeepDive>
     </div>
   );
 }
 
-function AgentAuditSequence({ agents }: { agents: AuditAgent[] }) {
-  const [runStep, setRunStep] = useState(0);
-  useEffect(() => {
-    const totalSteps = agents.length * RUN_STAGES.length;
-    let elapsed = 420;
-    const timers = Array.from({ length: totalSteps }, (_, i) => {
-      elapsed += RUN_STAGE_DURATIONS[i % RUN_STAGE_DURATIONS.length];
-      return setTimeout(() => setRunStep(i + 1), elapsed);
-    });
-    return () => timers.forEach(clearTimeout);
-  }, [agents]);
-
-  const totalSteps = agents.length * RUN_STAGES.length;
-  const visibleCount = Math.min(agents.length, Math.floor(runStep / RUN_STAGES.length));
-  const complete = runStep >= totalSteps;
-  const activeIndex = complete
-    ? agents.length - 1
-    : Math.min(agents.length - 1, Math.floor(runStep / RUN_STAGES.length));
-  const activeStage = complete
-    ? RUN_STAGES.length - 1
-    : Math.min(RUN_STAGES.length - 1, runStep % RUN_STAGES.length);
-  const nextAgent = agents[activeIndex];
-
+// Agent gallery: a compact card per specialist; tap one to open its evidence in
+// the drawer below (a tab/panel pattern). Cards stagger in for a smooth reveal,
+// and the drawer re-keys so it fades when you switch agents.
+function AgentGallery({ agents }: { agents: AuditAgent[] }) {
+  const [activeId, setActiveId] = useState<AuditAgent["id"]>(agents[0].id);
+  const active = agents.find((a) => a.id === activeId) ?? agents[0];
+  const activeAc = ACCENT[active.accent];
+  const activeVisual = AGENT_VISUALS[active.id];
   return (
-    <Fragment>
-      <div className={"tmF-agent-collect" + (complete ? " is-complete" : "")} aria-live="polite">
-        <span aria-hidden="true" className="tmF-agent-collect-dot" />
-        {complete
-          ? "Agent review complete"
-          : `${nextAgent.persona}: ${RUN_STAGES[activeStage].toLowerCase()}`}
-      </div>
-      <div className="tmF-agent-run" aria-label="Agent audit progress">
+    <>
+      <div className="tmAg-gallery">
         {agents.map((a, i) => {
+          const ac = ACCENT[a.accent];
           const visual = AGENT_VISUALS[a.id];
-          const isDone = i < visibleCount;
-          const isActive = !complete && i === activeIndex;
-          const stageCount = isDone ? RUN_STAGES.length : isActive ? activeStage + 1 : 0;
+          const big = agentBig(a);
+          const isOn = a.id === activeId;
           return (
-            <div
+            <button
               key={a.id}
-              className={["tmF-agent-run-row", isActive ? "is-active" : "", isDone ? "is-done" : ""]
-                .filter(Boolean)
-                .join(" ")}
+              type="button"
+              className={"tmAg-card" + (isOn ? " is-on" : "")}
+              style={
+                {
+                  "--ag-tint": ac.tint,
+                  "--ag-ink": ac.ink,
+                  "--ag-solid": ac.solid,
+                  animationDelay: `${i * 70}ms`,
+                } as CSSProperties
+              }
+              onClick={() => setActiveId(a.id)}
+              aria-expanded={isOn}
             >
-              <Image src={visual.image} alt="" width={34} height={34} unoptimized className="tmF-agent-run-img" />
-              <div className="tmF-agent-run-copy">
-                <b>{a.persona}</b>
-                <span>{isDone ? "Evidence ready" : isActive ? RUN_STAGES[activeStage] : "Queued"}</span>
-              </div>
-              <div className="tmF-agent-run-bars" aria-hidden="true">
-                {RUN_STAGES.map((stage, stageIndex) => (
-                  <i
-                    key={stage}
-                    className={[
-                      stageIndex < stageCount ? "is-filled" : "",
-                      isActive && stageIndex === activeStage ? "is-current" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                  />
-                ))}
-              </div>
-            </div>
+              <span className="tmAg-card-top">
+                <Image
+                  src={visual.image}
+                  alt=""
+                  width={38}
+                  height={38}
+                  unoptimized
+                  className="tmAg-card-img"
+                />
+                <span className="tmAg-card-id">
+                  <b>{a.persona}</b>
+                  <span>{a.archetype}</span>
+                </span>
+              </span>
+              <span className="tmAg-card-big">
+                <span className="tmAg-card-num">{big.value}</span>
+                <span className="tmAg-card-lab">{big.label}</span>
+              </span>
+              <span className="tmAg-card-more">
+                {isOn ? "Hide evidence" : "See evidence"}
+                <ChevronDown size={15} className="tmAg-card-chev" />
+              </span>
+            </button>
           );
         })}
       </div>
-      <div className="tmF-agent-stack">
-        {agents.slice(0, visibleCount).map((a, i) => (
-          <div key={a.id} className="tmF-agent-pop" style={{ animationDelay: `${i * 60}ms` }}>
-            <AgentCard a={a} />
-          </div>
-        ))}
+      <div
+        key={active.id}
+        className="tmAg-drawer"
+        style={
+          {
+            "--ag-tint": activeAc.tint,
+            "--ag-ink": activeAc.ink,
+            "--ag-solid": activeAc.solid,
+          } as CSSProperties
+        }
+      >
+        <div className="tmAg-dhead">
+          <Image
+            src={activeVisual.image}
+            alt=""
+            width={38}
+            height={38}
+            unoptimized
+            className="tmAg-dhead-img"
+          />
+          <span className="tmAg-dhead-id">
+            <b>{active.persona}</b> <span>· {active.archetype}</span>
+          </span>
+          <span className="tmAg-dhead-spec">{active.specialty}</span>
+        </div>
+        <AgentDrawerBody a={active} />
       </div>
-    </Fragment>
+    </>
   );
 }
 
@@ -2725,17 +2648,17 @@ function AgentAudit({
   sample?: boolean;
 }) {
   if (!agents || agents.length === 0) return null;
-  const sequenceKey = agents.map((a) => `${a.id}:${a.title}:${a.footer}`).join("|");
+  const galleryKey = agents.map((a) => `${a.id}:${a.title}:${a.footer}`).join("|");
   return (
     <div className="tm-card" style={{ padding: "22px 24px" }}>
-      <span className="tmB-ev-head">
-        <User size={14} /> Reviewed by three specialist agents
-      </span>
-      <p className="tm-small" style={{ fontSize: "12.5px", marginTop: "-2px" }}>
-        Each pass reads the resume and posting in sequence: ATS terms, measurable impact,
-        then role fit{sample ? " (sample audit shown)" : ""}. Cards appear as each check finishes.
-      </p>
-      <AgentAuditSequence key={sequenceKey} agents={agents} />
+      <div className="tmAg-head">
+        <span className="tmB-ev-head">
+          <Sparkles size={14} /> What your {agents.length} specialists found
+          {sample ? " (sample)" : ""}
+        </span>
+        <span className="tmAg-hint">tap a specialist</span>
+      </div>
+      <AgentGallery key={galleryKey} agents={agents} />
     </div>
   );
 }
