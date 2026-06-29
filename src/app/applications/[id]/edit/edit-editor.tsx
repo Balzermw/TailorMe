@@ -117,6 +117,15 @@ function parseSkillInput(value: string): string[] {
     .filter(Boolean);
 }
 
+// Defensive: an AI skills rewrite can prefix a segment with its group label
+// ("Solution Design & Architecture: Solution Architecture"). Strip a multi-word
+// "Label: " prefix so a group label never lands in the list as if it were a
+// skill. Single-word prefixes (e.g. "C++: x") are left alone.
+function stripGroupLabel(s: string): string {
+  const m = s.match(/^([A-Za-z][A-Za-z0-9&/+ ]{2,48}):\s+(.+)$/);
+  return m && /\s/.test(m[1]) ? m[2].trim() : s.trim();
+}
+
 function skillSignature(skills: string[] | undefined): string {
   return Array.from(
     new Set(
@@ -340,12 +349,28 @@ function isLongBullet(text: string): boolean {
   const t = (text ?? "").trim();
   return t.length > 220 || t.split(/\s+/).filter(Boolean).length > 35;
 }
-// Findings whose fix is "shorten these bullets" — handled by the batch reviewer,
-// not the single-draft box (they can span several bullets across roles).
-function isShortenFinding(p: ProofPoint): boolean {
-  if (p.ruleId === "bullet_length_1_to_2_lines") return true;
+// Mirror quantify_impact_metrics (evaluateLatexResumeRules.ts): a bullet "needs
+// a metric" when it carries no number/%/$/scale word.
+const HAS_METRIC = /(\d|%|\$|\bpercent\b|million|billion|thousand|\bk\b)/i;
+function needsMetric(text: string): boolean {
+  return !HAS_METRIC.test(text ?? "");
+}
+// Bullet-level findings that apply across MANY bullets (so they go through the
+// batch reviewer, not the single-draft box). Returns the review mode or null.
+function bulletReviewMode(p: ProofPoint): "shorten" | "quantify" | null {
+  if (p.ruleId === "bullet_length_1_to_2_lines") return "shorten";
+  if (p.ruleId === "quantify_impact_metrics") return "quantify";
   const blob = `${p.title} ${p.fix ?? ""}`.toLowerCase();
-  return /\bbullet/.test(blob) && /\b(shorten|too long|trim|cut down|over the)\b/.test(blob);
+  if (!/\bbullet|metric|number|result/.test(blob)) return null;
+  if (/\b(shorten|too long|trim|cut down|over the)\b/.test(blob)) return "shorten";
+  if (/\b(metric|quantif|number|measurable)\b/.test(blob)) return "quantify";
+  return null;
+}
+// Demo/no-LLM fallback for quantify: we can't invent a real figure, so append a
+// short bracketed placeholder for the user to fill in. Honest by construction.
+function quantifyFallback(text: string): string {
+  const t = (text ?? "").trim().replace(/[.\s]+$/, "");
+  return `${t} ([add a metric: %, $, count, or time saved]).`;
 }
 // Demo/no-LLM fallback: trim a long bullet to one idea at a sentence or word
 // boundary. Honest — no fabricated content, just a tighter version to confirm.
@@ -601,6 +626,7 @@ export default function EditEditor({
   const [shortenReview, setShortenReview] = useState<{
     id: string;
     p: ProofPoint;
+    mode: "shorten" | "quantify";
     rows: ShortenRow[];
   } | null>(null);
   const [shortenLoading, setShortenLoading] = useState(false);
@@ -1012,9 +1038,13 @@ export default function EditEditor({
     if (p.quote?.trim()) return p.quote.trim();
     if (target === "summary") return doc.summary ?? "";
     if (target === "skills")
-      return doc.skillGroups?.length
-        ? doc.skillGroups.map((g) => `${g.label}: ${g.skills.join(", ")}`).join("\n")
-        : (doc.skills ?? []).join(", ");
+      // Flat comma list (NO group labels) so the rewrite returns a clean list we
+      // can merge — feeding it "Label: a, b" made it echo labels back as skills.
+      return (
+        doc.skillGroups?.length
+          ? doc.skillGroups.flatMap((g) => g.skills)
+          : (doc.skills ?? [])
+      ).join(", ");
     if (target === "header") return doc.contact ?? "";
     if (target === "experience")
       // Bullets only (no "Role — Company" headers) so the rewrite can't echo a
@@ -1103,51 +1133,57 @@ export default function EditEditor({
     closeSuggestionDraft(id);
   }
 
-  // Open the batch reviewer: collect every over-long bullet, ask the AI (or the
-  // deterministic trimmer in demo) for a tighter version of each, and present
-  // them as accept/reject rows. Keeps only rows that actually got shorter.
-  async function openShorten(p: ProofPoint) {
+  // Open the batch reviewer for a per-bullet finding (shorten or quantify):
+  // collect every bullet that matches, ask the AI (or a deterministic fallback in
+  // demo) for a revised version of each, and present them as accept/reject rows.
+  async function openBulletReview(p: ProofPoint) {
+    const mode = bulletReviewMode(p);
+    if (!mode) return;
     const id = suggestionId(p);
+    const select = mode === "shorten" ? isLongBullet : needsMetric;
     const targets = doc.experience.flatMap((entry, ei) =>
-      entry.bullets
-        .map((original, bi) => ({ ei, bi, original }))
-        .filter((t) => isLongBullet(t.original)),
+      entry.bullets.map((original, bi) => ({ ei, bi, original })).filter((t) => select(t.original)),
     );
     if (!targets.length) {
-      markSuggestionApplied(id); // nothing long anymore — clear the stale finding
+      markSuggestionApplied(id); // nothing matches anymore — clear the stale finding
       return;
     }
-    setShortenReview({ id, p, rows: [] });
+    setShortenReview({ id, p, mode, rows: [] });
     setShortenLoading(true);
+    const issue =
+      mode === "shorten"
+        ? "This experience bullet is over the 1-2 line target."
+        : "This experience bullet states the task but has no measurable result.";
+    const advice =
+      mode === "shorten"
+        ? "Shorten it to one idea, result first. Stay strictly truthful; do not invent any detail."
+        : "Add ONE supportable metric (%, $, count, time saved, team size). If the real number is " +
+          "unknown, insert a short bracketed placeholder like [add %]. Never invent a figure. One line.";
     const rows = await Promise.all(
       targets.map(async (t): Promise<ShortenRow> => {
-        let shortened = trimBullet(t.original);
+        let shortened = mode === "shorten" ? trimBullet(t.original) : quantifyFallback(t.original);
         try {
           const res = await fetch("/api/resume/rewrite", {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-tm-session": getSessionId() ?? "" },
-            body: JSON.stringify({
-              section: "experience",
-              issue: "This experience bullet is over the 1-2 line target.",
-              advice:
-                "Shorten it to one idea, result first. Stay strictly truthful; do not invent any detail.",
-              original: t.original,
-            }),
+            body: JSON.stringify({ section: "experience", issue, advice, original: t.original }),
           });
           const data = await res.json().catch(() => ({}));
           if (res.ok && typeof data.rewrite === "string" && data.rewrite.trim()) {
             shortened = cleanBulletText(data.rewrite.trim());
           }
         } catch {
-          /* keep the deterministic trim */
+          /* keep the deterministic fallback */
         }
         return { ...t, shortened, accepted: true };
       }),
     );
-    // Only offer rows that genuinely got shorter (and changed).
-    const useful = rows.filter(
-      (r) => r.shortened.trim() && r.shortened.trim().length < r.original.trim().length,
-    );
+    // Keep only rows that actually changed (and, for shorten, got shorter).
+    const useful = rows.filter((r) => {
+      const next = r.shortened.trim();
+      if (!next || next === r.original.trim()) return false;
+      return mode === "shorten" ? next.length < r.original.trim().length : true;
+    });
     setShortenReview((cur) => (cur && cur.id === id ? { ...cur, rows: useful } : cur));
     setShortenLoading(false);
   }
@@ -1258,7 +1294,7 @@ export default function EditEditor({
     } else if (target === "header") {
       setDoc((d) => ({ ...d, headline: normalizeHeadline(text.split(/\r?\n/)[0], role) || d.headline }));
     } else if (target === "skills") {
-      const incoming = parseSkillInput(text);
+      const incoming = parseSkillInput(text).map(stripGroupLabel).filter(Boolean);
       setDoc((d) => {
         // Converge into existing skills: add only genuinely-new ones (deduped,
         // case-insensitive) and fold them into the first existing group rather
@@ -2633,17 +2669,19 @@ export default function EditEditor({
                                 type="button"
                                 className="tmE-fix-apply"
                                 onClick={() =>
-                                  isShortenFinding(p)
-                                    ? void openShorten(p)
+                                  bulletReviewMode(p)
+                                    ? void openBulletReview(p)
                                     : openSuggestionDraft(p, target)
                                 }
                               >
                                 <PenLine size={13} />{" "}
-                                {isShortenFinding(p)
+                                {bulletReviewMode(p) === "shorten"
                                   ? "Shorten bullets with AI"
-                                  : draft == null
-                                    ? "Draft fix with AI"
-                                    : "Edit draft"}
+                                  : bulletReviewMode(p) === "quantify"
+                                    ? "Add metrics with AI"
+                                    : draft == null
+                                      ? "Draft fix with AI"
+                                      : "Edit draft"}
                               </button>
                             )}
                             <button
@@ -2858,30 +2896,42 @@ export default function EditEditor({
         </div>
       </div>
 
-      {/* Shorten over-long bullets — review a tighter version of each, then apply. */}
+      {/* Batch reviewer for multi-bullet fixes (shorten / add metrics): review a
+          revised version of each bullet, then apply the accepted ones at once. */}
       {shortenReview &&
         (() => {
           const acc = shortenReview.rows.filter(
             (r) => r.accepted && r.shortened.trim() && r.shortened.trim() !== r.original.trim(),
           ).length;
+          const mode = shortenReview.mode;
+          const title = mode === "shorten" ? "Shorten long bullets" : "Add metrics to bullets";
+          const loadingText =
+            mode === "shorten"
+              ? "Finding and shortening your longest bullets…"
+              : "Finding bullets that need a measurable result…";
+          const emptyText =
+            mode === "shorten"
+              ? "These bullets are already concise. Nothing to shorten."
+              : "Your bullets already carry numbers. Nothing to add.";
+          const hasPlaceholders = shortenReview.rows.some((r) => /\[[^\]]+\]/.test(r.shortened));
           return (
             <div className="tmE-cover-backdrop" onClick={cancelShorten} role="presentation">
               <div
                 className="tmE-cover-modal tmE-shorten-modal"
                 role="dialog"
                 aria-modal="true"
-                aria-label="Shorten long bullets"
+                aria-label={title}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="tmE-cover-head">
                   <div>
-                    <b>Shorten long bullets</b>
+                    <b>{title}</b>
                     <span className="tmE-shorten-sub">
                       {shortenLoading
-                        ? "Drafting tighter versions…"
+                        ? "Drafting revised versions…"
                         : shortenReview.rows.length
                           ? `${acc} of ${shortenReview.rows.length} selected. Edit any before applying.`
-                          : "Nothing to shorten."}
+                          : emptyText}
                     </span>
                   </div>
                   <button
@@ -2897,8 +2947,13 @@ export default function EditEditor({
                 <div className="tmE-shorten-list">
                   {shortenLoading && !shortenReview.rows.length && (
                     <p className="tmE-draft-hint tmE-draft-hint--ai">
-                      <Loader2 size={12} className="tmE-draft-spin" /> Finding and shortening your
-                      longest bullets…
+                      <Loader2 size={12} className="tmE-draft-spin" /> {loadingText}
+                    </p>
+                  )}
+                  {!shortenLoading && hasPlaceholders && (
+                    <p className="tmE-draft-hint">
+                      <span className="tmE-draft-token">[ ]</span> Fill the bracketed spots with your
+                      real numbers before applying.
                     </p>
                   )}
                   {shortenReview.rows.map((r, i) => (
@@ -2936,9 +2991,7 @@ export default function EditEditor({
                     </div>
                   ))}
                   {!shortenLoading && !shortenReview.rows.length && (
-                    <p className="tmE-shorten-empty">
-                      These bullets are already concise. Nothing to shorten.
-                    </p>
+                    <p className="tmE-shorten-empty">{emptyText}</p>
                   )}
                 </div>
 
