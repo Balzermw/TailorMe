@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { normalizeHeadline, sanitizeDoc, stripTemplateGuidance } from "./sanitize-doc";
+import {
+  cleanSkillGroups,
+  normalizeHeadline,
+  sanitizeDoc,
+  stripSkillLabel,
+  stripTemplateGuidance,
+} from "./sanitize-doc";
 
 describe("normalizeHeadline", () => {
   it("uses the target role when an AI headline is a mini summary", () => {
@@ -111,5 +117,49 @@ describe("stripTemplateGuidance", () => {
     expect(stripTemplateGuidance(a)).toBe(a);
     const b = "Highlight of my career was leading the billing rewrite. Bilingual in two languages.";
     expect(stripTemplateGuidance(b)).toContain("Highlight of my career");
+  });
+});
+
+describe("stripSkillLabel", () => {
+  it("strips a multi-word group-label prefix from a skill", () => {
+    expect(stripSkillLabel("Solution Design & Architecture: Solution Architecture")).toBe(
+      "Solution Architecture",
+    );
+  });
+  it("leaves a colon-less or single-word-prefixed skill alone", () => {
+    expect(stripSkillLabel("Kubernetes")).toBe("Kubernetes");
+    expect(stripSkillLabel("C++: advanced")).toBe("C++: advanced");
+  });
+});
+
+describe("cleanSkillGroups", () => {
+  it("heals a mangled group: strips labels, de-dupes across groups, drops empties", () => {
+    const healed = cleanSkillGroups([
+      {
+        label: "Sales & Engagement",
+        skills: [
+          "Technical sales engineering",
+          "Pre-call planning",
+          "Solution Design & Architecture: Solution Architecture",
+          "Technical sales engineering", // duplicate
+        ],
+      },
+      { label: "Blank", skills: [] },
+      { label: "Other", skills: ["Solution Architecture"] }, // dup of the stripped skill above
+    ]);
+    expect(healed).toEqual([
+      {
+        label: "Sales & Engagement",
+        skills: ["Technical sales engineering", "Pre-call planning", "Solution Architecture"],
+      },
+    ]);
+  });
+
+  it("is a no-op on already-clean groups", () => {
+    const groups = [
+      { label: "Cloud", skills: ["AWS", "Kubernetes"] },
+      { label: "Languages", skills: ["TypeScript", "Go"] },
+    ];
+    expect(cleanSkillGroups(groups)).toEqual(groups);
   });
 });

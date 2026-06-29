@@ -51,7 +51,12 @@ import {
   parseContact,
   type ContactFields,
 } from "@/lib/apply/contact";
-import { normalizeHeadline, stripTemplateGuidance } from "@/lib/apply/sanitize-doc";
+import {
+  cleanSkillGroups,
+  normalizeHeadline,
+  stripSkillLabel,
+  stripTemplateGuidance,
+} from "@/lib/apply/sanitize-doc";
 import { type Section, SECTION_LABEL, fixSection } from "@/lib/apply/sections";
 import { cleanResumeDate } from "@/lib/apply/dates";
 import PrintDoc from "../print/print-doc";
@@ -117,14 +122,6 @@ function parseSkillInput(value: string): string[] {
     .filter(Boolean);
 }
 
-// Defensive: an AI skills rewrite can prefix a segment with its group label
-// ("Solution Design & Architecture: Solution Architecture"). Strip a multi-word
-// "Label: " prefix so a group label never lands in the list as if it were a
-// skill. Single-word prefixes (e.g. "C++: x") are left alone.
-function stripGroupLabel(s: string): string {
-  const m = s.match(/^([A-Za-z][A-Za-z0-9&/+ ]{2,48}):\s+(.+)$/);
-  return m && /\s/.test(m[1]) ? m[2].trim() : s.trim();
-}
 
 function skillSignature(skills: string[] | undefined): string {
   return Array.from(
@@ -513,9 +510,31 @@ function normalizeEditorDoc(doc: TailoredDoc, targetRole: string): TailoredDoc {
   // Drop leftover résumé-template guidance (e.g. "Add a concise 1-2 sentence
   // professional summary…") that an imported PDF can carry into the summary.
   const summary = stripTemplateGuidance(doc.summary);
-  return contact === doc.contact && headline === doc.headline && summary === doc.summary
-    ? doc
-    : { ...doc, contact, headline, summary };
+  // Self-heal skill groups a past bad apply may have mangled (labels dumped in
+  // as skills, duplicates). No-op on clean groups.
+  const healedGroups = doc.skillGroups?.length ? cleanSkillGroups(doc.skillGroups) : doc.skillGroups;
+  const groupsChanged =
+    !!doc.skillGroups?.length && JSON.stringify(healedGroups) !== JSON.stringify(doc.skillGroups);
+  if (
+    contact === doc.contact &&
+    headline === doc.headline &&
+    summary === doc.summary &&
+    !groupsChanged
+  ) {
+    return doc;
+  }
+  return {
+    ...doc,
+    contact,
+    headline,
+    summary,
+    ...(groupsChanged
+      ? {
+          skillGroups: healedGroups,
+          skills: Array.from(new Set((healedGroups ?? []).flatMap((g) => g.skills))),
+        }
+      : {}),
+  };
 }
 
 export default function EditEditor({
@@ -1294,7 +1313,7 @@ export default function EditEditor({
     } else if (target === "header") {
       setDoc((d) => ({ ...d, headline: normalizeHeadline(text.split(/\r?\n/)[0], role) || d.headline }));
     } else if (target === "skills") {
-      const incoming = parseSkillInput(text).map(stripGroupLabel).filter(Boolean);
+      const incoming = parseSkillInput(text).map(stripSkillLabel).filter(Boolean);
       setDoc((d) => {
         // Converge into existing skills: add only genuinely-new ones (deduped,
         // case-insensitive) and fold them into the first existing group rather

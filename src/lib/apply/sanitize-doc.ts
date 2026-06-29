@@ -132,6 +132,38 @@ export function normalizeHeadline(input: unknown, fallback?: string): string {
   return compacted;
 }
 
+// An AI skills rewrite can prefix a segment with its group label ("Solution
+// Design & Architecture: Solution Architecture"). Strip a multi-word "Label: "
+// prefix so a group label never lands in the list as if it were a skill.
+// Single-word prefixes (e.g. "C++: x") are left alone.
+export function stripSkillLabel(s: string): string {
+  const m = (s ?? "").match(/^([A-Za-z][A-Za-z0-9&/+ ]{2,48}):\s+(.+)$/);
+  return m && /\s/.test(m[1]) ? m[2].trim() : (s ?? "").trim();
+}
+
+// Self-heal a skill-groups array: strip stray "Label: " prefixes, drop empties,
+// and de-dupe (case-insensitive) ACROSS groups, then drop any group left empty.
+// Repairs drafts an earlier bad apply mangled (every group's skills dumped into
+// one, labels included), and is a no-op on clean groups.
+export function cleanSkillGroups(
+  groups: { label: string; skills: string[] }[] | undefined,
+): { label: string; skills: string[] }[] {
+  const seen = new Set<string>();
+  const out: { label: string; skills: string[] }[] = [];
+  for (const g of groups ?? []) {
+    const skills: string[] = [];
+    for (const raw of g?.skills ?? []) {
+      const s = stripSkillLabel(raw);
+      const key = s.toLowerCase();
+      if (!s || seen.has(key)) continue;
+      seen.add(key);
+      skills.push(s);
+    }
+    if (skills.length) out.push({ label: g.label, skills });
+  }
+  return out;
+}
+
 // Validate + bound an incoming (client-edited or builder-assembled) doc so a
 // malformed or oversized doc can never be persisted or break the LaTeX render.
 // Mirrors the limits the pipeline already respects; returns null if unusable.
@@ -198,19 +230,20 @@ export function sanitizeDoc(input: unknown): TailoredDoc | null {
   // Optional categorized skills. Bound count/labels; drop empty groups. When
   // present, the flat `skills` is re-derived from the groups so every flat
   // reader (serialize/score/ATS) stays consistent with what's rendered.
-  const skillGroups = (Array.isArray(d.skillGroups) ? d.skillGroups : [])
-    .slice(0, 6)
-    .map((g) => {
-      const x = (g ?? {}) as Record<string, unknown>;
-      return {
-        label: str(x.label, 50).trim(),
-        skills: (Array.isArray(x.skills) ? x.skills : [])
-          .map((s) => str(s, 80).trim())
-          .filter(Boolean)
-          .slice(0, 14),
-      };
-    })
-    .filter((g) => g.label && g.skills.length > 0);
+  const skillGroups = cleanSkillGroups(
+    (Array.isArray(d.skillGroups) ? d.skillGroups : [])
+      .slice(0, 6)
+      .map((g) => {
+        const x = (g ?? {}) as Record<string, unknown>;
+        return {
+          label: str(x.label, 50).trim(),
+          skills: (Array.isArray(x.skills) ? x.skills : [])
+            .map((s) => str(s, 80).trim())
+            .filter(Boolean)
+            .slice(0, 14),
+        };
+      }),
+  ).filter((g) => g.label && g.skills.length > 0);
 
   const doc: TailoredDoc = {
     name: str(d.name, 120).trim(),
