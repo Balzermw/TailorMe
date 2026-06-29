@@ -1176,36 +1176,33 @@ export default function EditEditor({
     const advice =
       mode === "shorten"
         ? "Shorten it to one idea, result first. Stay strictly truthful; do not invent any detail."
-        : "Add ONE concrete, realistic metric (%, $, count, time saved, team size). Use a MODEST, " +
-          "believable figure for this role (e.g. a 10-25% improvement), realistic and not " +
-          "exaggerated, so the user can confirm or tweak it. One line.";
-    const rows = await Promise.all(
-      targets.map(async (t): Promise<ShortenRow> => {
-        let shortened = mode === "shorten" ? trimBullet(t.original) : quantifyFallback(t.original);
-        try {
-          const res = await fetch("/api/resume/rewrite", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "x-tm-session": getSessionId() ?? "" },
-            body: JSON.stringify({
-              section: "experience",
-              issue,
-              advice,
-              original: t.original,
-              // Quantify: let the model propose a modest figure the user reviews,
-              // instead of leaving a [add %] placeholder to hand-fill on every bullet.
-              allowEstimates: mode === "quantify",
-            }),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (res.ok && typeof data.rewrite === "string" && data.rewrite.trim()) {
-            shortened = cleanBulletText(data.rewrite.trim());
-          }
-        } catch {
-          /* keep the deterministic fallback */
-        }
-        return { ...t, shortened, accepted: true };
-      }),
-    );
+        : "Turn each task into a result, leading with scope and specifics. Add a modest, realistic " +
+          "metric only where it fits naturally, and vary the kind of metric across bullets. One line.";
+    // One batched call (not one per bullet): the model sees every bullet at once and
+    // varies its metrics, instead of stamping the same "15%" on each in isolation.
+    let rewrites: string[] = [];
+    try {
+      const res = await fetch("/api/resume/rewrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-tm-session": getSessionId() ?? "" },
+        body: JSON.stringify({
+          section: "experience",
+          issue,
+          advice,
+          bullets: targets.map((t) => t.original),
+          allowEstimates: mode === "quantify",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.rewrites)) rewrites = data.rewrites;
+    } catch {
+      /* fall back to the deterministic rewrite per bullet below */
+    }
+    const rows: ShortenRow[] = targets.map((t, i) => {
+      const ai = typeof rewrites[i] === "string" ? cleanBulletText(rewrites[i].trim()) : "";
+      const fallback = mode === "shorten" ? trimBullet(t.original) : quantifyFallback(t.original);
+      return { ...t, shortened: ai || fallback, accepted: true };
+    });
     // Keep only rows that actually changed (and, for shorten, got shorter).
     const useful = rows.filter((r) => {
       const next = r.shortened.trim();
