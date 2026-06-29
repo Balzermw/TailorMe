@@ -1513,7 +1513,13 @@ function FitResult({ view, shown }: { view: FitView; shown: boolean }) {
             )}{" "}
             {loc.label}
           </span>
-          <span className="tmSc-locnote">{view.locationNote}</span>
+          <span className="tmSc-locnote" title={view.locationNote}>
+            {view.locationStatus === "pass"
+              ? "Location works for this role"
+              : view.locationStatus === "fail"
+                ? "Location may be a conflict"
+                : "Location not specified"}
+          </span>
         </div>
       </div>
       </div>
@@ -2015,10 +2021,16 @@ function CoverageEvidence({ a }: { a: AuditAgent }) {
           </EvidenceGroupLabel>
           <div className="tmF-chips" style={{ marginTop: "8px" }}>
             {matchedKws.map((k, i) => (
-              <span key={`m-${i}`} className="tm-pill tm-pill--mint">
+              <span
+                key={`m-${i}`}
+                className="tmEv-pill"
+                style={{ color: SEMANTIC.present.ink, background: SEMANTIC.present.bg }}
+              >
                 <Check size={11} /> {k.name}
                 {k.count && (
-                  <span style={{ marginLeft: "5px", opacity: 0.6, fontVariantNumeric: "tabular-nums" }}>{k.count}</span>
+                  <span className="tmEv-pill-sub" style={{ marginLeft: "2px", fontVariantNumeric: "tabular-nums" }}>
+                    {k.count}
+                  </span>
                 )}
               </span>
             ))}
@@ -2044,7 +2056,7 @@ function CoverageEvidence({ a }: { a: AuditAgent }) {
             {missingKws.map((k, i) => (
               <span
                 key={`x-${i}`}
-                className="tm-pill"
+                className="tmEv-pill"
                 style={{ color: SEMANTIC.missing.ink, background: "#fff", border: `0.5px solid ${SEMANTIC.missing.border}` }}
               >
                 <Plus size={11} /> {k.name}
@@ -2161,19 +2173,15 @@ function ImpactEvidence({ a }: { a: AuditAgent }) {
                   {m.text}
                 </span>
                 <span
+                  className="tmEv-pill"
                   style={{
                     flex: "none",
-                    fontSize: "10px",
-                    fontWeight: 600,
                     color: SEMANTIC.missing.ink,
                     background: SEMANTIC.missing.bg,
                     border: `0.5px solid ${SEMANTIC.missing.border}`,
-                    borderRadius: "999px",
-                    padding: "3px 9px",
-                    whiteSpace: "nowrap",
                   }}
                 >
-                  + {m.hint}
+                  <Plus size={11} /> {m.hint}
                 </span>
               </li>
             ))}
@@ -2194,25 +2202,19 @@ function ImpactEvidence({ a }: { a: AuditAgent }) {
           <EvidenceGroupLabel tone="present" icon={<Check size={12} />}>
             Numbers already in your resume ({a.stats!.length})
           </EvidenceGroupLabel>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
+          <div className="tmF-chips" style={{ marginTop: "8px" }}>
             {a.stats!.map((s, i) => (
               <span
                 key={i}
+                className="tmEv-pill"
                 style={{
-                  display: "inline-flex",
-                  alignItems: "baseline",
-                  gap: "5px",
                   maxWidth: "100%",
-                  borderRadius: "8px",
+                  color: SEMANTIC.present.ink,
                   background: SEMANTIC.present.bg,
                   border: `0.5px solid ${SEMANTIC.present.border}`,
-                  padding: "5px 10px",
                 }}
               >
-                <b style={{ fontSize: "12px", fontWeight: 600, color: SEMANTIC.present.ink }}>
-                  {s.value}
-                </b>
-                <span className="tm-small" style={{ fontSize: "11px" }}>{s.label}</span>
+                <b>{s.value}</b> <span className="tmEv-pill-sub">{s.label}</span>
               </span>
             ))}
           </div>
@@ -2346,10 +2348,7 @@ function RankingEvidence({ a }: { a: AuditAgent }) {
                 {l.score}
                 <span style={{ opacity: 0.5 }}>/100</span>
               </span>
-              <span
-                className="tm-pill"
-                style={{ flex: "none", fontSize: "10.5px", color: st.color, background: st.bg }}
-              >
+              <span className="tmEv-pill" style={{ flex: "none", color: st.color, background: st.bg }}>
                 {st.label}
               </span>
             </div>
@@ -2383,26 +2382,29 @@ const AGENT_VISUALS: Record<AuditAgent["id"], { icon: typeof Search }> = {
   rolefit: { icon: Target },
 };
 
+// Sentence-case a label/subtitle (first letter only) for display.
+const capFirst = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+
 // One headline number per agent for its gallery card, derived from the SAME
 // evidence the drawer shows so the card and detail can never disagree.
 function agentBig(a: AuditAgent): { value: string; label: string } {
   if (a.kind === "coverage") {
     const matched = a.matched ?? a.keywords?.filter((k) => k.matched).length ?? 0;
     const total = a.total ?? a.keywords?.length ?? 0;
-    return { value: `${matched}/${total}`, label: "keywords matched" };
+    return { value: `${matched}/${total}`, label: "Keywords matched" };
   }
   if (a.kind === "impact") {
     const q = a.quantified;
     if (q) {
       const gap = Math.max(0, q.total - q.count);
-      return { value: String(gap), label: gap === 1 ? "bullet needs a number" : "bullets need a number" };
+      return { value: String(gap), label: gap === 1 ? "Bullet needs a number" : "Bullets need a number" };
     }
-    return { value: String(a.stats?.length ?? 0), label: "metrics found" };
+    return { value: String(a.stats?.length ?? 0), label: "Metrics found" };
   }
   const lines = a.lines ?? [];
   const kept = lines.filter((l) => l.status === "kept-top" || l.status === "kept").length;
   const trimmed = lines.length - kept;
-  return { value: String(kept), label: trimmed ? `lines kept, ${trimmed} trimmed` : "lines kept" };
+  return { value: String(kept), label: trimmed ? `Lines kept, ${trimmed} trimmed` : "Lines kept" };
 }
 
 // The selected agent's evidence in the drawer — reuses the per-kind renderers so
@@ -2413,7 +2415,7 @@ function AgentDrawerBody({ a }: { a: AuditAgent }) {
     <div className="tmAg-dbody">
       <div className="tmAg-dtitle">
         <b>{a.title}</b>
-        <p>{a.subtitle}</p>
+        <p>{capFirst(a.subtitle)}</p>
       </div>
       {a.kind === "coverage" && <CoverageEvidence a={a} />}
       {a.kind === "impact" && <ImpactEvidence a={a} />}
