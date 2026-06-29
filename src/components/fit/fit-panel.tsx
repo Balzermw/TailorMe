@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, RefreshCw, TrendingDown, TrendingUp } from "lucide-react";
+import { Loader2, Plus, RefreshCw, TrendingDown, TrendingUp } from "lucide-react";
 import type { FitBreakdown, FitHistoryEntry } from "@/lib/types";
 import { fitTier } from "@/lib/apply/fit-tier";
 import { shouldEscalateToMichael } from "@/lib/apply/fit-history";
@@ -39,6 +39,7 @@ export function FitPanel({
   rechecking,
   pendingChanges = true,
   demoNote,
+  onAddKeywords,
 }: {
   fit: FitBreakdown;
   history: FitHistoryEntry[];
@@ -48,12 +49,16 @@ export function FitPanel({
   // disabled, so the score only moves when the resume actually changed.
   pendingChanges?: boolean;
   demoNote?: boolean;
+  // Apply the missing posting keywords to the resume's Skills section, so the
+  // "biggest lever" is a real one-click action instead of dead advice text.
+  onAddKeywords?: (terms: string[]) => void;
 }) {
   const tier = fitTier(fit.overall);
   const color = TONE_COLOR[tier.tone] ?? "var(--tm-ink)";
   const scores = history.map((h) => h.overall);
   const delta = scores.length > 1 ? scores[scores.length - 1] - scores[scores.length - 2] : 0;
   const escalate = shouldEscalateToMichael(history);
+  const missingKeywords = (fit.keywords ?? []).filter((k) => !k.inResume).map((k) => k.term).slice(0, 8);
 
   return (
     <div className="tmFit-panel">
@@ -73,9 +78,34 @@ export function FitPanel({
         </span>
       </div>
 
-      <p className="tmFit-lever">
-        <b>Biggest lever:</b> {biggestLever(fit)}
-      </p>
+      {missingKeywords.length > 0 ? (
+        <div className="tmFit-leverbox">
+          <p className="tmFit-lever">
+            <b>Biggest lever:</b> add the must-have keywords this posting screens for, where you
+            genuinely have them.
+          </p>
+          <div className="tmFit-kwchips">
+            {missingKeywords.map((t) => (
+              <span key={t} className="tmFit-kwchip" title={`"${t}" is not in your resume yet`}>
+                {t}
+              </span>
+            ))}
+          </div>
+          {onAddKeywords && (
+            <button
+              type="button"
+              className="tm-btn tm-btn--outline tm-btn--sm tmFit-kwadd"
+              onClick={() => onAddKeywords(missingKeywords)}
+            >
+              <Plus size={13} /> Add to skills
+            </button>
+          )}
+        </div>
+      ) : (
+        <p className="tmFit-lever">
+          <b>Biggest lever:</b> {biggestLever(fit)}
+        </p>
+      )}
 
       {delta < 0 && scores.length > 1 && (
         <p className="tmFit-note">

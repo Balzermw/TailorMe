@@ -1262,6 +1262,37 @@ export default function EditEditor({
     setShortenLoading(false);
   }
 
+  // The fit panel's "Biggest lever" turns missing posting keywords into a real
+  // action: merge the genuinely-new ones into Skills (deduped) and jump there so
+  // the user can keep the ones they actually have and prune the rest.
+  function addKeywordsToSkills(terms: string[]) {
+    const incoming = terms.map((s) => s.trim()).filter(Boolean);
+    if (!incoming.length) return;
+    setDoc((d) => {
+      const have = new Set(
+        [...(d.skills ?? []), ...(d.skillGroups ?? []).flatMap((g) => g.skills)]
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean),
+      );
+      const fresh = incoming.filter((s) => !have.has(s.toLowerCase()));
+      if (!fresh.length) return d;
+      const merged = Array.from(new Set([...(d.skills ?? []), ...fresh]));
+      if (d.skillGroups?.length) {
+        return {
+          ...d,
+          skills: merged,
+          skillGroups: d.skillGroups.map((g, i) =>
+            i === 0 ? { ...g, skills: [...g.skills, ...fresh] } : g,
+          ),
+        };
+      }
+      return { ...d, skills: merged };
+    });
+    touch();
+    setMode("edit");
+    setSection("skills");
+  }
+
   function applySuggestionDraft(p: ProofPoint, target: EditableSection, draft: string) {
     const text = draft.trim();
     if (!text) return;
@@ -1985,6 +2016,7 @@ export default function EditEditor({
                 onRecheck={canRecheck ? runRecheck : undefined}
                 rechecking={rechecking}
                 pendingChanges={dirty}
+                onAddKeywords={addKeywordsToSkills}
               />
             </div>
           )}
@@ -2099,7 +2131,7 @@ export default function EditEditor({
               <h2 className="tmE-panel-title">Experience</h2>
               <p className="tmE-panel-sub">
                 {bulletDiffs.length > 0
-                  ? "Accept, reject, or edit each AI rewrite. Struck-through words were removed; green words were added."
+                  ? "These AI rewrites are already in your resume. Keep each one, or revert to your original wording (struck-through words were removed, green words were added)."
                   : "Edit any line. Highlighted text in the preview shows posting keywords and metrics."}
               </p>
               {doc.experience.map((e, ei) => {
@@ -2164,6 +2196,20 @@ export default function EditEditor({
                           className={"tmE-diff" + (decision ? " is-decided" : " is-pending")}
                           data-testid={`revision-diff-${ei}-${bi}`}
                         >
+                          <div className="tmE-diff-head">
+                            <span className="tmE-diff-kind">
+                              <Sparkles size={11} /> AI rewrite
+                            </span>
+                            <span className={"tmE-diff-status is-" + (decision || "applied")}>
+                              {decision === "accepted"
+                                ? "Kept"
+                                : decision === "rejected"
+                                  ? "Reverted to original"
+                                  : decision === "edited"
+                                    ? "Your edit"
+                                    : "Applied"}
+                            </span>
+                          </div>
                           <p className="tmE-diff-redline" aria-label={`Suggested rewrite. Original: ${diff.before}. New: ${diff.after}`}>
                             {wordDiff(diff.before, diff.after).map((seg, si) =>
                               seg.type === "equal" ? (
@@ -2192,8 +2238,9 @@ export default function EditEditor({
                               onClick={() => decide(ei, bi, "accepted")}
                               aria-pressed={decision === "accepted"}
                               data-testid={`revision-accept-${ei}-${bi}`}
+                              title="Keep this AI change"
                             >
-                              <Check size={13} /> Accept
+                              <Check size={13} /> Keep
                             </button>
                             <button
                               type="button"
@@ -2201,8 +2248,9 @@ export default function EditEditor({
                               onClick={() => decide(ei, bi, "rejected")}
                               aria-pressed={decision === "rejected"}
                               data-testid={`revision-reject-${ei}-${bi}`}
+                              title="Restore your original wording"
                             >
-                              <X size={13} /> Reject
+                              <X size={13} /> Revert
                             </button>
                             <button
                               type="button"

@@ -3844,6 +3844,30 @@ body {
 .tmFit-lever b {
   font-weight: 600;
 }
+/* Missing-keyword lever: the terms as chips + a one-click "add to skills" action,
+   so the lever is a real lever, not a plain-text sentence. */
+.tmFit-leverbox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tmFit-kwchips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.tmFit-kwchip {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--tm-blue-50);
+  color: var(--tm-blue-800);
+  border: 0.5px solid var(--tm-blue-200);
+}
+.tmFit-kwadd {
+  align-self: flex-start;
+}
 .tmFit-note {
   font-size: 12.5px;
   line-height: 1.5;

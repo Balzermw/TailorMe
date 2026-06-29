@@ -699,6 +699,45 @@
   border-color: var(--tm-blue-200);
   background: var(--tm-blue-50);
 }
+/* Card header: an "AI rewrite" eyebrow + an applied/kept/reverted status pill, so
+   the diff reads as a Feedback-style card and shows the change is already live. */
+.tmE-diff-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.tmE-diff-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tm-blue-600);
+}
+.tmE-diff-status {
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.tmE-diff-status.is-applied,
+.tmE-diff-status.is-accepted {
+  background: var(--tm-mint-50);
+  color: var(--tm-mint-700);
+}
+.tmE-diff-status.is-rejected {
+  background: var(--tm-gray);
+  color: var(--tm-zinc);
+}
+.tmE-diff-status.is-edited {
+  background: var(--tm-blue-50);
+  color: var(--tm-blue-800);
+}
 /* Only the changed words are marked: removed words are struck (muted red),
    added words are tinted green. Unchanged text stays plain so a one-word
    rewrite no longer reads as a whole-sentence change. */
