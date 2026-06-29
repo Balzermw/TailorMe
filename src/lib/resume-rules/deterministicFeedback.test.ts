@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { refineFeedback } from "./deterministicFeedback";
+import { groundFindings } from "./groundFindings";
 import type { TailoredDoc } from "@/lib/types";
 
 function docWith(contact: string): TailoredDoc {
@@ -122,5 +123,25 @@ describe("refineFeedback sparse-experience detection", () => {
     const sparse = proofPoints.filter((p) => p.ruleId === "experience_sparse_bullets");
     expect(sparse).toHaveLength(1);
     expect(sparse[0].summary).toMatch(/other role/i);
+  });
+
+  // The editor + audit run every finding through groundFindings (the trust
+  // layer). Its template-owned suppression drops anything mentioning spacing /
+  // formatting, so the sparse finding's copy must never trip those patterns or
+  // it would silently vanish from the real surfaces (caught in PR #19 review).
+  it("survives the groundFindings trust layer (copy avoids template-owned words)", () => {
+    const { proofPoints } = refineFeedback(
+      docWithExperience([
+        {
+          role: "Consultant",
+          company: "ServiceNow",
+          dates: "2021 - Present",
+          bullets: ["Delivered platform rollouts for enterprise clients."],
+        },
+      ]),
+      [],
+    );
+    const grounded = groundFindings(proofPoints, "", { templated: true });
+    expect(grounded.some((p) => p.ruleId === "experience_sparse_bullets")).toBe(true);
   });
 });

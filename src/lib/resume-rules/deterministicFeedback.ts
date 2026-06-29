@@ -168,7 +168,9 @@ function sparseExperienceProofPoints(doc: TailoredDoc): ProofPoint[] {
     (others > 0
       ? ` (and ${others} other role${others > 1 ? "s are" : " is"} thin too).`
       : ".") +
-    " Roles with one or no bullets read as filler and waste prime resume space.";
+    // NB: avoid words like "space"/"spacing"/"format" here — they trip the
+    // template-owned suppression in groundFindings and the finding would vanish.
+    " A role with one or no bullets reads as filler and undersells your impact.";
   return [
     {
       title: "Add bullets to a thin role",

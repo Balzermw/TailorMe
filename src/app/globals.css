@@ -4858,7 +4858,9 @@ body {
   color: #b3261e;
   border-color: rgba(179, 38, 30, 0.4);
 }
-@media (max-width: 760px) {
+/* Stack before the rigid fit/status/actions columns (~816px incl. padding) can
+   overflow the card — below this the row goes single-column. */
+@media (max-width: 860px) {
   .tmD-prow {
     grid-template-columns: 1fr;
     gap: 10px;

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import Nav from "@/components/landing/nav";
 import { supabaseConfigured } from "@/lib/config";
 import { getApplication } from "@/lib/db";
 import { E2E_REVISION_APP_ID } from "@/lib/e2e/revision-fixture";
+import { ROUTES } from "@/components/landing/data";
 import EditEditor from "./edit-editor";
 import E2ERevisionEditor from "./e2e-revision-editor";
 import LocalApplicationEditLoader from "./local-application-edit-loader";
@@ -47,17 +49,36 @@ export default async function EditPage({
   const app = await getApplication(id);
   const doc = app?.result?.doc ?? null;
 
-  // A DB-backed application (the paid "Build tailored draft" path) renders
-  // server-side. Anything not found in the DB falls back to the local loader,
-  // which reads it from the browser — that's the free "Open editor" on-ramp,
-  // which stashes a scored application in localStorage. Both land in the same
-  // editor regardless of mode or sign-in.
-  if (!doc || !app) {
+  // Not a DB row → fall back to the local loader, which reads it from the
+  // browser. That's the free "Open editor" on-ramp, which stashes a scored
+  // application in localStorage. Both on-ramps land in the same editor.
+  if (!app) {
     return (
       <div className="tm">
         <Nav active="Dashboard" />
         <main>
           <LocalApplicationEditLoader id={id} />
+        </main>
+      </div>
+    );
+  }
+
+  // A real account application that has no editable document yet (e.g. scored
+  // but not tailored). Don't hand it to the local loader — give an accurate
+  // server-rendered notice.
+  if (!doc) {
+    return (
+      <div className="tm">
+        <Nav active="Dashboard" />
+        <main>
+          <div style={{ padding: "64px 24px", textAlign: "center" }}>
+            <p className="tm-body">
+              This document isn&apos;t available to edit.{" "}
+              <Link href={ROUTES.dashboard} style={{ color: "var(--tm-blue-600)" }}>
+                Back to dashboard
+              </Link>
+            </p>
+          </div>
         </main>
       </div>
     );

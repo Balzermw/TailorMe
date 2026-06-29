@@ -3218,7 +3218,7 @@ function StepSummary({
               </span>
             </div>
             <p className="tmSum-sub" style={{ marginTop: "4px" }}>
-              Your top fix is below. Open the editor to work through all {proofPoints.length} — each is
+              Your top fix is below. Open the editor to work through all {proofPoints.length}. Each is
               tagged with its section and applies in a click.
             </p>
           </div>

@@ -40,6 +40,12 @@ describe("normalizeHeadline", () => {
   it("does not over-extend an unrelated longer headline", () => {
     expect(normalizeHeadline("Senior Platform Engineer", "Engineer")).toBe("Senior Platform Engineer");
   });
+
+  it("does not recover a fallback that only shares a character prefix", () => {
+    // "Lead" must not become "Leadership Coach" (different title); the prefix
+    // has to end on a word boundary to count as a truncation.
+    expect(normalizeHeadline("Lead", "Leadership Coach")).toBe("Lead");
+  });
 });
 
 describe("sanitizeDoc", () => {

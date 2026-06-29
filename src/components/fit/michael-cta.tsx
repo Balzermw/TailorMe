@@ -14,7 +14,7 @@ export function ManualReviewCTA({ overall }: { overall: number }) {
     overall >= 60
       ? "Relevant experience, but notable gaps for this role."
       : overall >= 45
-        ? "A stretch on paper — the gaps below are real but fixable."
+        ? "A stretch on paper, but the gaps below are real and fixable."
         : "A significant stretch for this résumé right now.";
   return (
     <div className="tmFit-michael">

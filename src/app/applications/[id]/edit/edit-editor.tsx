@@ -1774,6 +1774,12 @@ export default function EditEditor({
               />
             </div>
           )}
+          {/* No fit panel to host it (a scored app shows it inside the panel,
+              next to Re-check) — but if there are AI changes to review, the
+              progress must still surface on its own. */}
+          {kind === "application" && !fit && reviewProgressNode && (
+            <div className="tmE-reviewprog-row tmF-anim">{reviewProgressNode}</div>
+          )}
           {review && (
             <div className="tmE-review tmF-anim">
               <div className="tmE-review-head">
@@ -2688,7 +2694,8 @@ export default function EditEditor({
                 </>
               ) : dirty ? (
                 <>
-                  <span className="tmE-saved-dot" aria-hidden="true" /> Save changes
+                  <span className="tmE-saved-dot" aria-hidden="true" />{" "}
+                  {kind === "resume" ? "Save resume" : "Save edits"}
                 </>
               ) : (
                 <>

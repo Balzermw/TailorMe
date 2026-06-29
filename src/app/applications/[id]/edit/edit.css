@@ -381,6 +381,12 @@
   font-size: 12px;
   font-weight: 500;
 }
+/* Standalone host for the review progress when there's no fit panel to carry it. */
+.tmE-reviewprog-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+}
 .tmE-sr {
   position: absolute;
   width: 1px;

@@ -121,7 +121,10 @@ export function normalizeHeadline(input: unknown, fallback?: string): string {
     compactFallback.length <= HEADLINE_MAX_CHARS &&
     words(compactFallback).length <= HEADLINE_MAX_WORDS &&
     compacted.length < compactFallback.length &&
-    compactFallback.toLowerCase().startsWith(compacted.toLowerCase())
+    compactFallback.toLowerCase().startsWith(compacted.toLowerCase()) &&
+    // The prefix must end on a word boundary, so "Lead" recovers "Lead, Product
+    // Management" but NOT "Leadership Coach" (a different title sharing a prefix).
+    !/[a-z0-9]/i.test(compactFallback.charAt(compacted.length))
   ) {
     return compactFallback;
   }
