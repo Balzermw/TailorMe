@@ -5673,7 +5673,9 @@ body {
 .tmSc {
   display: grid;
   grid-template-columns: 212px 1fr;
-  padding: 0;
+  margin-top: 14px;
+  border: 0.5px solid var(--tm-border);
+  border-radius: 14px;
   overflow: hidden;
 }
 .tmSc-left {
@@ -5886,13 +5888,14 @@ body {
   align-items: center;
   gap: 10px;
 }
-.tmAg-card-img {
+/* Persona avatar: a lucide icon in a tinted circle (matches the landing page). */
+.tmAg-avatar {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  object-fit: cover;
-  background: #fff;
-  box-shadow: 0 0 0 2px var(--ag-tint);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
 }
 .tmAg-card-id b {
@@ -5963,15 +5966,6 @@ body {
   /* Softer than the full agent tint so the drawer isn't a saturated block. */
   background: color-mix(in srgb, var(--ag-tint) 55%, #fff);
   border-bottom: 0.5px solid var(--tm-border);
-}
-.tmAg-dhead-img {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: #fff;
-  box-shadow: 0 0 0 2px #fff;
-  flex: none;
 }
 .tmAg-dhead-id b {
   font-size: 14.5px;

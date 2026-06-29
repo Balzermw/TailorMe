@@ -148,7 +148,6 @@ export interface AuditAgent {
   subtitle: string;
   footer: string;
   detail: string; // deep-dive: how this agent reached its conclusion
-  chip?: string; // ranking only ("Hard limit · 2 pages")
   // kind: "coverage"
   matched?: number;
   total?: number;

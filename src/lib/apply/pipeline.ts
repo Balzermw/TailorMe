@@ -1815,8 +1815,7 @@ export async function buildAgents(
     id: "rolefit",
     ...AGENT_META.rolefit,
     title: "Your bullets, ranked",
-    subtitle: "bullets taken from existing resume",
-    chip: "Hard limit · 2 pages",
+    subtitle: "how relevant each of your bullets is to this role, strongest kept",
     footer: "",
     detail:
       "Remy scores every line 0–100 for relevance to this posting, keeps the strongest, and " +

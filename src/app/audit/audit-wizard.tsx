@@ -8,7 +8,6 @@
 //         showing the real tailored bullets, agent notes, and a PDF download.
 
 import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -20,12 +19,15 @@ import {
   ChevronDown,
   ClipboardPaste,
   FileText,
+  Gauge,
   List,
   Minus,
   PenLine,
   Plus,
   Quote,
+  Search,
   Sparkles,
+  Target,
   TrendingUp,
   Upload,
   User,
@@ -1406,9 +1408,16 @@ function FitResult({ view, shown }: { view: FitView; shown: boolean }) {
   const loc = LOCATION_STATE[view.locationStatus];
 
   return (
-    <div className="tm-card tmSc">
-      <div className="tmSc-left">
-        <ScoreRing score={view.overall} run={shown} color={theme.ring} />
+    <div className="tm-card" style={{ padding: "22px 24px" }}>
+      <div className="tmAg-head">
+        <span className="tmB-ev-head">
+          <Gauge size={14} /> Job score
+        </span>
+        <span className="tmAg-hint">tap a dimension</span>
+      </div>
+      <div className="tmSc">
+        <div className="tmSc-left">
+          <ScoreRing score={view.overall} run={shown} color={theme.ring} />
         <span className="tmSc-verdict" style={{ color: theme.ink }}>
           {theme.positive ? <Check size={12} /> : <AlertTriangle size={12} />} {view.verdict}
         </span>
@@ -1500,6 +1509,7 @@ function FitResult({ view, shown }: { view: FitView; shown: boolean }) {
           </span>
           <span className="tmSc-locnote">{view.locationNote}</span>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -2310,10 +2320,12 @@ function RankingEvidence({ a }: { a: AuditAgent }) {
   );
 }
 
-const AGENT_VISUALS: Record<AuditAgent["id"], { image: string; icon: typeof List }> = {
-  ats: { image: "/agents/ada.svg", icon: List },
-  impact: { image: "/agents/max.svg", icon: TrendingUp },
-  rolefit: { image: "/agents/remy.svg", icon: FileText },
+// Persona icons mirror the landing page's "meet the agents" trio (Search /
+// TrendingUp / Target) so the avatar a user saw there is the same one here.
+const AGENT_VISUALS: Record<AuditAgent["id"], { icon: typeof Search }> = {
+  ats: { icon: Search },
+  impact: { icon: TrendingUp },
+  rolefit: { icon: Target },
 };
 
 // One headline number per agent for its gallery card, derived from the SAME
@@ -2347,11 +2359,6 @@ function AgentDrawerBody({ a }: { a: AuditAgent }) {
       <div className="tmAg-dtitle">
         <b>{a.title}</b>
         <p>{a.subtitle}</p>
-        {a.chip && (
-          <span className="tm-pill tm-pill--gray" style={{ marginTop: "6px", fontSize: "10.5px" }}>
-            {a.chip}
-          </span>
-        )}
       </div>
       {a.kind === "coverage" && <CoverageEvidence a={a} />}
       {a.kind === "impact" && <ImpactEvidence a={a} />}
@@ -2377,13 +2384,13 @@ function AgentGallery({ agents }: { agents: AuditAgent[] }) {
   const [activeId, setActiveId] = useState<AuditAgent["id"]>(agents[0].id);
   const active = agents.find((a) => a.id === activeId) ?? agents[0];
   const activeAc = ACCENT[active.accent];
-  const activeVisual = AGENT_VISUALS[active.id];
+  const ActiveIcon = AGENT_VISUALS[active.id].icon;
   return (
     <>
       <div className="tmAg-gallery">
         {agents.map((a, i) => {
           const ac = ACCENT[a.accent];
-          const visual = AGENT_VISUALS[a.id];
+          const Icon = AGENT_VISUALS[a.id].icon;
           const big = agentBig(a);
           const isOn = a.id === activeId;
           return (
@@ -2403,14 +2410,9 @@ function AgentGallery({ agents }: { agents: AuditAgent[] }) {
               aria-expanded={isOn}
             >
               <span className="tmAg-card-top">
-                <Image
-                  src={visual.image}
-                  alt=""
-                  width={38}
-                  height={38}
-                  unoptimized
-                  className="tmAg-card-img"
-                />
+                <span className="tmAg-avatar" style={{ background: ac.tint, color: ac.ink }}>
+                  <Icon size={18} />
+                </span>
                 <span className="tmAg-card-id">
                   <b>{a.persona}</b>
                   <span>{a.archetype}</span>
@@ -2440,14 +2442,9 @@ function AgentGallery({ agents }: { agents: AuditAgent[] }) {
         }
       >
         <div className="tmAg-dhead">
-          <Image
-            src={activeVisual.image}
-            alt=""
-            width={38}
-            height={38}
-            unoptimized
-            className="tmAg-dhead-img"
-          />
+          <span className="tmAg-avatar" style={{ background: "#fff", color: activeAc.ink }}>
+            <ActiveIcon size={18} />
+          </span>
           <span className="tmAg-dhead-id">
             <b>{active.persona}</b> <span>· {active.archetype}</span>
           </span>
@@ -2542,8 +2539,7 @@ const DEMO_AGENTS: AuditAgent[] = [
     reads: "Reads your resume like a hiring manager",
     kind: "ranking",
     title: "Your bullets, ranked",
-    subtitle: "bullets taken from existing resume",
-    chip: "Hard limit · 2 pages",
+    subtitle: "how relevant each of your bullets is to this role, strongest kept",
     footer: "",
     detail:
       "Remy scores every line 0–100 for relevance to this posting, keeps the strongest, and trims the lowest to hold two pages, by relevance and never by age.",
