@@ -3862,12 +3862,6 @@ body {
 .tmFit-spin {
   animation: tmspin 0.8s linear infinite;
 }
-/* AI-changes review progress, shown with the score (moved out of the toolbar). */
-.tmFit-reviewrow {
-  display: flex;
-  align-items: center;
-  padding-top: 2px;
-}
 /* Compact, animated human-coaching nudge under the fit score (weak fit only).
    Smaller + tighter than the dashboard card so it doesn't crowd the panel. */
 .tmFit-michael {

@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { Loader2, RefreshCw, TrendingDown, TrendingUp } from "lucide-react";
 import type { FitBreakdown, FitHistoryEntry } from "@/lib/types";
 import { fitTier } from "@/lib/apply/fit-tier";
@@ -40,7 +39,6 @@ export function FitPanel({
   rechecking,
   pendingChanges = true,
   demoNote,
-  reviewProgress,
 }: {
   fit: FitBreakdown;
   history: FitHistoryEntry[];
@@ -50,9 +48,6 @@ export function FitPanel({
   // disabled, so the score only moves when the resume actually changed.
   pendingChanges?: boolean;
   demoNote?: boolean;
-  // AI-changes review progress, shown with the score so "what changed" and "how
-  // it tracks" read together (lives in the editor, passed in).
-  reviewProgress?: ReactNode;
 }) {
   const tier = fitTier(fit.overall);
   const color = TONE_COLOR[tier.tone] ?? "var(--tm-ink)";
@@ -81,8 +76,6 @@ export function FitPanel({
       <p className="tmFit-lever">
         <b>Biggest lever:</b> {biggestLever(fit)}
       </p>
-
-      {reviewProgress && <div className="tmFit-reviewrow">{reviewProgress}</div>}
 
       {delta < 0 && scores.length > 1 && (
         <p className="tmFit-note">

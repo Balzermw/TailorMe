@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   Check,
   ChevronDown,
   ChevronUp,
@@ -1791,8 +1792,8 @@ export default function EditEditor({
   }, [lockedFinding, doc]);
 
   const reviewableChangeCount = collectChanges().length;
-  // AI-changes review progress — rendered inside the FitPanel (next to Re-check)
-  // so "what changed" reads with the score, not as a detached toolbar chip.
+  // AI-changes review progress — surfaced in a banner across the top of the editor
+  // (above the mode tabs) so "review your changes" is the first thing you see.
   const reviewProgressNode =
     bulletDiffs.length > 0 ? (
       <span
@@ -1810,7 +1811,7 @@ export default function EditEditor({
           ))}
         </span>
         <span className="tmE-reviewprog-label">
-          {bulletDiffs.length - totalPending}/{bulletDiffs.length} changes reviewed
+          {bulletDiffs.length - totalPending} of {bulletDiffs.length} AI changes reviewed
         </span>
       </span>
     ) : null;
@@ -1903,6 +1904,24 @@ export default function EditEditor({
         </div>
       </div>
 
+      {kind === "application" && reviewProgressNode && (
+        <div className={"tmE-reviewbar tmF-anim" + (totalPending === 0 ? " is-done" : "")}>
+          {reviewProgressNode}
+          {totalPending > 0 && (
+            <button
+              type="button"
+              className="tm-btn tm-btn--primary tm-btn--sm tmE-reviewbar-cta"
+              onClick={() => {
+                setMode("edit");
+                setSection("experience");
+              }}
+            >
+              Review {totalPending} change{totalPending === 1 ? "" : "s"} <ArrowRight size={14} />
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="tmE-modetabs" role="tablist" aria-label="Editor mode">
         <button
           type="button"
@@ -1966,15 +1985,8 @@ export default function EditEditor({
                 onRecheck={canRecheck ? runRecheck : undefined}
                 rechecking={rechecking}
                 pendingChanges={dirty}
-                reviewProgress={reviewProgressNode}
               />
             </div>
-          )}
-          {/* No fit panel to host it (a scored app shows it inside the panel,
-              next to Re-check) — but if there are AI changes to review, the
-              progress must still surface on its own. */}
-          {kind === "application" && !fit && reviewProgressNode && (
-            <div className="tmE-reviewprog-row tmF-anim">{reviewProgressNode}</div>
           )}
           {review && (
             <div className="tmE-review tmF-anim">
