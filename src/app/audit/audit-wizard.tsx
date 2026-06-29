@@ -277,6 +277,9 @@ const LOCATION_STATE: Record<
 // celebrates a weak result. `positive` also picks the icon (check vs alert).
 type FitTheme = {
   card: string;
+  // A much softer wash of the tier colour for the scorecard rail — a hint of the
+  // score's colour without the saturation of `card`.
+  rail: string;
   border: string;
   ring: string;
   ink: string;
@@ -284,12 +287,12 @@ type FitTheme = {
 };
 function fitTheme(overall: number): FitTheme {
   if (overall >= 78)
-    return { card: "var(--tm-mint-50)", border: "rgba(33,146,107,.28)", ring: "var(--tm-mint-600)", ink: "var(--tm-mint-600)", positive: true };
+    return { card: "var(--tm-mint-50)", rail: "#f1faf6", border: "rgba(33,146,107,.28)", ring: "var(--tm-mint-600)", ink: "var(--tm-mint-600)", positive: true };
   if (overall >= 62)
-    return { card: "var(--tm-blue-50)", border: "rgba(67,115,219,.28)", ring: "var(--tm-blue-600)", ink: "var(--tm-blue-800)", positive: true };
+    return { card: "var(--tm-blue-50)", rail: "#f2f7ff", border: "rgba(67,115,219,.28)", ring: "var(--tm-blue-600)", ink: "var(--tm-blue-800)", positive: true };
   if (overall >= 45)
-    return { card: "#fdf3e7", border: "rgba(133,79,11,.30)", ring: "#ba7517", ink: "#854f0b", positive: false };
-  return { card: "#fdecea", border: "rgba(179,38,30,.28)", ring: "#b3261e", ink: "#b3261e", positive: false };
+    return { card: "#fdf3e7", rail: "#fdf7f0", border: "rgba(133,79,11,.30)", ring: "#ba7517", ink: "#854f0b", positive: false };
+  return { card: "#fdecea", rail: "#fdf1ef", border: "rgba(179,38,30,.28)", ring: "#b3261e", ink: "#b3261e", positive: false };
 }
 
 // The score ring — the hero of the Job Score step. Animates the stroke + the
@@ -1415,7 +1418,7 @@ function FitResult({ view, shown }: { view: FitView; shown: boolean }) {
         </span>
         <span className="tmAg-hint">tap a dimension</span>
       </div>
-      <div className="tmSc">
+      <div className="tmSc" style={{ "--sc-tint": theme.rail } as CSSProperties}>
         <div className="tmSc-left">
           <ScoreRing score={view.overall} run={shown} color={theme.ring} />
         <span className="tmSc-verdict" style={{ color: theme.ink }}>

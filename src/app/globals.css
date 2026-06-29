@@ -5708,9 +5708,10 @@ body {
   text-align: center;
   gap: 11px;
   padding: 22px 18px;
-  /* Neutral rail (was a saturated fit-tier tint) — the ring + verdict pill carry
-     the color, so the card reads calmer. */
-  background: var(--tm-gray);
+  /* Soft fit-tier wash (theme.rail is a faint tint of the score colour) instead of
+     a flat gray. A hand-picked literal, not color-mix — Turbopack's Lightning CSS
+     lowers color-mix(var()…) to just the fallback, which would drop the blend. */
+  background: var(--sc-tint, var(--tm-gray));
   border-right: 0.5px solid var(--tm-border);
 }
 .tmSc-verdict {
