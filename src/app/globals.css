@@ -3891,8 +3891,11 @@ body {
   }
 }
 .tmFit-michael-img {
-  width: 40px;
-  height: 40px;
+  /* 34px (not 40) + a 1px nudge so the avatar top sits on the title glyphs and its
+     mass pairs with the two-line title/sub block, instead of overshooting. */
+  width: 34px;
+  height: 34px;
+  margin-top: 1px;
   border-radius: 50%;
   object-fit: cover;
   border: 0.5px solid var(--tm-border);

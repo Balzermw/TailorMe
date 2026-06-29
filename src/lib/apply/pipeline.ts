@@ -1541,6 +1541,23 @@ const STAT_STOP = new Set([
   "cutting", "boosting", "growing", "reducing", "improving",
 ]);
 
+// A stat is a genuine RESULT metric, not a bare year ("2021") or tenure ("5 years").
+// Keeps the "numbers already in your resume" list consistent with hasHardMetric()
+// and the "X/Y bullets are quantified" meter (which already strip years/dates).
+const TIME_LABEL_RE = /^(years?|yrs?|months?|mos?|weeks?|days?|hours?|hrs?|quarters?|qtrs?)\b/i;
+function isResultMetric(value: string, label: string): boolean {
+  const v = value.trim();
+  if (!v) return false;
+  if (/^(19|20)\d{2}$/.test(v)) return false; // a bare year is not an achievement
+  const bare = v.replace(/[.,]/g, "");
+  if (/^\d+$/.test(bare) && TIME_LABEL_RE.test(label.trim())) return false; // "5 years" tenure
+  // Strong result signals: percent, money, a 3x multiplier, N+, grouped (1,200) or scaled (45M/12k).
+  if (/[%$]|\b\d[\d.,]*\s?x\b|\d\s?\+|\d{1,3}(?:,\d{3})+|\d[\d.,]*\s?(?:k|m|b|bn|million|billion)\b/i.test(v))
+    return true;
+  // Otherwise keep only a short, plausible bare count (e.g. "25 demos", "6 engineers").
+  return /^\d{1,3}$/.test(bare);
+}
+
 /** Pull real quantified wins out of the resume: a value + a short label. */
 function extractStats(
   text: string,
@@ -1579,11 +1596,10 @@ function extractStats(
       if (label.length >= 3) break;
     }
     if (label.length === 0) continue;
+    const labelStr = label.join(" ");
+    if (!isResultMetric(value, labelStr)) continue;
     seen.add(key);
-    out.push({
-      value,
-      label: label.join(" "),
-    });
+    out.push({ value, label: labelStr });
   }
   return out;
 }
@@ -1709,6 +1725,7 @@ async function rankLines(
         s.value &&
         s.label &&
         /\d/.test(s.value) &&
+        isResultMetric(s.value, s.label) &&
         !containsContactInfo(s.value) &&
         !containsContactInfo(s.label),
     )
@@ -1738,18 +1755,22 @@ function impactBullets(resumeText: string): { withNum: string[]; needsNum: strin
   };
 }
 // A concrete, deterministic nudge for the KIND of number a bullet could take, from
-// its leading verb — no LLM call, just orientation for the user.
+// its leading verb — no LLM call, just orientation for the user. Matches verb STEMS
+// with common suffixes so gerund/present/past forms ("Supporting", "Contributing",
+// "Inspired") all land on a real hint instead of the generic "a number".
 function metricHint(text: string): string {
   const t = text.toLowerCase();
-  if (/\b(led|managed|mentored|onboarded|coached|supervised|directed|hired|trained)\b/.test(t))
+  const has = (...stems: string[]) =>
+    stems.some((s) => new RegExp(`\\b${s}(?:e|ed|ing|es|s|d)?\\b`).test(t));
+  if (has("lead", "led", "manage", "mentor", "onboard", "coach", "supervise", "direct", "hire", "train", "ramp"))
     return "team size or # of people";
-  if (/\b(improved|increased|reduced|cut|accelerated|streamlined|boosted|grew|raised|decreased|saved|optimized)\b/.test(t))
+  if (has("improv", "increas", "reduc", "cut", "accelerat", "streamlin", "boost", "grow", "grew", "rais", "decreas", "sav", "optimiz", "enhanc", "sharpen", "speed"))
     return "% change or time saved";
-  if (/\b(drove|generated|delivered|closed|achieved|won|secured|sold)\b/.test(t))
+  if (has("driv", "drove", "generat", "deliver", "clos", "achiev", "win", "won", "secur", "sell", "sold"))
     return "$ or % impact";
-  if (/\b(built|created|developed|launched|shipped|designed|automated|implemented|standardized)\b/.test(t))
+  if (has("build", "built", "creat", "develop", "launch", "ship", "design", "automat", "implement", "standardiz", "introduc", "present"))
     return "count or scale";
-  if (/\b(supported|maintained|handled|served|advised|prepared)\b/.test(t))
+  if (has("support", "maintain", "handl", "serv", "advis", "prepar", "contribut", "assist", "collaborat", "partner"))
     return "# of accounts or volume";
   return "a number";
 }

@@ -21,8 +21,8 @@ export function ManualReviewCTA({ overall }: { overall: number }) {
       <Image
         src="/michael.png"
         alt="Michael, Head of Res.Me"
-        width={40}
-        height={40}
+        width={34}
+        height={34}
         className="tmFit-michael-img"
       />
       <div className="tmFit-michael-body">
