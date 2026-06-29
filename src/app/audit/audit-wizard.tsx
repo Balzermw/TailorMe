@@ -1422,15 +1422,18 @@ function FitResult({ view, shown }: { view: FitView; shown: boolean }) {
           {theme.positive ? <Check size={12} /> : <AlertTriangle size={12} />} {view.verdict}
         </span>
         {top && (
-          <span className="tmSc-sub">
-            Strongest on <b>{top.label}</b> ({top.score})
+          <div className="tmSc-take">
+            <div className="tmSc-take-row">
+              <span className="tmSc-take-k">Strongest</span>
+              <span className="tmSc-take-v">{top.label}</span>
+            </div>
             {focus && (
-              <>
-                . Most room in <b>{focus.label}</b> ({focus.score})
-              </>
+              <div className="tmSc-take-row">
+                <span className="tmSc-take-k">Most room</span>
+                <span className="tmSc-take-v">{focus.label}</span>
+              </div>
             )}
-            .
-          </span>
+          </div>
         )}
       </div>
       <div className="tmSc-right">
