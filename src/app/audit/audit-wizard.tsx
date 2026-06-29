@@ -259,14 +259,6 @@ function band(score: number): Band {
   return { tag: "Weak", bar: "#d9544d", pillBg: "#fdecea", pillInk: "#b3261e" };
 }
 
-// Legend swatches for the dimension bars — mirror band()'s four tiers.
-const BAND_LEGEND = [
-  { c: "var(--tm-mint-600)", l: "strong" },
-  { c: "var(--tm-blue-600)", l: "solid" },
-  { c: "#e0a23c", l: "fair" },
-  { c: "#d9544d", l: "weak" },
-];
-
 // Location gate is tri-state: met / real conflict / not specified — clearer than
 // a vague "Check".
 const LOCATION_STATE: Record<
@@ -277,15 +269,6 @@ const LOCATION_STATE: Record<
   fail: { label: "Fail", bg: "#fdecea", ink: "#b3261e" },
   unclear: { label: "Not specified", bg: "#fdf3e7", ink: "#854f0b" },
 };
-
-// Overall-score → hero headline. Tiers match fitTheme so the wording and the
-// colour agree.
-function heroHeadline(overall: number): string {
-  if (overall >= 78) return "You’re a strong match for this role";
-  if (overall >= 62) return "You’re a good match for this role";
-  if (overall >= 45) return "You’re a moderate match for this role";
-  return "This role is a stretch: here’s where to focus";
-}
 
 // Fit tier → hero colour theme. Green ONLY for a genuinely strong fit; blue for
 // solid, amber for a stretch, red for a poor match — so the colour never
@@ -1411,284 +1394,117 @@ function ScoringLoader({
 // coverage). Presentational + self-contained (owns its expand state) so both
 // the Job Score step and the Summary step render an identical breakdown. The
 // prose verdict is trimmed to a one-line lead — the ranked rows carry the "why".
+// One compact scorecard: ring + verdict on the left, the dimensions and location
+// on the right. Replaces the old separate score-hero + dimensions cards so the
+// step reads as one block instead of three.
 function FitResult({ view, shown }: { view: FitView; shown: boolean }) {
   const [openDims, setOpenDims] = useState<Set<number>>(new Set());
   const ranked = [...view.dims].sort((a, b) => b.score - a.score);
   const theme = fitTheme(view.overall);
-  // Lead with a concrete, data-derived takeaway — the top strength and biggest
-  // gap from THIS resume vs THIS posting — instead of a generic LLM sentence.
-  // Keyword coverage lives in the ATS (Ada) agent, so it isn't repeated here.
   const top = ranked[0];
   const focus = ranked.length > 1 ? ranked[ranked.length - 1] : null;
+  const loc = LOCATION_STATE[view.locationStatus];
 
   return (
-    <Fragment>
-      {/* score hero — the score is the hero; colour follows the fit tier */}
-      <div
-        className="tm-card"
-        style={{
-          background: theme.card,
-          border: `0.5px solid ${theme.border}`,
-          display: "flex",
-          alignItems: "center",
-          gap: "24px",
-          flexWrap: "wrap",
-          padding: "24px 26px",
-        }}
-      >
+    <div className="tm-card tmSc" style={{ "--sc-tint": theme.card } as CSSProperties}>
+      <div className="tmSc-left">
         <ScoreRing score={view.overall} run={shown} color={theme.ring} />
-        <div style={{ flex: "1 1 260px", minWidth: 0 }}>
-          <span
-            className="tm-pill"
-            style={{
-              background: "#fff",
-              color: theme.ink,
-              border: `0.5px solid ${theme.border}`,
-            }}
-          >
-            {theme.positive ? <Check size={12} /> : <AlertTriangle size={12} />}{" "}
-            {view.verdict}
+        <span className="tmSc-verdict" style={{ color: theme.ink }}>
+          {theme.positive ? <Check size={12} /> : <AlertTriangle size={12} />} {view.verdict}
+        </span>
+        {top && (
+          <span className="tmSc-sub">
+            Strongest on <b>{top.label}</b> ({top.score})
+            {focus && (
+              <>
+                . Most room in <b>{focus.label}</b> ({focus.score})
+              </>
+            )}
+            .
           </span>
-          <h3
-            style={{
-              fontSize: "21px",
-              fontWeight: 600,
-              color: "var(--tm-ink)",
-              margin: "10px 0 0",
-              lineHeight: 1.25,
-            }}
-          >
-            {heroHeadline(view.overall)}
-          </h3>
-          {top && (
-            <p
-              className="tm-small"
-              style={{ marginTop: "8px", fontSize: "13px", lineHeight: 1.55 }}
-            >
-              Strongest on{" "}
-              <b style={{ color: "var(--tm-ink)", fontWeight: 600 }}>{top.label}</b> ({top.score}).
-              {focus && (
-                <>
-                  {" "}Most room to grow:{" "}
-                  <b style={{ color: "var(--tm-ink)", fontWeight: 600 }}>{focus.label}</b> ({focus.score}).
-                </>
-              )}
-            </p>
-          )}
-        </div>
+        )}
       </div>
-
-      {/* dimensions — ranked strongest → focus, expand for evidence */}
-      <div className="tm-card" style={{ padding: "20px 22px" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "8px",
-          }}
-        >
-          <span className="tmF-p2-label">Across the {ranked.length} dimensions</span>
-          <span
-            className="tm-small"
-            style={{ display: "inline-flex", alignItems: "center", gap: "12px", fontSize: "11.5px" }}
-          >
-            {BAND_LEGEND.map((x) => (
-              <span key={x.l} style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
-                <span style={{ height: "8px", width: "8px", borderRadius: "50%", background: x.c }} />
-                {x.l}
-              </span>
-            ))}
-          </span>
-        </div>
-
-        <div style={{ marginTop: "8px" }}>
-          {ranked.map((d, i) => {
-            const b = band(d.score);
-            const open = openDims.has(i);
-            return (
+      <div className="tmSc-right">
+        {ranked.map((d, i) => {
+          const b = band(d.score);
+          const open = openDims.has(i);
+          return (
+            <div key={`${i}-${d.label}`} className={"tmSc-dim" + (open ? " is-open" : "")}>
               <div
-                key={`${i}-${d.label}`}
-                style={{ borderTop: i ? "0.5px solid var(--tm-border)" : "none" }}
+                className="tmSc-dimrow"
+                onClick={() =>
+                  setOpenDims((s) => {
+                    const n = new Set(s);
+                    if (n.has(i)) n.delete(i);
+                    else n.add(i);
+                    return n;
+                  })
+                }
               >
-                <div
-                  onClick={() =>
-                    setOpenDims((s) => {
-                      const n = new Set(s);
-                      if (n.has(i)) n.delete(i);
-                      else n.add(i);
-                      return n;
-                    })
-                  }
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                    padding: "13px 0",
-                    cursor: "pointer",
-                  }}
-                >
-                  <label
+                <span className="tmSc-dl">{d.label}</span>
+                <span className="tmSc-dt">
+                  <i
                     style={{
-                      flex: "0 0 128px",
-                      fontSize: "13px",
-                      fontWeight: 500,
-                      color: "var(--tm-ink)",
-                      cursor: "pointer",
+                      background: b.bar,
+                      width: shown ? `${d.score}%` : "0%",
+                      transitionDelay: `${i * 70}ms`,
                     }}
-                  >
-                    {d.label}
-                  </label>
-                  <div
-                    style={{
-                      flex: "1 1 60px",
-                      height: "8px",
-                      borderRadius: "999px",
-                      background: "rgba(24,24,27,0.08)",
-                      overflow: "hidden",
-                      minWidth: "48px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "100%",
-                        borderRadius: "999px",
-                        background: b.bar,
-                        width: shown ? `${d.score}%` : "0%",
-                        transition: "width .9s cubic-bezier(.22,1,.36,1)",
-                        transitionDelay: `${i * 70}ms`,
-                      }}
-                    />
-                  </div>
-                  <output
-                    style={{
-                      width: "26px",
-                      textAlign: "right",
-                      fontSize: "15px",
-                      fontWeight: 600,
-                      color: "var(--tm-ink)",
-                      fontVariantNumeric: "tabular-nums",
-                      flex: "none",
-                    }}
-                  >
-                    {d.score}
-                  </output>
-                  <span
-                    className="tm-pill"
-                    style={{
-                      flex: "none",
-                      fontSize: "10.5px",
-                      background: b.pillBg,
-                      color: b.pillInk,
-                      minWidth: "76px",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {b.tag}
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      flex: "none",
-                      display: "flex",
-                      color: "var(--tm-zinc)",
-                      transform: open ? "rotate(45deg)" : "none",
-                      transition: "transform .2s",
-                    }}
-                  >
-                    <Plus size={15} />
-                  </span>
-                </div>
-                {/* Smooth expand: animate the grid row 0fr→1fr + fade. */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateRows: open ? "1fr" : "0fr",
-                    transition: "grid-template-rows .32s cubic-bezier(.22,1,.36,1)",
-                  }}
-                >
-                  <div style={{ overflow: "hidden", minHeight: 0 }}>
-                    <div
-                      className="tmF-why"
-                      style={{
-                        paddingBottom: "12px",
-                        opacity: open ? 1 : 0,
-                        transition: "opacity .28s ease",
-                      }}
-                    >
-                      {d.why && (
-                        <p
-                          className="tm-small"
-                          style={{ marginBottom: "8px", fontSize: "12.5px", lineHeight: 1.5, color: "var(--tm-ink)" }}
-                        >
-                          {d.why}
-                        </p>
-                      )}
-                      {d.plus.map((p, pi) => (
-                        <p key={`p-${pi}`} className="tmF-why-line is-plus">
-                          <Check size={12} /> {p}
-                        </p>
-                      ))}
-                      {d.gaps.map((m, mi) => (
-                        <p key={`g-${mi}`} className="tmF-why-line is-minus">
-                          <Plus size={12} style={{ transform: "rotate(45deg)" }} /> {m}
-                        </p>
-                      ))}
-                      {d.plus.length === 0 && d.gaps.length === 0 && !d.why && (
-                        <p className="tm-small" style={{ fontSize: "12.5px" }}>
-                          No detailed evidence for this dimension.
-                        </p>
-                      )}
-                    </div>
+                  />
+                </span>
+                <span className="tmSc-dv">{d.score}</span>
+                <span className="tmSc-tag" style={{ background: b.pillBg, color: b.pillInk }}>
+                  {b.tag}
+                </span>
+                <span className="tmSc-chev" aria-hidden="true">
+                  <Plus size={15} />
+                </span>
+              </div>
+              <div className="tmSc-dimbody">
+                <div className="tmSc-dimbody-in">
+                  <div className="tmSc-why">
+                    {d.why && <p className="tmSc-why-narr">{d.why}</p>}
+                    {d.plus.map((p, pi) => (
+                      <p key={`p-${pi}`} className="tmF-why-line is-plus">
+                        <Check size={12} /> {p}
+                      </p>
+                    ))}
+                    {d.gaps.map((m, mi) => (
+                      <p key={`g-${mi}`} className="tmF-why-line is-minus">
+                        <Plus size={12} style={{ transform: "rotate(45deg)" }} /> {m}
+                      </p>
+                    ))}
+                    {d.plus.length === 0 && d.gaps.length === 0 && !d.why && (
+                      <p className="tm-small" style={{ fontSize: "12.5px" }}>
+                        No detailed evidence for this dimension.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
-            );
-          })}
-
-          {/* location gate — tri-state pill (pass / fail / not specified) */}
-          <div
-            style={{
-              borderTop: "0.5px solid var(--tm-border)",
-              paddingTop: "14px",
-              marginTop: "2px",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
+            </div>
+          );
+        })}
+        <div className="tmSc-loc">
+          <span
+            className="tm-pill"
+            style={{ flex: "none", background: loc.bg, color: loc.ink }}
           >
-            <label style={{ flex: "0 0 128px", fontSize: "13px", fontWeight: 500, color: "var(--tm-ink)" }}>
-              Location &amp; logistics
-            </label>
-            <span
-              className="tm-pill"
-              style={{
-                flex: "none",
-                background: LOCATION_STATE[view.locationStatus].bg,
-                color: LOCATION_STATE[view.locationStatus].ink,
-              }}
-            >
-              {view.locationStatus === "pass" ? (
-                <Check size={12} />
-              ) : view.locationStatus === "fail" ? (
-                <AlertTriangle size={12} />
-              ) : (
-                <Minus size={12} />
-              )}{" "}
-              {LOCATION_STATE[view.locationStatus].label}
-            </span>
-            <span className="tm-small" style={{ fontSize: "12.5px", flex: "1 1 160px", minWidth: 0 }}>
-              {view.locationNote}
-            </span>
-          </div>
-
+            {view.locationStatus === "pass" ? (
+              <Check size={12} />
+            ) : view.locationStatus === "fail" ? (
+              <AlertTriangle size={12} />
+            ) : (
+              <Minus size={12} />
+            )}{" "}
+            {loc.label}
+          </span>
+          <span className="tmSc-locnote">{view.locationNote}</span>
         </div>
       </div>
-    </Fragment>
+    </div>
   );
 }
+
 
 function StepJob({
   posting,
