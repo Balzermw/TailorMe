@@ -16,15 +16,26 @@ import { consume, getClientIp, tooManyRequests } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const SYSTEM =
+const SYSTEM_BASE =
   "You are an expert resume editor. You are given one résumé excerpt, the issue with it, " +
-  "and the recommended fix. Rewrite ONLY that excerpt into a polished, ready-to-paste version. " +
+  "and the recommended fix. Rewrite ONLY that excerpt into a polished, ready-to-paste version. ";
+// Default: never invent a figure; leave a placeholder for the user to fill.
+const METRIC_RULE_STRICT =
   "Rules: stay strictly truthful — never invent metrics, numbers, employers, titles, dates, or " +
   "skills the person has not stated; if a real number is genuinely required and unknown, leave a " +
-  "short bracketed placeholder like [add %]. Be concise and ATS-friendly. Match the section: a " +
-  "summary becomes 1-2 tight sentences; an experience bullet becomes one strong result-first line; " +
-  "a skills fix becomes a clean comma-separated list. Return only the rewritten text, no preamble, " +
-  "no quotes around it.";
+  "short bracketed placeholder like [add %]. ";
+// Opt-in (allowEstimates): propose a MODEST, plausible figure the user reviews and
+// confirms — so they aren't hand-filling a placeholder on every bullet. Still
+// forbids inventing employers/titles/dates/skills, and forbids inflated numbers.
+const METRIC_RULE_ESTIMATE =
+  "Rules: never invent employers, titles, dates, or skills the person has not stated. When a " +
+  "result has no number, propose a MODEST, believable metric this role plausibly achieved (e.g. a " +
+  "10-25% improvement, a small realistic count or team size) — conservative and credible, never " +
+  "inflated — which the user will review and adjust. ";
+const SYSTEM_TAIL =
+  "Be concise and ATS-friendly. Match the section: a summary becomes 1-2 tight sentences; an " +
+  "experience bullet becomes one strong result-first line; a skills fix becomes a clean " +
+  "comma-separated list. Return only the rewritten text, no preamble, no quotes around it.";
 
 const REWRITE_SCHEMA = {
   type: "object",
@@ -35,7 +46,13 @@ const REWRITE_SCHEMA = {
 } as const;
 
 export async function POST(request: Request) {
-  let body: { section?: string; issue?: string; advice?: string; original?: string };
+  let body: {
+    section?: string;
+    issue?: string;
+    advice?: string;
+    original?: string;
+    allowEstimates?: boolean;
+  };
   try {
     body = await request.json();
   } catch {
@@ -70,10 +87,12 @@ export async function POST(request: Request) {
     `Current text:\n${original || "(empty)"}\n\nRewrite:`;
 
   try {
+    const system =
+      SYSTEM_BASE + (body.allowEstimates === true ? METRIC_RULE_ESTIMATE : METRIC_RULE_STRICT) + SYSTEM_TAIL;
     const out = await withAiRun("tailor", { userId, sessionId }, () =>
       structured<{ rewrite: string }>({
         step: "tailor",
-        system: SYSTEM,
+        system,
         user,
         name: "resume_rewrite",
         description: "Return the rewritten, ready-to-paste text for the section.",

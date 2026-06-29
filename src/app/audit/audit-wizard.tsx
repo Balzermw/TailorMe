@@ -3093,16 +3093,17 @@ function StepSummary({
 
   return (
     <div className="flex flex-col gap-[20px]">
-      {/* recap — the score is the hero, role is the context beneath it */}
+      {/* recap — lead with the job being assessed, then the fit score. Centered. */}
       <div className="tm-card tmSum-verdict">
-        <span className="tmF-p2-label">
-          {name ? `${name}, here’s your verdict` : "Your audit summary"}
-        </span>
         {fitView ? (
           (() => {
             const t = fitTheme(fitView.overall);
             return (
               <>
+                <span className="tmF-p2-label">
+                  {name ? `${name}, your fit for` : "Your fit for"}
+                </span>
+                <p className="tmSum-verdict-role">{fitView.header}</p>
                 <div className="tmSum-verdict-score">
                   <span className="tmSum-verdict-num" style={{ color: t.ring }}>
                     {fitView.overall}
@@ -3123,12 +3124,16 @@ function StepSummary({
                     </span>
                   )}
                 </div>
-                <p className="tmSum-verdict-role">{fitView.header}</p>
               </>
             );
           })()
         ) : (
-          <p className="tmSum-verdict-role">{posting ? "Your target posting" : "Your resume"}</p>
+          <>
+            <span className="tmF-p2-label">
+              {name ? `${name}, here’s your summary` : "Your audit summary"}
+            </span>
+            <p className="tmSum-verdict-role">{posting ? "Your target posting" : "Your resume"}</p>
+          </>
         )}
         {(auditSample || useSample) && (
           <p className="tmS-free" style={{ marginTop: "6px", display: "block" }}>

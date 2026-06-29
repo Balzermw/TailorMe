@@ -1176,8 +1176,9 @@ export default function EditEditor({
     const advice =
       mode === "shorten"
         ? "Shorten it to one idea, result first. Stay strictly truthful; do not invent any detail."
-        : "Add ONE supportable metric (%, $, count, time saved, team size). If the real number is " +
-          "unknown, insert a short bracketed placeholder like [add %]. Never invent a figure. One line.";
+        : "Add ONE concrete, realistic metric (%, $, count, time saved, team size). Use a MODEST, " +
+          "believable figure for this role (e.g. a 10-25% improvement), realistic and not " +
+          "exaggerated, so the user can confirm or tweak it. One line.";
     const rows = await Promise.all(
       targets.map(async (t): Promise<ShortenRow> => {
         let shortened = mode === "shorten" ? trimBullet(t.original) : quantifyFallback(t.original);
@@ -1185,7 +1186,15 @@ export default function EditEditor({
           const res = await fetch("/api/resume/rewrite", {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-tm-session": getSessionId() ?? "" },
-            body: JSON.stringify({ section: "experience", issue, advice, original: t.original }),
+            body: JSON.stringify({
+              section: "experience",
+              issue,
+              advice,
+              original: t.original,
+              // Quantify: let the model propose a modest figure the user reviews,
+              // instead of leaving a [add %] placeholder to hand-fill on every bullet.
+              allowEstimates: mode === "quantify",
+            }),
           });
           const data = await res.json().catch(() => ({}));
           if (res.ok && typeof data.rewrite === "string" && data.rewrite.trim()) {
@@ -1211,6 +1220,9 @@ export default function EditEditor({
     setShortenReview((s) =>
       s ? { ...s, rows: s.rows.map((r, i) => (i === index ? { ...r, ...patch } : r)) } : s,
     );
+  }
+  function setAllShortenAccepted(accepted: boolean) {
+    setShortenReview((s) => (s ? { ...s, rows: s.rows.map((r) => ({ ...r, accepted })) } : s));
   }
 
   function applyShorten() {
@@ -2969,11 +2981,35 @@ export default function EditEditor({
                       <Loader2 size={12} className="tmE-draft-spin" /> {loadingText}
                     </p>
                   )}
+                  {!shortenLoading && mode === "quantify" && shortenReview.rows.length > 0 && (
+                    <p className="tmE-draft-hint">
+                      <Info size={12} /> These figures are AI estimates. Review and adjust to your
+                      real numbers, then accept the ones that fit.
+                    </p>
+                  )}
                   {!shortenLoading && hasPlaceholders && (
                     <p className="tmE-draft-hint">
                       <span className="tmE-draft-token">[ ]</span> Fill the bracketed spots with your
                       real numbers before applying.
                     </p>
+                  )}
+                  {!shortenLoading && shortenReview.rows.length > 1 && (
+                    <div className="tmE-shorten-bulk">
+                      <button
+                        type="button"
+                        className="tmE-shorten-bulkbtn"
+                        onClick={() => setAllShortenAccepted(true)}
+                      >
+                        Use all
+                      </button>
+                      <button
+                        type="button"
+                        className="tmE-shorten-bulkbtn"
+                        onClick={() => setAllShortenAccepted(false)}
+                      >
+                        Keep all original
+                      </button>
+                    </div>
                   )}
                   {shortenReview.rows.map((r, i) => (
                     <div

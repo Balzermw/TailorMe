@@ -489,6 +489,24 @@
   display: flex;
   gap: 8px;
 }
+.tmE-shorten-bulk {
+  display: flex;
+  gap: 14px;
+  padding: 0 2px 2px;
+}
+.tmE-shorten-bulkbtn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tm-blue-600);
+  cursor: pointer;
+}
+.tmE-shorten-bulkbtn:hover {
+  text-decoration: underline;
+}
 .tmE-shorten-foot {
   display: flex;
   align-items: center;
