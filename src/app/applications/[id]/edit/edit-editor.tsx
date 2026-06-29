@@ -2985,12 +2985,44 @@ export default function EditEditor({
                         {doc.experience[r.ei]?.company ? ` · ${doc.experience[r.ei].company}` : ""}
                       </div>
                       <p className="tmE-shorten-before">{r.original}</p>
-                      <textarea
-                        className="tmE-textarea tmE-shorten-after"
-                        value={r.shortened}
-                        onChange={(e) => patchShortenRow(i, { shortened: e.target.value })}
-                        rows={2}
-                      />
+                      {(() => {
+                        const hasPh = /\[[^\]]+\]/.test(r.shortened);
+                        return (
+                          <div className={"tmE-draft-input" + (hasPh ? " has-ph" : "")}>
+                            {hasPh && (
+                              <div className="tmE-draft-marks" aria-hidden="true">
+                                {r.shortened.split(/(\[[^\]]+\])/g).map((seg, j) =>
+                                  /^\[[^\]]+\]$/.test(seg) ? (
+                                    <mark key={j} className="tmE-ph">
+                                      {seg}
+                                    </mark>
+                                  ) : (
+                                    <span key={j}>{seg}</span>
+                                  ),
+                                )}
+                                {"\n"}
+                              </div>
+                            )}
+                            <textarea
+                              className={
+                                "tmE-textarea tmE-draft-ta tmE-shorten-after" +
+                                (hasPh ? " tmE-textarea--hasplaceholder" : "")
+                              }
+                              value={r.shortened}
+                              onChange={(e) => patchShortenRow(i, { shortened: e.target.value })}
+                              onScroll={(e) => {
+                                const marks =
+                                  e.currentTarget.parentElement?.querySelector(".tmE-draft-marks");
+                                if (marks instanceof HTMLElement) {
+                                  marks.scrollTop = e.currentTarget.scrollTop;
+                                  marks.scrollLeft = e.currentTarget.scrollLeft;
+                                }
+                              }}
+                              rows={2}
+                            />
+                          </div>
+                        );
+                      })()}
                       <div className="tmE-shorten-rowactions">
                         <button
                           type="button"

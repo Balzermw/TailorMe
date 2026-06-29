@@ -481,9 +481,9 @@
   line-height: 1.5;
 }
 .tmE-shorten-after {
-  font-size: 13px;
+  /* Keep the base 13.5px / 9-11 padding / 1.5 line-height so the placeholder
+     highlight overlay (.tmE-draft-marks) lines up exactly. */
   min-height: 48px;
-  line-height: 1.5;
 }
 .tmE-shorten-rowactions {
   display: flex;
