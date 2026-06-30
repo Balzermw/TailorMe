@@ -3759,6 +3759,18 @@ body {
   color: var(--tm-zinc);
   line-height: 1.5;
 }
+/* Section off the single most important fix so it reads as THE priority, not just
+   another block. Amber to match the Fix card's tone. */
+.tmSum-topfix {
+  gap: 4px;
+  padding: 11px 12px;
+  border: 0.5px solid rgba(133, 79, 11, 0.22);
+  border-radius: 10px;
+  background: #fdf8f1;
+}
+.tmSum-blocklabel.tmSum-topfix-label {
+  color: #854f0b;
+}
 .tmSum-topfix-title {
   font-size: 13px;
   font-weight: 600;

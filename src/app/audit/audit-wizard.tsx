@@ -2919,8 +2919,8 @@ function StepSummary({
                 </div>
               )}
               {topFix && (
-                <div className="tmSum-block">
-                  <span className="tmSum-blocklabel">Top fix</span>
+                <div className="tmSum-block tmSum-topfix">
+                  <span className="tmSum-blocklabel tmSum-topfix-label">Top fix</span>
                   <p className="tmSum-topfix-title">{topFix.title}</p>
                   {(topFix.fix || topFix.summary) && (
                     <p className="tmSum-topfix-desc">{topFix.fix || topFix.summary}</p>
