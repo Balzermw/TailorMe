@@ -2753,6 +2753,9 @@ function StepSummary({
     (["high", "medium", "low"] as const).map((s) => fixes.find((f) => f.severity === s)).find(Boolean) ??
     fixes[0] ??
     null;
+  // The other fixes (after the top one), shown as a short list so the Fix card has
+  // real substance and matches the Keep card's height instead of looking stunted.
+  const restFixes = fixes.filter((f) => f !== topFix);
   const fixSev = (["high", "medium", "low"] as const)
     .map((s) => [s, fixes.filter((f) => f.severity === s).length] as const)
     .filter(([, n]) => n > 0);
@@ -2922,6 +2925,21 @@ function StepSummary({
                   {(topFix.fix || topFix.summary) && (
                     <p className="tmSum-topfix-desc">{topFix.fix || topFix.summary}</p>
                   )}
+                </div>
+              )}
+              {restFixes.length > 0 && (
+                <div className="tmSum-block tmSum-fixrest">
+                  <span className="tmSum-blocklabel">Also to fix</span>
+                  <ul className="tmSum-fixlist">
+                    {restFixes.slice(0, 4).map((f, i) => (
+                      <li key={i} className="tmSum-fixitem">
+                        {f.title}
+                      </li>
+                    ))}
+                    {restFixes.length > 4 && (
+                      <li className="tmSum-fixitem tmSum-fixitem--more">+{restFixes.length - 4} more</li>
+                    )}
+                  </ul>
                 </div>
               )}
             </>
