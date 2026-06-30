@@ -24,7 +24,6 @@ import {
   Minus,
   PenLine,
   Plus,
-  Quote,
   Search,
   Sparkles,
   Target,
@@ -57,9 +56,8 @@ import {
 } from "@/lib/resume";
 import { saveLocalApplication } from "@/lib/local-applications";
 import { SAMPLE_DOC } from "@/lib/apply/sample";
-import { fixSection, SECTION_LABEL } from "@/lib/apply/sections";
 import { isPlaceholderName } from "@/lib/apply/placeholder-name";
-import { ManualReviewCTA, MichaelPitch } from "@/components/fit/michael-cta";
+import { ManualReviewCTA } from "@/components/fit/michael-cta";
 import { stripLogoArtifact } from "@/lib/text-clean";
 import { groundFindings, normalizeForMatch } from "@/lib/resume-rules/groundFindings";
 
@@ -438,166 +436,12 @@ const SEV_COLOR: Record<ProofPoint["severity"], string> = {
 
 // Severity pill tints — high = red, medium = amber, low = neutral gray — so the
 // badge reads at a glance instead of being a uniform gray chip.
-const SEV_PILL: Record<ProofPoint["severity"], { bg: string; ink: string }> = {
-  high: { bg: "#fdecea", ink: "#b3261e" },
-  medium: { bg: "#fdf3e7", ink: "#854f0b" },
-  low: { bg: "rgba(24,24,27,0.06)", ink: "var(--tm-zinc)" },
-};
-
 // Severity group headings for the categorized "What tailoring will fix" list.
 const SEV_LABEL: Record<ProofPoint["severity"], string> = {
   high: "High priority",
   medium: "Worth fixing",
   low: "Minor polish",
 };
-
-function normalizeProofPointFix(p: ProofPoint): string {
-  const fix = p.fix ?? "";
-  const context = `${p.ruleId ?? ""} ${p.category ?? ""} ${p.targetSection ?? ""} ${p.title} ${p.summary}`.toLowerCase();
-  const isSummaryDensityFinding =
-    p.targetSection === "summary" ||
-    p.ruleId === "lead_with_impact_summary" ||
-    (context.includes("summary") && (context.includes("dense") || context.includes("paragraph")));
-  const recommendsBullets = /\bbullets?\b/i.test(fix) || /3\s*(?:-|to)\s*5/i.test(fix);
-
-  if (isSummaryDensityFinding && recommendsBullets) {
-    return "Shorten this into a tighter 1-2 sentence summary paragraph that keeps the strongest role fit and proof. Do not turn the summary into bullets.";
-  }
-
-  return fix;
-}
-
-// A single proof point: headline + summary up front, the verbatim resume quote
-// as proof it's real, and an optional deep-dive into why + the fix.
-function ProofPointCard({ p }: { p: ProofPoint }) {
-  const section = fixSection(p); // which résumé section this fix lives in
-  return (
-    <div
-      style={{
-        border: "0.5px solid var(--tm-border)",
-        borderRadius: "12px",
-        padding: "16px 18px",
-        background: "#fff",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-        <span
-          style={{
-            height: "8px",
-            width: "8px",
-            borderRadius: "50%",
-            flex: "none",
-            background: SEV_COLOR[p.severity],
-          }}
-          aria-hidden="true"
-        />
-        <b style={{ fontSize: "14px", color: "var(--tm-ink)" }}>{p.title}</b>
-        <span
-          className="tm-pill"
-          style={{
-            marginLeft: "auto",
-            fontSize: "10.5px",
-            textTransform: "capitalize",
-            background: SEV_PILL[p.severity].bg,
-            color: SEV_PILL[p.severity].ink,
-          }}
-        >
-          {p.severity}
-        </span>
-      </div>
-      <div style={{ marginTop: "8px" }}>
-        <span
-          className="tm-pill tm-pill--gray"
-          style={{ fontSize: "10.5px" }}
-        >
-          {SECTION_LABEL[section]} section
-        </span>
-      </div>
-      {p.summary && (
-        <p className="tm-small" style={{ marginTop: "6px", fontSize: "13px", color: "var(--tm-ink)", lineHeight: 1.5 }}>
-          {p.summary}
-        </p>
-      )}
-      {p.quote && (
-        <div
-          style={{
-            margin: "12px 0 0",
-            padding: "10px 12px",
-            borderLeft: "2.5px solid var(--tm-blue-600)",
-            background: "var(--tm-blue-50)",
-            borderRadius: "0 8px 8px 0",
-          }}
-        >
-          <span
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              color: "var(--tm-blue-800)",
-              fontSize: "10.5px",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: ".05em",
-            }}
-          >
-            <Quote size={11} /> from your resume
-          </span>
-          <span
-            style={{
-              display: "block",
-              marginTop: "5px",
-              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-              fontSize: "12px",
-              lineHeight: 1.55,
-              color: "var(--tm-ink)",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {p.quote}
-          </span>
-        </div>
-      )}
-      <DeepDive>
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          <div>
-            <p
-              style={{
-                fontSize: "11px",
-                fontWeight: 600,
-                color: "var(--tm-zinc)",
-                textTransform: "uppercase",
-                letterSpacing: ".04em",
-              }}
-            >
-              Why it matters
-            </p>
-            <p className="tm-small" style={{ marginTop: "3px", fontSize: "13px", color: "var(--tm-ink)", lineHeight: 1.5 }}>
-              {p.why}
-            </p>
-          </div>
-          {normalizeProofPointFix(p) && (
-            <div>
-              <p
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  color: "var(--tm-mint-600)",
-                  textTransform: "uppercase",
-                  letterSpacing: ".04em",
-                }}
-              >
-                How we fix it
-              </p>
-              <p className="tm-small" style={{ marginTop: "3px", fontSize: "13px", color: "var(--tm-ink)", lineHeight: 1.5 }}>
-                {normalizeProofPointFix(p)}
-              </p>
-            </div>
-          )}
-        </div>
-      </DeepDive>
-    </div>
-  );
-}
 
 // Sample profile (shown for the "Try with the sample resume" path).
 const SAMPLE_PROFILE: ResumeStats = {
@@ -1202,6 +1046,26 @@ function deriveTargetLabel(input: string): string {
   return firstLine.length >= 3 && firstLine.length <= 70 ? firstLine : "";
 }
 
+type FetchedJobPosting = {
+  title?: string;
+  company?: string;
+  location?: string;
+  description?: string;
+};
+
+function cleanFetchedField(value: unknown): string {
+  return typeof value === "string" ? stripLogoArtifact(value).trim() : "";
+}
+
+function labelFromFetchedJob(job: unknown): string {
+  if (!job || typeof job !== "object") return "";
+  const data = job as FetchedJobPosting;
+  const title = cleanFetchedField(data.title);
+  const company = cleanFetchedField(data.company);
+  if (title && company) return `${title} at ${company}`;
+  return title;
+}
+
 const STATUS_MESSAGES = (target: string) => [
   "Reading your resume…",
   "Identifying your experience and skills…",
@@ -1612,6 +1476,7 @@ function StepJob({
     setFetchErr(null);
     setDemoScore(false);
     let postingForScore = posting.trim();
+    let fetchedTargetLabel = "";
     const fromUrl = /^https?:\/\//i.test(postingForScore);
     setWasUrl(fromUrl);
 
@@ -1629,11 +1494,14 @@ function StepJob({
         const d = await r.json();
         if (r.ok && d.text) {
           postingForScore = d.text as string;
+          fetchedTargetLabel = labelFromFetchedJob(d.job);
           setPosting(postingForScore); // show what we pulled; carries into step 3
           setFetchNote(
             d.truncated
               ? "Pulled from the link. We trimmed a long page to its most relevant part."
-              : "Pulled the posting from that link.",
+              : d.job
+                ? "Pulled the structured job posting from that link."
+                : "Pulled the posting from that link.",
           );
         } else {
           setFetchErr(d.error || "Couldn’t read that link. Paste the posting text instead.");
@@ -1651,7 +1519,7 @@ function StepJob({
     // Reflect the user's actual target on the loading screen + research it fast.
     setRoleCtx(null);
     setStatusIdx(0);
-    setTargetLabel(deriveTargetLabel(postingForScore));
+    setTargetLabel(fetchedTargetLabel || deriveTargetLabel(postingForScore));
     setPhase("scoring");
     track("free_audit_started", { source: useSample ? "sample" : "user" });
     const scoreStart = performance.now();
@@ -2877,21 +2745,26 @@ function StepSummary({
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
   const quantified = stats?.metricBullets ?? 0;
-  // Up to three already-quantified bullets, verbatim, so "N bullets carry a metric"
-  // reads as real proof rather than just a count.
-  const strongExamples = (stats?.sampleBullets ?? [])
-    .filter((s) => s.hasMetric && s.text?.trim())
-    .slice(0, 3)
-    .map((s) => {
-      const t = s.text.trim();
-      return t.length > 120 ? `${t.slice(0, 117).trimEnd()}…` : t;
-    });
   const hasStrengths = matchedKw.length > 0 || bestDims.length > 0 || quantified > 0;
-  const changeGroups: [ProofPoint["severity"], ProofPoint[]][] = [
-    ["high", proofPoints.filter((p) => p.severity === "high")],
-    ["medium", proofPoints.filter((p) => p.severity === "medium")],
-    ["low", proofPoints.filter((p) => p.severity === "low")],
-  ];
+  // Fix side mirrors the unified list the editor will stage, so the count matches
+  // the on-ramp CTA. Top fix = highest severity first.
+  const fixes = combinedSuggestions;
+  const topFix =
+    (["high", "medium", "low"] as const).map((s) => fixes.find((f) => f.severity === s)).find(Boolean) ??
+    fixes[0] ??
+    null;
+  const fixSev = (["high", "medium", "low"] as const)
+    .map((s) => [s, fixes.filter((f) => f.severity === s).length] as const)
+    .filter(([, n]) => n > 0);
+  // Cleaned role header — drop a parsed "Unknown" company so it doesn't read buggy.
+  const headerParts = (fitView?.header ?? "").split(" · ");
+  const headerRole = headerParts[0]?.trim() || "your target role";
+  const headerCompany = (headerParts[1] ?? "").trim();
+  const headerShowCompany = !!headerCompany && !/^unknown/i.test(headerCompany);
+  // Takeaway: strongest + most-room dimension (same idea as the scorecard rail).
+  const rankedDims = [...(fitView?.dims ?? [])].sort((a, b) => b.score - a.score);
+  const topDim = rankedDims[0];
+  const focusDim = rankedDims.length > 1 ? rankedDims[rankedDims.length - 1] : null;
 
   return (
     <div className="flex flex-col gap-[20px]">
@@ -2905,7 +2778,9 @@ function StepSummary({
                 <span className="tmF-p2-label">
                   {name ? `${name}, your fit for` : "Your fit for"}
                 </span>
-                <p className="tmSum-verdict-role">{fitView.header}</p>
+                <p className="tmSum-verdict-role">
+                  {headerShowCompany ? `${headerRole} · ${headerCompany}` : headerRole}
+                </p>
                 <div className="tmSum-verdict-score">
                   <span className="tmSum-verdict-num" style={{ color: t.ring }}>
                     {fitView.overall}
@@ -2926,6 +2801,17 @@ function StepSummary({
                     </span>
                   )}
                 </div>
+                {topDim && (
+                  <p className="tmSum-verdict-take">
+                    Strongest on <b>{topDim.label}</b>
+                    {focusDim && (
+                      <>
+                        ; most room in <b>{focusDim.label}</b>
+                      </>
+                    )}
+                    .
+                  </p>
+                )}
               </>
             );
           })()
@@ -2948,28 +2834,46 @@ function StepSummary({
         )}
       </div>
 
-      {/* 1 · what's strong (keep) */}
-      {hasStrengths && (
-        <div className="tm-card tmSum-card tmSum-card--good">
+      {/* strong ↔ fix, side by side: what survives vs. what to work on */}
+      <div className="tmSum-pair">
+        <div className="tm-card tmSum-side tmSum-side--keep">
           <div className="tmSum-head">
             <Check size={15} style={{ color: "var(--tm-mint-600)" }} />
-            <b>What&apos;s strong</b>
-            <span className="tmSum-sub">keep these, tailoring leaves them alone</span>
+            <b>Keep</b>
+            <span className="tmSum-sub">tailoring leaves these alone</span>
           </div>
+          {matchedKw.length > 0 && (
+            <div className="tmSum-block">
+              <span className="tmSum-blocklabel">Keywords you match ({matchedKw.length})</span>
+              <div className="tmSum-pills">
+                {matchedKw.slice(0, 8).map((k) => (
+                  <span
+                    key={k.term}
+                    className="tmEv-pill"
+                    style={{ color: "var(--tm-mint-700)", background: "var(--tm-mint-50)" }}
+                  >
+                    <Check size={11} /> {k.term}
+                  </span>
+                ))}
+                {matchedKw.length > 8 && (
+                  <span className="tmEv-pill" style={{ color: "var(--tm-zinc)", background: "var(--tm-gray)" }}>
+                    +{matchedKw.length - 8} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
           {bestDims.length > 0 && (
             <div className="tmSum-block">
               <span className="tmSum-blocklabel">Where you score best</span>
               <div className="tmSum-strong-dims">
-                {bestDims.map((d) => {
+                {bestDims.slice(0, 2).map((d) => {
                   const b = band(d.score);
                   return (
                     <div key={d.label} className="tmSum-dimrow">
                       <span className="tmSum-dimlabel">{d.label}</span>
                       <span className="tmSum-dimtrack">
-                        <span
-                          className="tmSum-dimfill"
-                          style={{ width: `${d.score}%`, background: b.bar }}
-                        />
+                        <span className="tmSum-dimfill" style={{ width: `${d.score}%`, background: b.bar }} />
                       </span>
                       <span className="tmSum-dimscore">{d.score}</span>
                     </div>
@@ -2978,83 +2882,56 @@ function StepSummary({
               </div>
             </div>
           )}
-          {matchedKw.length > 0 && (
-            <div className="tmSum-block">
-              <span className="tmSum-blocklabel">Keywords you already match ({matchedKw.length})</span>
-              <div className="tmSum-pills">
-                {matchedKw.slice(0, 10).map((k) => (
-                  <span key={k.term} className="tm-pill tm-pill--mint" style={{ fontSize: "11px" }}>
-                    <Check size={11} /> {k.term}
-                  </span>
-                ))}
-                {matchedKw.length > 10 && (
-                  <span className="tm-pill tm-pill--gray" style={{ fontSize: "11px" }}>
-                    +{matchedKw.length - 10} more
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-          {strongExamples.length > 0 && (
-            <div className="tmSum-block">
-              <span className="tmSum-blocklabel">
-                Already quantified ({quantified} bullet{quantified === 1 ? "" : "s"})
-              </span>
-              <ul className="tmSum-egs">
-                {strongExamples.map((eg, i) => (
-                  <li key={i} className="tmSum-eg">
-                    “{eg}”
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 2 · what to quantify */}
-      {/* 3 · what to change (rewrite/fix) */}
-      {proofPoints.length > 0 && (
-        <div className="tm-card tmSum-card" style={{ gap: "14px" }}>
-          <div>
-            <div className="tmSum-head">
-              <PenLine size={15} style={{ color: "#854f0b" }} />
-              <b>What to change</b>
-              <span className="tmSum-count">
-                {proofPoints.length} fix{proofPoints.length === 1 ? "" : "es"}
-              </span>
-            </div>
-            <p className="tmSum-sub" style={{ marginTop: "4px" }}>
-              Your top fix is below. Open the editor to work through all {proofPoints.length}. Each is
-              tagged with its section and applies in a click.
+          {quantified > 0 && (
+            <p className="tmSum-mini">
+              {quantified} bullet{quantified === 1 ? "" : "s"} already carry a number.
             </p>
-          </div>
-          {(() => {
-            const top = changeGroups.find(([, items]) => items.length > 0)?.[1][0];
-            return top ? <ProofPointCard p={top} /> : null;
-          })()}
-          {proofPoints.length > 1 && (
-            <div className="tmSum-pills">
-              {changeGroups
-                .filter(([, items]) => items.length > 0)
-                .map(([sev, items]) => (
-                  <span
-                    key={sev}
-                    className="tm-pill"
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      color: SEV_COLOR[sev],
-                      background: "var(--tm-gray)",
-                    }}
-                  >
-                    {items.length} {SEV_LABEL[sev].toLowerCase()}
-                  </span>
-                ))}
-            </div>
+          )}
+          {!hasStrengths && (
+            <p className="tmSum-mini">Tailoring will build your strengths for this role.</p>
           )}
         </div>
-      )}
+
+        <div className="tm-card tmSum-side tmSum-side--fix">
+          <div className="tmSum-head">
+            <PenLine size={15} style={{ color: "#854f0b" }} />
+            <b>Fix</b>
+            <span className="tmSum-sub">
+              {fixes.length > 0 ? `${fixes.length} to work through in the editor` : "you're in good shape"}
+            </span>
+          </div>
+          {fixes.length > 0 ? (
+            <>
+              {fixSev.length > 0 && (
+                <div className="tmSum-pills">
+                  {fixSev.map(([sev, n]) => (
+                    <span
+                      key={sev}
+                      className="tmEv-pill"
+                      style={{ color: SEV_COLOR[sev], background: "var(--tm-gray)" }}
+                    >
+                      {n} {SEV_LABEL[sev].toLowerCase()}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {topFix && (
+                <div className="tmSum-block">
+                  <span className="tmSum-blocklabel">Top fix</span>
+                  <p className="tmSum-topfix-title">{topFix.title}</p>
+                  {(topFix.fix || topFix.summary) && (
+                    <p className="tmSum-topfix-desc">{topFix.fix || topFix.summary}</p>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="tmSum-mini">
+              No critical fixes flagged. Tailoring will still sharpen your wording for this role.
+            </p>
+          )}
+        </div>
+      </div>
 
       {/* The full fix list + missing-keyword chips live in the editor's Feedback
           tab (and the agent breakdown on the previous step), so the Summary stays
@@ -3141,8 +3018,16 @@ function StepSummary({
         )}
       </div>
 
-      {/* secondary upsell: human pass */}
-      <MichaelPitch />
+      {/* secondary upsell: a quiet human-pass strip, not a card that competes with
+          the primary "into the editor" CTA above. */}
+      <Link className="tmSum-michael-strip" href={ROUTES.coaching}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/michael.png" alt="" width={28} height={28} className="tmSum-michael-av" />
+        <span className="tmSum-michael-txt">
+          Optional: a human pass from <b>Michael</b> (Certified Resume Writer) for <b>+$79</b>
+        </span>
+        <ArrowRight size={15} className="tmSum-michael-arrow" />
+      </Link>
     </div>
   );
 }

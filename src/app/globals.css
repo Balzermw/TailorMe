@@ -3683,6 +3683,103 @@ body {
   overflow: hidden;
 }
 
+/* One-line takeaway under the hero score (strongest / most-room dimension). */
+.tmSum-verdict-take {
+  font-size: 12.5px;
+  color: var(--tm-zinc);
+  line-height: 1.45;
+  margin-top: 2px;
+}
+.tmSum-verdict-take b {
+  color: var(--tm-ink);
+  font-weight: 600;
+}
+
+/* Balanced "Keep vs. Fix" pair — what survives tailoring vs. what to work on,
+   side by side so it reads at a glance. Stacks on narrow screens. */
+.tmSum-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.tmSum-side {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+.tmSum-side--keep {
+  border-color: rgba(33, 146, 107, 0.22);
+}
+.tmSum-side--fix {
+  border-color: rgba(133, 79, 11, 0.22);
+}
+.tmSum-mini {
+  font-size: 12.5px;
+  color: var(--tm-zinc);
+  line-height: 1.5;
+}
+.tmSum-topfix-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tm-ink);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.tmSum-topfix-desc {
+  font-size: 12.5px;
+  color: var(--tm-zinc);
+  line-height: 1.45;
+  margin-top: 3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* Quiet human-pass strip (replaces the big Michael card so it doesn't compete
+   with the primary "into the editor" CTA). */
+.tmSum-michael-strip {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 14px;
+  border: 0.5px solid var(--tm-border);
+  border-radius: 12px;
+  background: var(--tm-blue-50);
+  text-decoration: none;
+  color: var(--tm-ink);
+  transition: border-color 140ms ease;
+}
+.tmSum-michael-strip:hover {
+  border-color: var(--tm-blue-600);
+}
+.tmSum-michael-av {
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+.tmSum-michael-txt {
+  flex: 1 1 auto;
+  font-size: 12.5px;
+  color: var(--tm-zinc);
+  line-height: 1.4;
+}
+.tmSum-michael-txt b {
+  color: var(--tm-ink);
+  font-weight: 600;
+}
+.tmSum-michael-arrow {
+  flex: none;
+  color: var(--tm-blue-600);
+}
+@media (max-width: 680px) {
+  .tmSum-pair {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Audit summary cards — left-aligned with a clear header row so the report reads
    as a scannable hierarchy instead of centered walls of prose. */
 .tmSum-card {
