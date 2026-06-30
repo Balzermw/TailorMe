@@ -1761,6 +1761,42 @@
   min-width: 18px;
   text-align: center;
 }
+/* In-section suggestion card (a finding owned by its section, e.g. the Skills
+   keyword suggestion) — amber tone, matching the Feedback cards. */
+.tmE-secsug {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 0.5px solid rgba(133, 79, 11, 0.3);
+  background: #fdf8f1;
+  border-radius: 12px;
+}
+.tmE-secsug-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tmE-secsug-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #854f0b;
+}
+.tmE-secsug-head b {
+  font-size: 14px;
+  color: var(--tm-ink);
+}
+.tmE-secsug-note {
+  font-size: 11.5px;
+  color: var(--tm-zinc);
+  line-height: 1.45;
+}
 .tmE-fix {
   border: 0.5px solid var(--tm-border);
   border-radius: 11px;

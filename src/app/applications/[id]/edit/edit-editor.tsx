@@ -1710,6 +1710,16 @@ export default function EditEditor({
     void save(next);
   }
 
+  // Must-have posting keywords missing from the resume — surfaced as a Skills
+  // suggestion (the "lever") so the action lives in its section, with a nav badge.
+  const missingKeywords = (fit?.keywords ?? [])
+    .filter((k) => !k.inResume)
+    .map((k) => k.term)
+    .slice(0, 8);
+  // Nav badges reflect what a section actually surfaces inline: Experience shows
+  // its AI rewrites (diffs), Skills shows the missing-keyword suggestion. (Other
+  // sections' deterministic suggestions still live in the Suggestions tab; they
+  // get inline cards + badges in a follow-up.)
   const NAV: { key: Section; label: string; badge?: number }[] = [
     { key: "header", label: "Header" },
     { key: "summary", label: "Summary" },
@@ -1717,7 +1727,7 @@ export default function EditEditor({
     { key: "projects", label: "Projects" },
     { key: "education", label: "Education" },
     { key: "certifications", label: "Certifications" },
-    { key: "skills", label: "Skills" },
+    { key: "skills", label: "Skills", badge: missingKeywords.length ? 1 : undefined },
   ];
   // Feedback is a top-level tab now (not a nav row); its label/badge live there.
   const feedbackLabel = onGetFeedback ? "Feedback" : "Suggestions";
@@ -2016,7 +2026,10 @@ export default function EditEditor({
                 onRecheck={canRecheck ? runRecheck : undefined}
                 rechecking={rechecking}
                 pendingChanges={dirty}
-                onAddKeywords={addKeywordsToSkills}
+                onReviewKeywords={() => {
+                  setMode("edit");
+                  setSection("skills");
+                }}
               />
             </div>
           )}
@@ -2424,6 +2437,42 @@ export default function EditEditor({
           {section === "skills" && (
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Skills</h2>
+              {missingKeywords.length > 0 && (
+                <div className="tmE-secsug">
+                  <div className="tmE-secsug-head">
+                    <span className="tmE-secsug-eyebrow">
+                      <Sparkles size={12} /> Suggestion
+                    </span>
+                    <b>
+                      Add {missingKeywords.length} keyword{missingKeywords.length === 1 ? "" : "s"} the
+                      posting screens for
+                    </b>
+                  </div>
+                  <div className="tmF-chips">
+                    {missingKeywords.map((t) => (
+                      <span
+                        key={t}
+                        className="tmEv-pill"
+                        style={{ color: "#854f0b", background: "#fff", border: "0.5px solid rgba(133,79,11,.3)" }}
+                      >
+                        <Plus size={11} /> {t}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="tmE-secsug-note">
+                    Add these only where your experience genuinely backs them.
+                  </p>
+                  <div className="tmE-fix-card-actions">
+                    <button
+                      type="button"
+                      className="tmE-fix-apply"
+                      onClick={() => addKeywordsToSkills(missingKeywords)}
+                    >
+                      <Plus size={13} /> Add to skills
+                    </button>
+                  </div>
+                </div>
+              )}
               {doc.skillGroups?.length ? (
                 <>
                   <p className="tmE-panel-sub">
