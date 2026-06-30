@@ -71,3 +71,4 @@ next-env.d.ts
 # codex dev-server logs / probes (transient, never commit)
 .codex-*.log
 .codex-net-probe.txt
+.codex-preview/

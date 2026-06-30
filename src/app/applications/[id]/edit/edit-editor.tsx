@@ -829,6 +829,9 @@ export default function EditEditor({
   // removed) and counts in the review banner alongside the bullet rewrites, until
   // the user signs off on it. Session-local, like addedKeywords.
   const [keywordDecisions, setKeywordDecisions] = useState<Record<string, "kept" | "removed">>({});
+  // Suggested keywords the user has deselected (so "Add to skills" adds only the
+  // ones they actually want, not all of them). Session-local.
+  const [excludedKeywords, setExcludedKeywords] = useState<Set<string>>(() => new Set());
   const [dirty, setDirty] = useState(initialDocNormalized);
   const [review, setReview] = useState<{ items: ReviewItem[] } | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -977,13 +980,12 @@ export default function EditEditor({
   // Scaled width of the document, so the scroll area (sizer) matches the zoomed
   // doc and centers it.
   const docWidthScaled = Math.round(PREVIEW_DOC_WIDTH * docScale);
-  // Experience entries collapse to a one-line header; open entries that still
-  // have AI rewrites to review so those aren't hidden.
-  const [openEntries, setOpenEntries] = useState<Set<number>>(() => {
-    const s = new Set<number>();
-    bulletDiffs.forEach((d) => s.add(d.entry));
-    return s;
-  });
+  // Experience entries collapse to a one-line header. Don't auto-open every entry
+  // with rewrites (that buries the list) — open just the topmost one with edits so
+  // there's immediate context; the per-entry count badges show where the rest are.
+  const [openEntries, setOpenEntries] = useState<Set<number>>(() =>
+    bulletDiffs.length ? new Set([Math.min(...bulletDiffs.map((d) => d.entry))]) : new Set(),
+  );
   // "You are here" avatar: map the active edit section to a preview anchor
   // (data-field on PrintDoc), then track that block's on-screen position.
   const editingAnchor =
@@ -1586,6 +1588,15 @@ export default function EditEditor({
   // The fit panel's "Biggest lever" turns missing posting keywords into a real
   // action: merge the genuinely-new ones into Skills (deduped) while the user
   // stays in their current review flow.
+  // Toggle a suggested keyword in/out of the set to add (default: all selected).
+  function toggleExcludedKeyword(term: string) {
+    setExcludedKeywords((prev) => {
+      const next = new Set(prev);
+      if (next.has(term)) next.delete(term);
+      else next.add(term);
+      return next;
+    });
+  }
   function addKeywordsToSkills(terms: string[]) {
     const incoming = terms.map((s) => s.trim()).filter(Boolean);
     if (!incoming.length) return;
@@ -1598,6 +1609,9 @@ export default function EditEditor({
     // Always record them as handled (so the card shows them done), even if a term
     // was already present — the user's intent is satisfied either way.
     setAddedKeywords((prev) => new Set([...prev, ...incoming]));
+    // Reset the selection so any keywords left over (deselected this round) default
+    // back to selected — avoids a stale "Add 0 to skills" dead-end after a subset add.
+    setExcludedKeywords(new Set());
     if (!fresh.length) {
       setPendingJump(previewAnchorFor("skills"));
       flashApplied("Those keywords are already in your Skills", "skills");
@@ -2335,6 +2349,7 @@ export default function EditEditor({
     ) : null;
   const wideEditMode =
     mode !== "edit" || // Design + Feedback want the wider working layout
+    section === "summary" ||
     section === "experience" ||
     section === "projects" ||
     section === "education" ||
@@ -2670,29 +2685,12 @@ export default function EditEditor({
         </div>
       </div>
 
+      {/* A quiet progress strip. The standalone "Review N changes" CTA was removed
+          as a duplicate of the "3 Agent Review" mode tab below (which carries the
+          same count + an attention pulse) — one clear path into review, not two. */}
       {kind === "application" && reviewProgressNode && (
         <div className={"tmE-reviewbar tmF-anim" + (pendingChanges === 0 ? " is-done" : "")}>
           {reviewProgressNode}
-          {pendingChanges > 0 && (
-            <button
-              type="button"
-              className="tm-btn tm-btn--primary tm-btn--sm tmE-reviewbar-cta"
-              onClick={() => {
-                if (hasAgentPasses) {
-                  const nextPass =
-                    availableAgentPasses.find((pass) => !agentProgress[pass.id]?.complete)?.id ??
-                    activeAgentPass;
-                  setActiveAgentPass(nextPass);
-                  setMode("feedback");
-                  return;
-                }
-                setMode("edit");
-                setSection(totalPending > 0 ? "experience" : "skills");
-              }}
-            >
-              Review {pendingChanges} change{pendingChanges === 1 ? "" : "s"} <ArrowRight size={14} />
-            </button>
-          )}
         </div>
       )}
 
@@ -2892,6 +2890,11 @@ export default function EditEditor({
               {doc.experience.map((e, ei) => {
                 const open = openEntries.has(ei);
                 const meta = [e.company, cleanResumeDate(e.dates)].filter(Boolean).join(" · ");
+                // Unreviewed AI rewrites in this entry — so the collapsed header shows
+                // where the suggested edits are without opening everything.
+                const entryEdits = bulletDiffs.filter(
+                  (d) => d.entry === ei && !decisions[bulletKey(d.entry, d.bullet)],
+                ).length;
                 return (
                 <div key={ei} className={"tmE-entry" + (open ? " is-open" : "")}>
                   <button
@@ -2904,6 +2907,14 @@ export default function EditEditor({
                       <span className="tmE-entry-role">{e.role || "Untitled role"}</span>
                       <span className="tmE-entry-meta">{meta || "No company or dates yet"}</span>
                     </span>
+                    {entryEdits > 0 && (
+                      <span
+                        className="tmE-entry-edits"
+                        title={`${entryEdits} suggested edit${entryEdits === 1 ? "" : "s"} to review`}
+                      >
+                        <PenLine size={11} /> {entryEdits} edit{entryEdits === 1 ? "" : "s"}
+                      </span>
+                    )}
                     <span className="tmE-entry-count">
                       {e.bullets.length} bullet{e.bullets.length === 1 ? "" : "s"}
                     </span>
@@ -3198,6 +3209,9 @@ export default function EditEditor({
                   const reviewing = unaddedKeywords.length === 0 && kwPending.length > 0;
                   const allReviewed = unaddedKeywords.length === 0 && kwPending.length === 0;
                   const keptCount = addedKwList.filter((t) => keywordDecisions[t] !== "removed").length;
+                  // The unadded suggestions the user still has selected — what "Add
+                  // to skills" will add. Default is all of them; deselecting drops one.
+                  const selectedKeywords = unaddedKeywords.filter((t) => !excludedKeywords.has(t));
                   return (
                     <div
                       className={
@@ -3229,6 +3243,23 @@ export default function EditEditor({
                           .map((t) => {
                             const added = addedKeywords.has(t);
                             const canRemove = added && keywordDecisions[t] !== "kept";
+                            // Suggestion state: each chip is a toggle so the user can
+                            // deselect the ones they don't want before adding.
+                            if (!added && !reviewing && !allReviewed) {
+                              const off = excludedKeywords.has(t);
+                              return (
+                                <button
+                                  key={t}
+                                  type="button"
+                                  aria-pressed={!off}
+                                  className={"tmEv-pill tmE-kw-toggle" + (off ? " is-off" : "")}
+                                  onClick={() => toggleExcludedKeyword(t)}
+                                  title={off ? `Include "${t}"` : `Skip "${t}"`}
+                                >
+                                  {off ? <Plus size={11} /> : <Check size={11} />} {t}
+                                </button>
+                              );
+                            }
                             return (
                               <span
                                 key={t}
@@ -3267,7 +3298,7 @@ export default function EditEditor({
                           ? "Added to your Skills below."
                           : reviewing
                             ? "Keep the ones your experience backs up; remove any it doesn't."
-                            : "Add these only where your experience genuinely backs them."}
+                            : "Tap a keyword to skip it. Add only the ones your experience genuinely backs."}
                       </p>
                       <div className="tmE-fix-card-actions">
                         {allReviewed ? (
@@ -3286,9 +3317,10 @@ export default function EditEditor({
                           <button
                             type="button"
                             className="tmE-fix-apply"
-                            onClick={() => addKeywordsToSkills(unaddedKeywords)}
+                            onClick={() => addKeywordsToSkills(selectedKeywords)}
+                            disabled={selectedKeywords.length === 0}
                           >
-                            <Plus size={13} /> Add to skills
+                            <Plus size={13} /> Add {selectedKeywords.length} to skills
                           </button>
                         )}
                       </div>
@@ -3666,7 +3698,7 @@ export default function EditEditor({
                 )}
               </span>
               <span className="tmE-preview-overlaynote">
-                <Info size={12} /> A review overlay, not part of your resume or PDF.
+                <Info size={12} /> Not part of your resume or PDF.
               </span>
             </p>
           )}

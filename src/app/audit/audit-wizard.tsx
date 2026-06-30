@@ -2965,8 +2965,7 @@ function StepSummary({
         </span>
         <h3>Take it into the editor</h3>
         <p className="tmF-gate-sub">
-          Both open the same editor, with your fit score and every suggestion. The only choice is
-          who makes the edits.
+          Both open the same editor, with your fit score and every suggestion.
         </p>
         <div className="tmF-onramps">
           <div className="tmF-onramp is-primary">
@@ -2976,8 +2975,8 @@ function StepSummary({
             <b className="tmF-onramp-title">Build the tailored draft</b>
             <p className="tmF-onramp-desc">
               {combinedSuggestions.length > 0
-                ? `We apply all ${combinedSuggestions.length} fix${combinedSuggestions.length === 1 ? "" : "es"} for you, then you review every change and adjust.`
-                : "We tailor your resume to the job, then you review every change and adjust."}
+                ? "We apply every fix for you, then you review and adjust each change."
+                : "We tailor your resume to the job, then you review and adjust each change."}
             </p>
             {user ? (
               <button type="button" className="tm-btn tm-btn--primary tm-btn--lg" onClick={runFull}>
@@ -2996,7 +2995,7 @@ function StepSummary({
             <b className="tmF-onramp-title">Open the editor yourself</b>
             <p className="tmF-onramp-desc">
               {combinedSuggestions.length > 0
-                ? `All ${combinedSuggestions.length} suggestion${combinedSuggestions.length === 1 ? "" : "s"} are staged. Apply them at your own pace, line by line.`
+                ? "Every suggestion is staged. Apply them at your own pace."
                 : "Edit your resume at your own pace, with suggestions on hand."}
             </p>
             <button
