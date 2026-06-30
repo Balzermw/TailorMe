@@ -68,6 +68,7 @@ export default function PrintDoc({
   resumeOnly = false,
   hideToolbar = false,
   highlightKeywords,
+  appliedHighlights,
   markPlaceholders = false,
   backHref,
   backLabel = "Back to editor",
@@ -77,6 +78,7 @@ export default function PrintDoc({
   resumeOnly?: boolean; // editor preview shows the résumé only (no cover letter)
   hideToolbar?: boolean; // editor has its own download controls
   highlightKeywords?: string[]; // editor preview: tint posting keywords + metrics
+  appliedHighlights?: Record<string, string[]>; // editor preview: transient "just added" words
   markPlaceholders?: boolean; // editor preview: flag unfilled [brackets] (never in the PDF)
   backHref?: string; // override the toolbar "Back" link (base resume → /resume/edit)
   backLabel?: string;
@@ -104,10 +106,12 @@ export default function PrintDoc({
     return () => window.clearTimeout(t);
   }, [hideToolbar]);
 
-  const hl = (t: string) =>
-    highlightKeywords !== undefined || markPlaceholders
-      ? highlight(t, highlightKeywords ?? [], { placeholders: markPlaceholders })
+  const hl = (t: string, field?: string) => {
+    const additions = field ? appliedHighlights?.[field] ?? [] : [];
+    return highlightKeywords !== undefined || markPlaceholders || additions.length
+      ? highlight(t, highlightKeywords ?? [], { additions, placeholders: markPlaceholders })
       : t;
+  };
   const first = doc.name.split(/\s+/).slice(0, -1).join(" ") || doc.name;
   const last =
     doc.name.split(/\s+/).length > 1
@@ -149,7 +153,7 @@ export default function PrintDoc({
           {doc.summary && (
             <>
               <h2 className="mcv-sec" data-field="summary">Summary</h2>
-              <p className="mcv-summary">{hl(doc.summary)}</p>
+              <p className="mcv-summary">{hl(doc.summary, "summary")}</p>
             </>
           )}
 
@@ -164,7 +168,7 @@ export default function PrintDoc({
                     <div className="mcv-entry-company">{e.company}</div>
                     <ul>
                       {e.bullets.map((b, bi) => (
-                        <li key={bi} data-field={`exp-${i}-bullet-${bi}`}>{hl(b)}</li>
+                        <li key={bi} data-field={`exp-${i}-bullet-${bi}`}>{hl(b, `exp-${i}-bullet-${bi}`)}</li>
                       ))}
                     </ul>
                   </div>
@@ -202,7 +206,7 @@ export default function PrintDoc({
                           .split("\n")
                           .filter((l) => l.trim())
                           .map((l, j) => (
-                            <li key={j}>{hl(l)}</li>
+                            <li key={j}>{hl(l, `proj-${i}`)}</li>
                           ))}
                       </ul>
                     )}
@@ -235,14 +239,14 @@ export default function PrintDoc({
                   {doc.skillGroups.map((g) => (
                     <p key={g.label} className="mcv-skillgroup">
                       <span className="mcv-skillgroup-label">{g.label}</span>
-                      {normalizeSkills(g.skills).join(", ")}
+                      {hl(normalizeSkills(g.skills).join(", "), "skills")}
                     </p>
                   ))}
                 </div>
               ) : (
                 <ul className="mcv-skills">
                   {normalizeSkills(doc.skills).map((s) => (
-                    <li key={s}>{s}</li>
+                    <li key={s}>{hl(s, "skills")}</li>
                   ))}
                 </ul>
               )}

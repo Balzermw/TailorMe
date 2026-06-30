@@ -24,6 +24,28 @@ function docWith(contact: string): TailoredDoc {
 }
 
 describe("refineFeedback contact-gap detection", () => {
+  it("flags missing name, title, location, phone, and email as header notes", () => {
+    const { proofPoints } = refineFeedback(
+      { ...docWith(""), name: "", headline: "" },
+      [],
+    );
+    const requiredHeaderIds = [
+      "header_missing_name",
+      "header_missing_title",
+      "header_missing_location",
+      "header_missing_email",
+      "header_missing_phone",
+    ];
+    const ids = proofPoints.map((p) => p.ruleId);
+    expect(ids).toEqual(expect.arrayContaining(requiredHeaderIds));
+    for (const id of requiredHeaderIds) {
+      const point = proofPoints.find((p) => p.ruleId === id);
+      expect(point?.category).toBe("header");
+      expect(point?.targetSection).toBe("header");
+      expect(fixSection(point!)).toBe("header");
+    }
+  });
+
   it("flags a missing email and phone, leading the list", () => {
     const { proofPoints } = refineFeedback(
       docWith("Sacramento, California, United States"),
@@ -35,12 +57,32 @@ describe("refineFeedback contact-gap detection", () => {
     expect(proofPoints[0].targetSection).toBe("header");
   });
 
-  it("does not flag when email and phone are present", () => {
+  it("does not flag when all required header fields are present", () => {
     const { proofPoints } = refineFeedback(
       docWith("612-227-1149 | you@example.com | Sacramento, CA"),
       [],
     );
     const ids = proofPoints.map((p) => p.ruleId);
+    expect(ids).not.toContain("header_missing_name");
+    expect(ids).not.toContain("header_missing_title");
+    expect(ids).not.toContain("header_missing_location");
+    expect(ids).not.toContain("header_missing_email");
+    expect(ids).not.toContain("header_missing_phone");
+  });
+
+  it("treats placeholder name, title, and location values as missing", () => {
+    const { proofPoints } = refineFeedback(
+      {
+        ...docWith("612-227-1149 | you@example.com | location not specified"),
+        name: "Candidate Name",
+        headline: "Job Title",
+      },
+      [],
+    );
+    const ids = proofPoints.map((p) => p.ruleId);
+    expect(ids).toContain("header_missing_name");
+    expect(ids).toContain("header_missing_title");
+    expect(ids).toContain("header_missing_location");
     expect(ids).not.toContain("header_missing_email");
     expect(ids).not.toContain("header_missing_phone");
   });
@@ -56,6 +98,23 @@ describe("refineFeedback contact-gap detection", () => {
       },
     ]);
     expect(proofPoints.filter((p) => p.ruleId === "header_missing_email")).toHaveLength(0);
+  });
+
+  it("keeps required header field notes through the groundFindings trust layer", () => {
+    const { proofPoints } = refineFeedback(
+      { ...docWith(""), name: "", headline: "" },
+      [],
+    );
+    const grounded = groundFindings(proofPoints, "", { templated: true });
+    expect(grounded.map((p) => p.ruleId)).toEqual(
+      expect.arrayContaining([
+        "header_missing_name",
+        "header_missing_title",
+        "header_missing_location",
+        "header_missing_email",
+        "header_missing_phone",
+      ]),
+    );
   });
 });
 

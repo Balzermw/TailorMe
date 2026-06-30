@@ -3,7 +3,7 @@ import Link from "next/link";
 import Nav from "@/components/landing/nav";
 import { supabaseConfigured } from "@/lib/config";
 import { getApplication } from "@/lib/db";
-import { E2E_REVISION_APP_ID } from "@/lib/e2e/revision-fixture";
+import { E2E_AGENT_REVIEW_APP_ID, E2E_REVISION_APP_ID } from "@/lib/e2e/revision-fixture";
 import { ROUTES } from "@/components/landing/data";
 import EditEditor from "./edit-editor";
 import E2ERevisionEditor from "./e2e-revision-editor";
@@ -24,7 +24,10 @@ export default async function EditPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  if (process.env.E2E_TEST_MODE === "1" && id === E2E_REVISION_APP_ID) {
+  if (
+    process.env.E2E_TEST_MODE === "1" &&
+    (id === E2E_REVISION_APP_ID || id === E2E_AGENT_REVIEW_APP_ID)
+  ) {
     return (
       <div className="tm">
         <Nav active="Dashboard" />
@@ -94,6 +97,8 @@ export default async function EditPage({
           originalDoc={app.result?.originalDoc ?? null}
           bulletDiffs={app.result?.bulletDiffs ?? []}
           initialDecisions={app.result?.edits?.decisions ?? {}}
+          agentPasses={app.result?.agentPasses ?? []}
+          initialAgentReview={app.result?.edits?.agentReview ?? null}
           keywords={app.result?.keywords ?? []}
           verificationStatus={app.result?.verification?.status ?? null}
           initialUserEdited={app.result?.edits?.userEdited ?? false}

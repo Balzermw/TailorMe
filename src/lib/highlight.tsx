@@ -12,7 +12,7 @@ const METRIC_RE =
 // leaves behind. Split these FIRST so the metric matcher can't carve up a slot.
 const PLACEHOLDER_RE = /\[[^\]]+\]/g;
 
-type PieceKind = "kw" | "metric" | "ph" | null;
+type PieceKind = "kw" | "metric" | "ph" | "add" | null;
 type Piece = { t: string; kind: PieceKind };
 
 function splitTag(parts: Piece[], re: RegExp, kind: Exclude<PieceKind, null>): Piece[] {
@@ -56,10 +56,16 @@ export function highlightHits(
 export function highlight(
   text: string,
   keywords: string[] = [],
-  opts?: { placeholders?: boolean },
+  opts?: { additions?: string[]; placeholders?: boolean },
 ): ReactNode {
   if (!text) return text;
   let parts: Piece[] = [{ t: text, kind: null }];
+  const additions = [...new Set((opts?.additions ?? []).map((a) => a.trim()).filter((a) => a.length > 1))]
+    .sort((a, b) => b.length - a.length)
+    .map((a) => a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"));
+  if (additions.length) {
+    parts = splitTag(parts, new RegExp(`(${additions.join("|")})`, "gi"), "add");
+  }
   if (opts?.placeholders) parts = splitTag(parts, PLACEHOLDER_RE, "ph");
   parts = splitTag(parts, METRIC_RE, "metric");
 
@@ -73,6 +79,8 @@ export function highlight(
   return parts.map((p, i) =>
     p.kind === "ph" ? (
       <mark key={i} className="tm-ph">{p.t}</mark>
+    ) : p.kind === "add" ? (
+      <mark key={i} className="mcv-add">{p.t}</mark>
     ) : p.kind === "metric" ? (
       <mark key={i} className="tm-m">{p.t}</mark>
     ) : p.kind === "kw" ? (

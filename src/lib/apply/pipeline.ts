@@ -12,6 +12,8 @@ import { sanitizeDoc } from "@/lib/apply/sanitize-doc";
 import { docToResumeText } from "@/lib/apply/serialize";
 import type {
   AgentNote,
+  AgentPass,
+  AgentSuggestion,
   ApplyResult,
   AuditAgent,
   BulletDiff,
@@ -1899,6 +1901,197 @@ export async function buildAgents(
   return publicAuditAgents([ats, impact, rolefit]);
 }
 
+function safeIdPart(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 44) || "item";
+}
+
+function clampScore(value: number | undefined): number | undefined {
+  return Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value as number))) : undefined;
+}
+
+function agentSuggestionToProofLike(
+  suggestion: Omit<AgentSuggestion, "agentId">,
+  agentId: AgentSuggestion["agentId"],
+): AgentSuggestion {
+  return { ...suggestion, agentId };
+}
+
+function exactBulletMetricSuggestions(doc: TailoredDoc, limit = 3): AgentSuggestion[] {
+  const out: AgentSuggestion[] = [];
+  doc.experience.forEach((entry, ei) => {
+    entry.bullets.forEach((bullet, bi) => {
+      if (out.length >= limit || !bullet.trim() || hasHardMetric(bullet)) return;
+      out.push({
+        id: `max-metric-${ei}-${bi}`,
+        agentId: "max_impact",
+        title: "Add a truthful metric",
+        explanation:
+          "This bullet explains the work, but not the scale or result. A real number makes the achievement easier to believe.",
+        summary:
+          "This bullet explains the work, but not the scale or result. A real number makes the achievement easier to believe.",
+        section: "experience",
+        quote: bullet,
+        why: "Recruiters scan for scope, volume, money, time saved, and before/after impact when comparing similar candidates.",
+        fix: "Add a truthful metric, count, percentage, dollar amount, time saved, volume, or team size if your experience supports it.",
+        severity: "medium",
+        targetSection: "experience",
+        actionType: "add_metric",
+        truthfulnessRisk: "needs_user_input",
+        target: { entry: ei, bullet: bi },
+      });
+    });
+  });
+  return out;
+}
+
+function buildAgentPasses(
+  fit: FitBreakdown,
+  agents: AuditAgent[],
+  doc: TailoredDoc,
+): AgentPass[] {
+  const now = new Date().toISOString();
+  const atsAgent = agents.find((a) => a.id === "ats");
+  const impactAgent = agents.find((a) => a.id === "impact");
+  const rolefitAgent = agents.find((a) => a.id === "rolefit");
+
+  const keywordRows = fit.keywords ?? [];
+  const missingKeywords = keywordRows.filter((k) => !k.inResume).slice(0, 5);
+  const adaTotal = keywordRows.length || atsAgent?.total || 0;
+  const adaMatched = keywordRows.filter((k) => k.inResume).length || atsAgent?.matched || 0;
+  const adaScore = adaTotal ? clampScore((adaMatched / adaTotal) * 100) : undefined;
+  const adaSuggestions: AgentSuggestion[] = [
+    ...missingKeywords.map((k) =>
+      agentSuggestionToProofLike(
+        {
+          id: `ada-keyword-${safeIdPart(k.term)}`,
+          title: `Add ATS keyword: ${k.term}`,
+          explanation:
+            "The posting screens for this term, but the current resume does not clearly show it.",
+          summary:
+            "The posting screens for this term, but the current resume does not clearly show it.",
+          section: "skills",
+          why: "ATS parsers and recruiters both use repeated role language to decide whether a resume belongs in the first review pile.",
+          fix: `Add ${k.term} to Skills, Summary, or a relevant bullet only if it is true to your experience.`,
+          severity: "high",
+          targetSection: "skills",
+          actionType: "add_keyword",
+          suggestedRewrite: k.term,
+          truthfulnessRisk: "do_not_invent",
+          target: { keyword: k.term },
+        },
+        "ada_ats",
+      ),
+    ),
+  ];
+  if (missingKeywords.length > 0 && doc.summary?.trim()) {
+    adaSuggestions.unshift({
+      id: "ada-summary-keywords",
+      agentId: "ada_ats",
+      title: "Aim the summary at the posting",
+      explanation:
+        "Your top summary should echo the role language you can honestly support.",
+      summary:
+        "Your top summary should echo the role language you can honestly support.",
+      section: "summary",
+      why: "The summary is the first high-signal block an ATS and recruiter see after the header.",
+      fix: `Rewrite the summary toward ${fit.verdict || "this role"} using backed keywords such as ${missingKeywords.map((k) => k.term).slice(0, 4).join(", ")}.`,
+      severity: "high",
+      targetSection: "summary",
+      actionType: "rewrite_summary",
+      truthfulnessRisk: "do_not_invent",
+    });
+  }
+
+  const roleLines = rolefitAgent?.lines ?? [];
+  const remyScore = roleLines.length
+    ? clampScore(roleLines.reduce((sum, line) => sum + line.score, 0) / roleLines.length)
+    : clampScore(fit.overall);
+  const remySuggestions = roleLines
+    .filter((line) => line.status === "trimmed" || line.status === "cut")
+    .slice(0, 3)
+    .map((line) => ({
+      id: `remy-line-${line.rank}-${safeIdPart(line.label)}`,
+      agentId: "remy_rolefit" as const,
+      title: line.status === "cut" ? "Cut a low-fit line" : "Tighten a marginal line",
+      explanation: `${line.label} scored ${line.score}/100 for this role.`,
+      summary: `${line.label} scored ${line.score}/100 for this role.`,
+      section: "experience" as const,
+      why:
+        line.reason ||
+        "Role-fit improves when limited resume space goes to the evidence most related to the posting.",
+      fix:
+        line.status === "cut"
+          ? "Remove, shorten, or replace this line with evidence that more directly matches the posting."
+          : "Rewrite this line so the role-relevant responsibility or tool is visible earlier.",
+      severity: (line.status === "cut" ? "medium" : "low") as "medium" | "low",
+      targetSection: "experience" as const,
+      actionType: "cut_or_deprioritize" as const,
+      truthfulnessRisk: "none" as const,
+    }));
+
+  const quantified = impactAgent?.quantified;
+  const maxScore = quantified?.total ? clampScore((quantified.count / quantified.total) * 100) : undefined;
+  const maxSuggestions = exactBulletMetricSuggestions(doc);
+
+  return [
+    {
+      id: "ada_ats",
+      persona: "Ada",
+      specialty: "ATS & keywords",
+      scoreLabel: "ATS Score",
+      score: adaScore,
+      title: "Ada checks parser fit first",
+      summary:
+        missingKeywords.length > 0
+          ? `${missingKeywords.length} posting keyword${missingKeywords.length === 1 ? "" : "s"} need a truthful home.`
+          : "The core posting keywords are already covered.",
+      detail:
+        atsAgent?.detail ||
+        "Ada compares the posting's screening terms against the resume and turns missing coverage into Skills and Summary edits.",
+      suggestions: adaSuggestions,
+      completedAt: now,
+    },
+    {
+      id: "remy_rolefit",
+      persona: "Remy",
+      specialty: "Role-fit",
+      scoreLabel: "Role-Fit Score",
+      score: remyScore,
+      title: "Remy ranks what earns space",
+      summary:
+        remySuggestions.length > 0
+          ? `${remySuggestions.length} line${remySuggestions.length === 1 ? "" : "s"} should be tightened, cut, or repositioned.`
+          : "The strongest lines are aligned with the target role.",
+      detail:
+        rolefitAgent?.detail ||
+        "Remy reads every experience line against the posting and protects the resume's limited space for the strongest evidence.",
+      suggestions: remySuggestions,
+      completedAt: now,
+    },
+    {
+      id: "max_impact",
+      persona: "Max",
+      specialty: "Impact & metrics",
+      scoreLabel: "Impact Score",
+      score: maxScore,
+      title: "Max looks for proof, not activity",
+      summary:
+        maxSuggestions.length > 0
+          ? `${maxSuggestions.length} current bullet${maxSuggestions.length === 1 ? "" : "s"} can carry stronger measurable proof.`
+          : "The current draft already carries strong quantified evidence.",
+      detail:
+        impactAgent?.detail ||
+        "Max scans for measurable outcomes and asks for scope, counts, money, time saved, or percentages only when the user can back them up.",
+      suggestions: maxSuggestions,
+      completedAt: now,
+    },
+  ];
+}
+
 /** Free-audit preview: fit only, no documents (no credit spent). */
 export async function runScore(
   resumeText: string,
@@ -2192,6 +2385,7 @@ export async function runFull(
     review(tailored.doc, postingText, provider),
     buildAgents(resumeText, postingText, fit, tailored.bullets, provider),
   ]);
+  const agentPasses = buildAgentPasses(fit, agents, tailored.doc);
   // Anchor before/after pairs to doc coordinates for the editor's diff rows, and
   // snapshot the AI draft so the editor can offer "reset to AI version".
   const originalDoc = JSON.parse(JSON.stringify(tailored.doc)) as TailoredDoc;
@@ -2204,6 +2398,7 @@ export async function runFull(
     keywords: tailored.keywords,
     agentNotes,
     agents,
+    agentPasses,
     doc: tailored.doc,
     originalDoc,
     bulletDiffs,

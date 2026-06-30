@@ -3,9 +3,57 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { updateApplicationResult } from "@/lib/db";
 import { clampToTwoPages } from "@/lib/apply/latex";
 import { sanitizeDoc } from "@/lib/apply/sanitize-doc";
-import type { ApplyResult, EditDecision } from "@/lib/types";
+import type {
+  AgentPassId,
+  AgentReviewState,
+  AgentSuggestionDecision,
+  ApplyResult,
+  EditDecision,
+} from "@/lib/types";
 
 export const runtime = "nodejs";
+
+const AGENT_PASS_IDS: AgentPassId[] = ["ada_ats", "remy_rolefit", "max_impact"];
+const AGENT_DECISIONS: AgentSuggestionDecision[] = ["accepted", "rejected", "edited", "resolved"];
+
+function sanitizeAgentReview(input: unknown): AgentReviewState | undefined {
+  if (!input || typeof input !== "object") return undefined;
+  const raw = input as Record<string, unknown>;
+  const rawSuggestions =
+    raw.agentSuggestions && typeof raw.agentSuggestions === "object"
+      ? (raw.agentSuggestions as Record<string, unknown>)
+      : {};
+  const agentSuggestions: Record<string, AgentSuggestionDecision> = {};
+  for (const [key, value] of Object.entries(rawSuggestions)) {
+    if (key.length > 120) continue;
+    if (AGENT_DECISIONS.includes(value as AgentSuggestionDecision)) {
+      agentSuggestions[key] = value as AgentSuggestionDecision;
+    }
+  }
+  const activeAgentPass = AGENT_PASS_IDS.includes(raw.activeAgentPass as AgentPassId)
+    ? (raw.activeAgentPass as AgentPassId)
+    : undefined;
+  const rawProgress =
+    raw.agentPassProgress && typeof raw.agentPassProgress === "object"
+      ? (raw.agentPassProgress as Record<string, unknown>)
+      : {};
+  const agentPassProgress = Object.fromEntries(
+    AGENT_PASS_IDS.map((id) => {
+      const p = (rawProgress[id] ?? {}) as Record<string, unknown>;
+      const total = Number(p.total);
+      const reviewed = Number(p.reviewed);
+      return [
+        id,
+        {
+          reviewed: Number.isFinite(reviewed) ? Math.max(0, Math.round(reviewed)) : 0,
+          total: Number.isFinite(total) ? Math.max(0, Math.round(total)) : 0,
+          complete: Boolean(p.complete),
+        },
+      ];
+    }),
+  ) as AgentReviewState["agentPassProgress"];
+  return { agentSuggestions, activeAgentPass, agentPassProgress };
+}
 
 // Persist user edits to a tailored application. Manual editing only — no LLM,
 // no credit. RLS + explicit user_id match scope it to the owner.
@@ -27,6 +75,7 @@ export async function PATCH(
   let body: {
     doc?: unknown;
     decisions?: Record<string, EditDecision>;
+    agentReview?: unknown;
     userEdited?: boolean;
   };
   try {
@@ -62,6 +111,7 @@ export async function PATCH(
         body.decisions && typeof body.decisions === "object"
           ? body.decisions
           : (existing.edits?.decisions ?? {}),
+      agentReview: sanitizeAgentReview(body.agentReview) ?? existing.edits?.agentReview,
       userEdited: Boolean(body.userEdited) || Boolean(existing.edits?.userEdited),
     },
   };

@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { E2ERevisionState } from "@/lib/e2e/revision-fixture";
 import {
+  E2E_AGENT_REVIEW_APP_ID,
+  E2E_AGENT_REVIEW_RESULT,
+  E2E_AGENT_REVIEW_STORAGE_KEY,
   E2E_REVISION_AI_DOC,
   E2E_REVISION_PROOF_POINTS,
   E2E_REVISION_RESULT,
@@ -13,33 +16,40 @@ import {
 import type { TailoredDoc } from "@/lib/types";
 import EditEditor from "./edit-editor";
 
-function loadState(): E2ERevisionState {
+function loadState(storageKey: string, fallback: E2ERevisionState): E2ERevisionState {
   try {
-    const raw = window.localStorage.getItem(E2E_REVISION_STORAGE_KEY);
-    if (!raw) return defaultE2ERevisionState();
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Partial<E2ERevisionState>;
-    if (!parsed.doc || !parsed.decisions) return defaultE2ERevisionState();
+    if (!parsed.doc || !parsed.decisions) return fallback;
     return {
       doc: parsed.doc,
       decisions: parsed.decisions,
+      agentReview: parsed.agentReview,
       userEdited: Boolean(parsed.userEdited),
     };
   } catch {
-    return defaultE2ERevisionState();
+    return fallback;
   }
 }
 
-function saveState(state: E2ERevisionState): void {
-  window.localStorage.setItem(E2E_REVISION_STORAGE_KEY, JSON.stringify(state));
+function saveState(storageKey: string, state: E2ERevisionState): void {
+  window.localStorage.setItem(storageKey, JSON.stringify(state));
 }
 
 export default function E2ERevisionEditor({ id }: { id: string }) {
   const [state, setState] = useState<E2ERevisionState | null>(null);
+  const result = id === E2E_AGENT_REVIEW_APP_ID ? E2E_AGENT_REVIEW_RESULT : E2E_REVISION_RESULT;
+  const storageKey = id === E2E_AGENT_REVIEW_APP_ID ? E2E_AGENT_REVIEW_STORAGE_KEY : E2E_REVISION_STORAGE_KEY;
+  const fallback = useMemo(
+    () => defaultE2ERevisionState(result.edits?.agentReview, result.doc ?? E2E_REVISION_AI_DOC),
+    [result.doc, result.edits?.agentReview],
+  );
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setState(loadState()), 0);
+    const timer = window.setTimeout(() => setState(loadState(storageKey, fallback)), 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [fallback, storageKey]);
 
   if (!state) {
     return (
@@ -53,18 +63,20 @@ export default function E2ERevisionEditor({ id }: { id: string }) {
     <EditEditor
       id={id}
       doc={state.doc}
-      originalDoc={E2E_REVISION_AI_DOC}
-      bulletDiffs={E2E_REVISION_RESULT.bulletDiffs ?? []}
+      originalDoc={result.originalDoc ?? E2E_REVISION_AI_DOC}
+      bulletDiffs={result.bulletDiffs ?? []}
       initialDecisions={state.decisions}
-      keywords={E2E_REVISION_RESULT.keywords}
+      agentPasses={result.agentPasses ?? []}
+      initialAgentReview={state.agentReview ?? null}
+      keywords={result.keywords}
       verificationStatus={null}
       initialUserEdited={state.userEdited}
-      proofPoints={E2E_REVISION_PROOF_POINTS}
-      company={E2E_REVISION_RESULT.company}
-      role={E2E_REVISION_RESULT.role}
-      onSave={async ({ doc, decisions, userEdited }) => {
-        const next: E2ERevisionState = { doc, decisions, userEdited };
-        saveState(next);
+      proofPoints={id === E2E_AGENT_REVIEW_APP_ID ? [] : E2E_REVISION_PROOF_POINTS}
+      company={result.company}
+      role={result.role}
+      onSave={async ({ doc, decisions, agentReview, userEdited }) => {
+        const next: E2ERevisionState = { doc, decisions, agentReview, userEdited };
+        saveState(storageKey, next);
         setState(next);
         return { ok: true };
       }}

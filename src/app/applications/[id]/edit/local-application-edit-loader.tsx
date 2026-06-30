@@ -14,6 +14,7 @@ import { fitTier } from "@/lib/apply/fit-tier";
 import { docToResumeText } from "@/lib/apply/serialize";
 import type {
   ApplicationRow,
+  AgentReviewState,
   EditDecision,
   FitBreakdown,
   TailoredDoc,
@@ -66,6 +67,8 @@ export default function LocalApplicationEditLoader({ id }: { id: string }) {
       originalDoc={result.originalDoc ?? null}
       bulletDiffs={result.bulletDiffs ?? []}
       initialDecisions={result.edits?.decisions ?? {}}
+      agentPasses={result.agentPasses ?? []}
+      initialAgentReview={result.edits?.agentReview ?? null}
       keywords={result.keywords ?? []}
       verificationStatus={result.verification?.status ?? null}
       initialUserEdited={result.edits?.userEdited ?? false}
@@ -94,10 +97,12 @@ export default function LocalApplicationEditLoader({ id }: { id: string }) {
       onSave={async ({
         doc: nextDoc,
         decisions,
+        agentReview,
         userEdited,
       }: {
         doc: TailoredDoc;
         decisions: Record<string, EditDecision>;
+        agentReview?: AgentReviewState;
         userEdited: boolean;
       }) => {
         const nextResult = {
@@ -106,6 +111,7 @@ export default function LocalApplicationEditLoader({ id }: { id: string }) {
           edits: {
             savedAt: new Date().toISOString(),
             decisions,
+            agentReview,
             userEdited,
           },
         };

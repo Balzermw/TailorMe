@@ -8,10 +8,11 @@ import { renderResumeTex } from "@/lib/apply/latex";
 import { evaluateResumeRules } from "@/lib/resume-rules/evaluateResumeRules";
 import type { ResumeRuleFinding } from "@/lib/resume-rules/resumeAdviceRule.types";
 import { parseContact } from "@/lib/apply/contact";
+import { isPlaceholderName } from "@/lib/apply/placeholder-name";
 import type { ProofPoint, TailoredDoc } from "@/lib/types";
 
 // Bump when the rules/routing change so stale cached feedback is recomputed.
-export const FEEDBACK_CACHE_VERSION = "rules-v3-bullet-evidence-routing";
+export const FEEDBACK_CACHE_VERSION = "rules-v4-header-required-fields";
 
 // Safe, content-free funnel counts for telemetry (rules → candidates →
 // deduped → surfaced). NEVER includes résumé text or evidence snippets.
@@ -110,17 +111,79 @@ function filterContradictedProofPoints(doc: TailoredDoc, proofPoints: ProofPoint
   });
 }
 
-// A resume with no email or no phone is hard for a recruiter or ATS to act on.
-// We read the doc's OWN contact line (parseContact is the single source of truth;
-// the LaTeX round-trip is lossy) and surface any gap as a header finding, ahead
-// of style suggestions. Header category, so the template-owned suppression never
-// hides a real content gap. Skipped when the legacy LLM already raised the same
-// gap, so we never double-surface it.
-function contactGapProofPoints(doc: TailoredDoc, existing: ProofPoint[]): ProofPoint[] {
+const MISSING_FIELD_RE =
+  /^(?:n\/a|none|unknown|tbd|to be determined|not (?:provided|specified|listed|available|disclosed|given|set|found))$/i;
+const HEADLINE_PLACEHOLDER_RE =
+  /^(?:headline|resume headline|title|job title|current title|role title|target role|professional title|your title|your headline|position title)$/i;
+
+function isMissingField(value: string | undefined): boolean {
+  const clean = (value ?? "").replace(/\s+/g, " ").trim();
+  return !clean || MISSING_FIELD_RE.test(clean);
+}
+
+// A resume with missing header essentials is hard for a recruiter or ATS to act
+// on. These are doc-derived checks, not style myths: name, title/headline,
+// location, phone, and email are all values the candidate must provide. We read
+// the doc's OWN contact line (parseContact is the single source of truth; the
+// LaTeX round-trip is lossy) and surface each gap as a Header finding. Skipped
+// when the legacy LLM already raised the same gap, so we never double-surface it.
+function headerGapProofPoints(doc: TailoredDoc, existing: ProofPoint[]): ProofPoint[] {
   const contact = parseContact(doc.contact || "");
-  const alreadyRaised = (re: RegExp) =>
-    existing.some((p) => re.test(`${p.title} ${p.summary} ${p.fix}`));
+  const alreadyRaised = (re: RegExp, ignoreRuleIds: string[] = []) =>
+    existing.some(
+      (p) =>
+        !ignoreRuleIds.includes(p.ruleId ?? "") &&
+        re.test(`${p.title} ${p.summary} ${p.fix}`),
+    );
   const gaps: ProofPoint[] = [];
+  if (
+    (isMissingField(doc.name) || isPlaceholderName(doc.name)) &&
+    !alreadyRaised(/\bname\b/i, ["clear_full_name_in_header"])
+  ) {
+    gaps.push({
+      title: "Add your full name",
+      summary:
+        "Your header is missing a real full name. Recruiters and ATS records need a clear candidate name at the top of the resume.",
+      why: "A resume without a clear name can be misfiled, hard to search, or ignored during recruiter handoff.",
+      fix: "Add your first and last name to the header.",
+      severity: "high",
+      ruleId: "header_missing_name",
+      category: "header",
+      targetSection: "header",
+    });
+  }
+  if (
+    (isMissingField(doc.headline) || HEADLINE_PLACEHOLDER_RE.test(doc.headline.trim())) &&
+    !alreadyRaised(
+      /\b(?:headline|job title|role title|current title|target role|professional title)\b/i,
+      ["explicit_current_role_title"],
+    )
+  ) {
+    gaps.push({
+      title: "Add a resume title",
+      summary:
+        "Your header is missing a role title or headline. A clear title tells recruiters what kind of role you are positioned for.",
+      why: "The headline is the fastest signal of level and function when a recruiter scans the resume.",
+      fix: "Add a concise title under your name, such as your current role or target role.",
+      severity: "medium",
+      ruleId: "header_missing_title",
+      category: "header",
+      targetSection: "header",
+    });
+  }
+  if (!contact.location && !alreadyRaised(/\b(?:location|city|city\/state|geograph|region)\b/i)) {
+    gaps.push({
+      title: "Add your location",
+      summary:
+        "Your header has no city or location. Recruiters use location to judge commute, remote eligibility, and region-specific roles.",
+      why: "A location helps employers quickly understand whether the role's geography works for you.",
+      fix: "Add your city and state, region, or country to the header line.",
+      severity: "medium",
+      ruleId: "header_missing_location",
+      category: "header",
+      targetSection: "header",
+    });
+  }
   if (!contact.email && !alreadyRaised(/\bemail\b/i)) {
     gaps.push({
       title: "Add an email address",
@@ -148,6 +211,22 @@ function contactGapProofPoints(doc: TailoredDoc, existing: ProofPoint[]): ProofP
     });
   }
   return gaps;
+}
+
+function dropHeaderFindingsCoveredBySpecificGaps(
+  points: ProofPoint[],
+  headerGaps: ProofPoint[],
+): ProofPoint[] {
+  const gapIds = new Set(headerGaps.map((p) => p.ruleId));
+  return points.filter((p) => {
+    if (gapIds.has("header_missing_name") && p.ruleId === "clear_full_name_in_header") {
+      return false;
+    }
+    if (gapIds.has("header_missing_title") && p.ruleId === "explicit_current_role_title") {
+      return false;
+    }
+    return true;
+  });
 }
 
 // A role with zero or one real bullet reads as filler and wastes prime résumé
@@ -262,32 +341,35 @@ export function refineFeedback(
     const rawProofPoints = result.surfaced.map(findingToProofPoint).map(stripUnverifiableCounts);
     const filteredProofPoints = filterContradictedProofPoints(doc, rawProofPoints);
     const contradictionSuppressed = rawProofPoints.length - filteredProofPoints.length;
-    // Real content gaps lead the list: missing email/phone, then thin roles that
-    // need bullets written. Both are computed from the doc, ahead of style nits.
-    const contactGaps = contactGapProofPoints(doc, filteredProofPoints);
+    // Real content gaps lead the list: missing header fields, then thin roles
+    // that need bullets written. Both are computed from the doc, ahead of style
+    // nits.
+    const headerGaps = headerGapProofPoints(doc, filteredProofPoints);
+    const displayProofPoints = dropHeaderFindingsCoveredBySpecificGaps(filteredProofPoints, headerGaps);
+    const headerDuplicateSuppressed = filteredProofPoints.length - displayProofPoints.length;
     const sparseGaps = sparseExperienceProofPoints(doc);
-    const eduGaps = educationGapProofPoints(doc, filteredProofPoints);
-    const certGaps = certificationGapProofPoints(doc, filteredProofPoints);
+    const eduGaps = educationGapProofPoints(doc, displayProofPoints);
+    const certGaps = certificationGapProofPoints(doc, displayProofPoints);
     return {
-      proofPoints: [...contactGaps, ...sparseGaps, ...eduGaps, ...certGaps, ...filteredProofPoints],
+      proofPoints: [...headerGaps, ...sparseGaps, ...eduGaps, ...certGaps, ...displayProofPoints],
       stats: {
         rulesLoaded: result.stats.rulesLoaded,
         candidates: result.stats.candidateFindingsCount,
         deduped: result.stats.dedupedFindingsCount,
         surfaced:
-          filteredProofPoints.length +
-          contactGaps.length +
+          displayProofPoints.length +
+          headerGaps.length +
           sparseGaps.length +
           eduGaps.length +
           certGaps.length,
-        suppressed: result.stats.suppressedCount + contradictionSuppressed,
+        suppressed: result.stats.suppressedCount + contradictionSuppressed + headerDuplicateSuppressed,
       },
     };
   } catch {
     // LaTeX render failed; still surface the deterministic doc-based checks.
     return {
       proofPoints: [
-        ...contactGapProofPoints(doc, proofPoints),
+        ...headerGapProofPoints(doc, proofPoints),
         ...sparseExperienceProofPoints(doc),
         ...educationGapProofPoints(doc, proofPoints),
         ...certificationGapProofPoints(doc, proofPoints),

@@ -8,6 +8,31 @@ export type ApplicationStatus =
 
 export type MichaelStatus = "none" | "requested" | "in_review" | "returned";
 
+export type AgentPassId = "ada_ats" | "remy_rolefit" | "max_impact";
+
+export type AgentSuggestionAction =
+  | "add_keyword"
+  | "rewrite_line"
+  | "add_metric"
+  | "strengthen_role_fit"
+  | "cut_or_deprioritize"
+  | "fix_parseability"
+  | "manual_field"
+  | "rewrite_summary";
+
+export type AgentSuggestionDecision = "accepted" | "rejected" | "edited" | "resolved";
+
+export type AgentSuggestionSection =
+  | "header"
+  | "summary"
+  | "experience"
+  | "skills"
+  | "projects"
+  | "education"
+  | "certifications"
+  | "formatting"
+  | "other";
+
 export interface FitDimension {
   label: string;
   score: number; // 0–100
@@ -33,7 +58,19 @@ export interface ProofPoint {
   // points). Safe telemetry primitives — ids/categories only, never content.
   ruleId?: string;
   category?: string;
-  targetSection?: "header" | "summary" | "experience" | "projects" | "skills" | "formatting";
+  targetSection?: Exclude<AgentSuggestionSection, "other">;
+  agentId?: AgentPassId;
+  agentPersona?: string;
+  agentPassLabel?: string;
+  actionType?: AgentSuggestionAction;
+  suggestedRewrite?: string;
+  truthfulnessRisk?: "none" | "needs_user_input" | "do_not_invent";
+  aiRewrite?: {
+    entry: number;
+    bullet: number;
+    before: string;
+    after: string;
+  };
 }
 
 export interface FitBreakdown {
@@ -82,6 +119,44 @@ export interface AgentNote {
   agent: string; // "ATS & keywords" | "Impact & metrics" | "Role-fit"
   kind: "fix" | "polish";
   text: string;
+}
+
+export interface AgentSuggestion {
+  id: string;
+  agentId: AgentPassId;
+  title: string;
+  explanation: string;
+  summary: string;
+  section: AgentSuggestionSection;
+  quote?: string;
+  why: string;
+  fix: string;
+  severity: "high" | "medium" | "low";
+  targetSection?: Exclude<AgentSuggestionSection, "other">;
+  actionType: AgentSuggestionAction;
+  suggestedRewrite?: string;
+  truthfulnessRisk?: "none" | "needs_user_input" | "do_not_invent";
+  target?: {
+    entry?: number;
+    bullet?: number;
+    field?: string;
+    keyword?: string;
+  };
+}
+
+export interface AgentPass {
+  id: AgentPassId;
+  persona: "Ada" | "Remy" | "Max";
+  specialty: string;
+  scoreLabel: string;
+  score?: number;
+  title: string;
+  summary: string;
+  strengths?: string[];
+  concerns?: string[];
+  detail: string;
+  suggestions: AgentSuggestion[];
+  completedAt: string;
 }
 
 export interface TailoredBullet {
@@ -231,11 +306,25 @@ export interface BulletDiff {
 
 export type EditDecision = "accepted" | "rejected" | "edited";
 
+export interface AgentReviewState {
+  agentSuggestions: Record<string, AgentSuggestionDecision>;
+  activeAgentPass?: AgentPassId;
+  agentPassProgress: Record<
+    AgentPassId,
+    {
+      reviewed: number;
+      total: number;
+      complete: boolean;
+    }
+  >;
+}
+
 export interface EditState {
   savedAt: string;
   // key = `${entry}:${bullet}` for bullets, or "summary" | `skill:${i}` |
   // `cover:${i}` | `header:${field}` for the other editable fields.
   decisions: Record<string, EditDecision>;
+  agentReview?: AgentReviewState;
   userEdited: boolean; // any hand-edit → downgrades the "verified" trust badge
 }
 
@@ -247,6 +336,7 @@ export interface ApplyResult {
   keywords: string[];
   agentNotes: AgentNote[];
   agents?: AuditAgent[]; // the three personified review cards (full run only)
+  agentPasses?: AgentPass[]; // guided Ada / Remy / Max editor passes
   doc: TailoredDoc | null; // null for score-only (free preview); current/edited doc
   postingText?: string; // the posting this was scored against — lets us re-score the edited resume
   fitHistory?: FitHistoryEntry[]; // append-only fit timeline; [0] is the initial score

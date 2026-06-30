@@ -28,6 +28,11 @@ import {
   X,
 } from "lucide-react";
 import type {
+  AgentPass,
+  AgentPassId,
+  AgentReviewState,
+  AgentSuggestion,
+  AgentSuggestionDecision,
   BulletDiff,
   EditDecision,
   FitBreakdown,
@@ -52,6 +57,7 @@ import {
   parseContact,
   type ContactFields,
 } from "@/lib/apply/contact";
+import { isPlaceholderName } from "@/lib/apply/placeholder-name";
 import {
   cleanSkillGroups,
   normalizeHeadline,
@@ -67,6 +73,102 @@ const SEV: Record<ProofPoint["severity"], { label: string; color: string; bg: st
   medium: { label: "Worth fixing", color: "#854f0b", bg: "#fdf3e7" },
   low: { label: "Minor polish", color: "var(--tm-zinc)", bg: "rgba(24,24,27,0.06)" },
 };
+
+const AGENT_PASS_ORDER: AgentPassId[] = ["ada_ats", "remy_rolefit", "max_impact"];
+
+const AGENT_PASS_SCORE_COPY: Record<AgentPassId, string> = {
+  ada_ats: "ATS",
+  remy_rolefit: "Role Fit",
+  max_impact: "Impact",
+};
+
+const AGENT_PASS_SCORE_HELP: Record<AgentPassId, string> = {
+  ada_ats: "Ada's ATS score estimates keyword coverage and parser readiness.",
+  remy_rolefit: "Remy's Role Fit score estimates how directly the resume supports this target role.",
+  max_impact: "Max's Impact score estimates how much proof, scale, and measurable outcome appears in the resume.",
+};
+
+function agentSuggestionKeyFromRule(ruleId: string | undefined): string | null {
+  const key = ruleId?.match(/^agent:(.+)$/)?.[1]?.trim();
+  return key || null;
+}
+
+function agentSuggestionKey(p: ProofPoint): string | null {
+  return agentSuggestionKeyFromRule(p.ruleId);
+}
+
+function agentSuggestionToProofPoint(pass: AgentPass, suggestion: AgentSuggestion): ProofPoint {
+  const targetSection =
+    (suggestion.targetSection ?? (suggestion.section === "other" ? undefined : suggestion.section)) as
+      | ProofPoint["targetSection"]
+      | undefined;
+  return {
+    title: suggestion.title,
+    summary: suggestion.explanation || suggestion.summary,
+    quote: suggestion.quote,
+    why: suggestion.why,
+    fix: suggestion.suggestedRewrite
+      ? `${suggestion.fix} Suggested rewrite: "${suggestion.suggestedRewrite}"`
+      : suggestion.fix,
+    severity: suggestion.severity,
+    ruleId: `agent:${suggestion.id}`,
+    category: suggestion.actionType,
+    targetSection,
+    agentId: pass.id,
+    agentPersona: pass.persona,
+    agentPassLabel: pass.scoreLabel,
+    actionType: suggestion.actionType,
+    suggestedRewrite: suggestion.suggestedRewrite,
+    truthfulnessRisk: suggestion.truthfulnessRisk,
+  };
+}
+
+function aiRewriteSuggestionKey(entry: number, bullet: number): string {
+  return `ai-rewrite-${entry}-${bullet}`;
+}
+
+function aiRewriteTarget(p: ProofPoint): ProofPoint["aiRewrite"] | null {
+  return p.aiRewrite ?? null;
+}
+
+function classifyAiRewrite(diff: BulletDiff): AgentPassId {
+  const beforeHasMetric = /(\d|%|\$|\bpercent\b|million|billion|thousand|\bk\b)/i.test(diff.before);
+  const afterHasMetric = /(\d|%|\$|\bpercent\b|million|billion|thousand|\bk\b)/i.test(diff.after);
+  const impactLanguage = /\b(reduced|increased|improved|saved|cut|grew|accelerated|delivered|generated|resolved|prevented|optimized)\b/i;
+  if ((afterHasMetric && !beforeHasMetric) || impactLanguage.test(diff.after)) return "max_impact";
+  return "remy_rolefit";
+}
+
+function aiRewriteToProofPoint(diff: BulletDiff, doc: TailoredDoc): ProofPoint {
+  const agentId = classifyAiRewrite(diff);
+  const role = doc.experience?.[diff.entry]?.role?.trim();
+  const persona = agentId === "max_impact" ? "Max" : "Remy";
+  const actionType = agentId === "max_impact" ? "add_metric" : "strengthen_role_fit";
+  const key = aiRewriteSuggestionKey(diff.entry, diff.bullet);
+  return {
+    title: agentId === "max_impact" ? "Review impact rewrite" : "Review role-fit rewrite",
+    summary: role
+      ? `${role} bullet ${diff.bullet + 1} was rewritten by AI. Keep it, edit it, or restore your original wording.`
+      : `Experience bullet ${diff.bullet + 1} was rewritten by AI. Keep it, edit it, or restore your original wording.`,
+    quote: diff.after,
+    why:
+      agentId === "max_impact"
+        ? "Max checks whether the rewrite adds credible proof, scope, or measurable outcome without inventing details."
+        : "Remy checks whether the rewrite makes the bullet more directly relevant to the target role.",
+    fix: `Original wording: "${diff.before}"`,
+    severity: "medium",
+    ruleId: `agent:${key}`,
+    category: actionType,
+    targetSection: "experience",
+    agentId,
+    agentPersona: persona,
+    agentPassLabel: agentId === "max_impact" ? "Impact Score" : "Role-Fit Score",
+    actionType,
+    suggestedRewrite: diff.after,
+    truthfulnessRisk: agentId === "max_impact" ? "needs_user_input" : "none",
+    aiRewrite: { ...diff },
+  };
+}
 
 // A feedback finding is dropped once its quoted text no longer exists in the doc.
 // This runs both at handoff (structuring may have already fixed it, e.g. a
@@ -93,6 +195,18 @@ function normForMatch(s: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+const HEADER_MISSING_FIELD_RE =
+  /^(?:n\/a|none|unknown|tbd|to be determined|not (?:provided|specified|listed|available|disclosed|given|set|found))$/i;
+const HEADLINE_PLACEHOLDER_RE =
+  /^(?:headline|resume headline|title|job title|current title|role title|target role|professional title|your title|your headline|position title)$/i;
+function hasResolvedHeaderName(name: string): boolean {
+  const clean = name.replace(/\s+/g, " ").trim();
+  return !!clean && !HEADER_MISSING_FIELD_RE.test(clean) && !isPlaceholderName(clean);
+}
+function hasResolvedHeaderTitle(headline: string): boolean {
+  const clean = headline.replace(/\s+/g, " ").trim();
+  return !!clean && !HEADER_MISSING_FIELD_RE.test(clean) && !HEADLINE_PLACEHOLDER_RE.test(clean);
+}
 function pruneResolvedFindings(
   points: ProofPoint[],
   doc: TailoredDoc,
@@ -100,8 +214,11 @@ function pruneResolvedFindings(
 ): ProofPoint[] {
   const hay = normForMatch(docPlainText(doc));
   return points.filter((p) => {
-    // Contact gaps resolve live: once the email/phone is in the header, the ask is
-    // done and the suggestion checks itself off (no quote to match on these).
+    // Header gaps resolve live: once the field has a value, the ask is done and
+    // the suggestion checks itself off (no quote to match on these).
+    if (p.ruleId === "header_missing_name") return !hasResolvedHeaderName(doc.name);
+    if (p.ruleId === "header_missing_title") return !hasResolvedHeaderTitle(doc.headline);
+    if (p.ruleId === "header_missing_location") return !parseContact(doc.contact).location;
     if (p.ruleId === "header_missing_email") return !parseContact(doc.contact).email;
     if (p.ruleId === "header_missing_phone") return !parseContact(doc.contact).phone;
     if (!p.quote) return true; // "missing section" issues have no quote to verify
@@ -244,14 +361,64 @@ function previewAnchorFor(target: EditableSection, entry = 0): string {
   }
 }
 
+function diffTokenNorm(token: string): string {
+  return token.toLowerCase().replace(/[^a-z0-9%$]+/g, "");
+}
+
+function addedTextFragments(before: string, after: string): string[] {
+  const beforeTokens = before.match(/\S+/g) ?? [];
+  const afterTokens = after.match(/\S+/g) ?? [];
+  const beforeNorm = beforeTokens.map(diffTokenNorm);
+  const afterNorm = afterTokens.map(diffTokenNorm);
+  if (!afterNorm.some(Boolean)) return [];
+  if (!beforeNorm.some(Boolean)) return [after.trim()].filter(Boolean);
+
+  const dp = Array.from({ length: beforeTokens.length + 1 }, () =>
+    Array(afterTokens.length + 1).fill(0),
+  );
+  for (let i = 1; i <= beforeTokens.length; i += 1) {
+    for (let j = 1; j <= afterTokens.length; j += 1) {
+      dp[i][j] =
+        beforeNorm[i - 1] && beforeNorm[i - 1] === afterNorm[j - 1]
+          ? dp[i - 1][j - 1] + 1
+          : Math.max(dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+
+  const keptAfter = new Set<number>();
+  let i = beforeTokens.length;
+  let j = afterTokens.length;
+  while (i > 0 && j > 0) {
+    if (beforeNorm[i - 1] && beforeNorm[i - 1] === afterNorm[j - 1]) {
+      keptAfter.add(j - 1);
+      i -= 1;
+      j -= 1;
+    } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+      i -= 1;
+    } else {
+      j -= 1;
+    }
+  }
+
+  const fragments: string[] = [];
+  let start: number | null = null;
+  for (let idx = 0; idx <= afterTokens.length; idx += 1) {
+    const isAdded = idx < afterTokens.length && afterNorm[idx] && !keptAfter.has(idx);
+    if (isAdded && start == null) start = idx;
+    if ((!isAdded || idx === afterTokens.length) && start != null) {
+      const end = idx;
+      const phrase = afterTokens.slice(start, end).join(" ").trim();
+      if (phrase.length > 1 && /[a-z0-9]/i.test(phrase)) fragments.push(phrase);
+      start = null;
+    }
+  }
+
+  return [...new Set(fragments)].slice(0, 8);
+}
+
 // Top-level editor tabs (resume.co-style): Edit the content, pick a Design, or
 // review Feedback. The preview stays mounted across all three.
 type EditorMode = "edit" | "design" | "feedback";
-type ManualSuggestionForm = {
-  section: EditableSection;
-  title: string;
-  fix: string;
-};
 const VERDICT_LABEL: Record<Verdict, string> = {
   improved: "Improved",
   okay: "Okay",
@@ -274,11 +441,16 @@ function suggestionId(p: ProofPoint): string {
   return [p.ruleId || "feedback", p.title, p.quote ?? "", p.fix].join("|");
 }
 
-// Whether an AI draft makes sense for this finding. Contact-detail gaps need the
-// user's own info (the AI can't invent an email or phone number), so those offer
-// only "Edit manually" — no "Draft fix with AI".
+// Whether an AI draft makes sense for this finding. Header identity/contact gaps
+// need the user's own info, so those offer only "Edit manually" -- no AI draft.
 function canAiDraft(p: ProofPoint): boolean {
-  if (p.ruleId === "header_missing_email" || p.ruleId === "header_missing_phone") return false;
+  if (
+    p.ruleId === "header_missing_name" ||
+    p.ruleId === "header_missing_title" ||
+    p.ruleId === "header_missing_location" ||
+    p.ruleId === "header_missing_email" ||
+    p.ruleId === "header_missing_phone"
+  ) return false;
   const blob = `${p.title} ${p.summary} ${p.fix ?? ""}`.toLowerCase();
   return !(
     /\b(?:add|include|provide|enter|missing|no)\b/.test(blob) &&
@@ -317,6 +489,7 @@ function extractQuotedReplacement(fix: string): string | null {
 }
 
 function draftFromFinding(p: ProofPoint, target: EditableSection): string {
+  if (p.suggestedRewrite?.trim()) return p.suggestedRewrite.trim();
   const replacement = extractQuotedReplacement(p.fix);
   if (replacement) return replacement;
   const quote = stripBulletPrefix(p.quote ?? "");
@@ -360,6 +533,7 @@ function needsMetric(text: string): boolean {
 // Bullet-level findings that apply across MANY bullets (so they go through the
 // batch reviewer, not the single-draft box). Returns the review mode or null.
 function bulletReviewMode(p: ProofPoint): "shorten" | "quantify" | null {
+  if (p.agentId) return null;
   if (p.ruleId === "bullet_length_1_to_2_lines") return "shorten";
   if (p.ruleId === "quantify_impact_metrics") return "quantify";
   const blob = `${p.title} ${p.fix ?? ""}`.toLowerCase();
@@ -548,6 +722,8 @@ export default function EditEditor({
   originalDoc,
   bulletDiffs,
   initialDecisions,
+  agentPasses = [],
+  initialAgentReview = null,
   keywords,
   proofPoints: initialProofPoints,
   company,
@@ -569,6 +745,8 @@ export default function EditEditor({
   originalDoc: TailoredDoc | null;
   bulletDiffs: BulletDiff[];
   initialDecisions: Record<string, EditDecision>;
+  agentPasses?: AgentPass[];
+  initialAgentReview?: AgentReviewState | null;
   keywords: string[];
   verificationStatus: string | null;
   initialUserEdited: boolean;
@@ -581,6 +759,7 @@ export default function EditEditor({
   onSave?: (payload: {
     doc: TailoredDoc;
     decisions: Record<string, EditDecision>;
+    agentReview?: AgentReviewState;
     userEdited: boolean;
   }) => Promise<{ ok: boolean; error?: string }>;
   pdfUrl?: string;
@@ -609,6 +788,16 @@ export default function EditEditor({
     normalizedInitialDoc.headline !== initialDoc.headline;
   const [doc, setDoc] = useState<TailoredDoc>(normalizedInitialDoc);
   const [decisions, setDecisions] = useState<Record<string, EditDecision>>(initialDecisions);
+  const availableAgentPasses = agentPasses.filter((pass) => AGENT_PASS_ORDER.includes(pass.id));
+  const hasAgentPasses = availableAgentPasses.length > 0;
+  const [activeAgentPass, setActiveAgentPass] = useState<AgentPassId>(
+    initialAgentReview?.activeAgentPass && AGENT_PASS_ORDER.includes(initialAgentReview.activeAgentPass)
+      ? initialAgentReview.activeAgentPass
+      : availableAgentPasses[0]?.id ?? "ada_ats",
+  );
+  const [agentSuggestionDecisions, setAgentSuggestionDecisions] = useState<
+    Record<string, AgentSuggestionDecision>
+  >(initialAgentReview?.agentSuggestions ?? {});
   // Fit re-check loop state (application mode). History is seeded from the saved
   // timeline, backfilled to a one-point initial if the record predates it.
   const [fit, setFit] = useState<FitBreakdown | null>(initialFit);
@@ -632,7 +821,7 @@ export default function EditEditor({
   const [msg, setMsg] = useState<{ text: string; err: boolean } | null>(null);
   // Transient "we applied that, and here's where" confirmation toast. The `key`
   // bumps on every fire so re-firing the same text restarts the auto-dismiss.
-  const [applied, setApplied] = useState<{ text: string; key: number } | null>(null);
+  const [applied, setApplied] = useState<{ text: string; key: number; target?: EditableSection } | null>(null);
   // Posting keywords the user has added to Skills this session — so the keyword
   // suggestion card can show them as done instead of still prompting.
   const [addedKeywords, setAddedKeywords] = useState<Set<string>>(() => new Set());
@@ -650,7 +839,6 @@ export default function EditEditor({
     normalizedInitialDoc.skillGroups?.length ? skillContentSignature(normalizedInitialDoc) : null,
   );
   const [proofPoints, setProofPoints] = useState<ProofPoint[]>(initialProofPoints);
-  const [manualProofPoints, setManualProofPoints] = useState<ProofPoint[]>([]);
   const [appliedSuggestionIds, setAppliedSuggestionIds] = useState<Set<string>>(() => new Set());
   const [suggestionDrafts, setSuggestionDrafts] = useState<Record<string, string>>({});
   // Suggestions whose draft is currently being generated by the AI rewrite call.
@@ -664,12 +852,6 @@ export default function EditEditor({
     rows: ShortenRow[];
   } | null>(null);
   const [shortenLoading, setShortenLoading] = useState(false);
-  const [manualSuggestionOpen, setManualSuggestionOpen] = useState(false);
-  const [manualSuggestion, setManualSuggestion] = useState<ManualSuggestionForm>({
-    section: "experience",
-    title: "",
-    fix: "",
-  });
   // What the panel actually shows: findings whose quoted text still exists in the
   // doc. Derived (not stored) so it updates live as the user edits — applying a
   // suggested change drops its finding, and structuring-fixed ones never surface.
@@ -680,16 +862,32 @@ export default function EditEditor({
   // Trust layer: drop template-owned / myth findings and any whose quoted
   // evidence can't be verified in the résumé BEFORE the panel shows them. Manual
   // (user-added) suggestions are never grounded away.
+  const agentProofPoints = useMemo(() => {
+    const passPoints = agentPasses.flatMap((pass) =>
+      pass.suggestions.map((s) => agentSuggestionToProofPoint(pass, s)),
+    );
+    if (!hasAgentPasses) return passPoints;
+    return [...bulletDiffs.map((diff) => aiRewriteToProofPoint(diff, doc)), ...passPoints];
+  }, [agentPasses, bulletDiffs, doc, hasAgentPasses]);
   const allProofPoints = useMemo(
-    () => [...groundFindings(proofPoints, initialDocHay, { templated: true }), ...manualProofPoints],
-    [manualProofPoints, proofPoints, initialDocHay],
+    () => [
+      ...groundFindings(proofPoints, initialDocHay, { templated: true }),
+      ...groundFindings(agentProofPoints, initialDocHay, { templated: false }),
+    ],
+    [agentProofPoints, proofPoints, initialDocHay],
   );
   const shownPoints = useMemo(
     () =>
       pruneResolvedFindings(allProofPoints, doc, initialDocHay).filter(
-        (p) => !appliedSuggestionIds.has(suggestionId(p)),
+        (p) => {
+          if (appliedSuggestionIds.has(suggestionId(p))) return false;
+          const agentKey = agentSuggestionKey(p);
+          const aiRewrite = aiRewriteTarget(p);
+          if (aiRewrite && decisions[bulletKey(aiRewrite.entry, aiRewrite.bullet)]) return false;
+          return !(agentKey && agentSuggestionDecisions[agentKey]);
+        },
       ),
-    [allProofPoints, appliedSuggestionIds, doc, initialDocHay],
+    [allProofPoints, agentSuggestionDecisions, appliedSuggestionIds, decisions, doc, initialDocHay],
   );
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
@@ -714,6 +912,11 @@ export default function EditEditor({
   // After an applied edit, the exact preview anchor to scroll to, so an edit lands
   // visibly in the (continuously-scrolling) preview rather than off-screen.
   const [pendingJump, setPendingJump] = useState<string | null>(null);
+  const [appliedPreviewFlash, setAppliedPreviewFlash] = useState<{
+    key: number;
+    anchor: string;
+    additions: string[];
+  } | null>(null);
   // While a suggestion's draft is open, keep its targeted line highlighted in the
   // preview (not just on hover) so the user always sees WHAT they're editing.
   const [lockedFinding, setLockedFinding] = useState<{ quote?: string; section: Section } | null>(
@@ -731,6 +934,13 @@ export default function EditEditor({
   // toggle lets the user drop to the clean resume so it's clear the tags are
   // never baked into the resume or PDF.
   const [showMatches, setShowMatches] = useState(true);
+  const appliedPreviewHighlights = useMemo(
+    () =>
+      appliedPreviewFlash
+        ? { [appliedPreviewFlash.anchor]: appliedPreviewFlash.additions }
+        : undefined,
+    [appliedPreviewFlash],
+  );
   useEffect(
     () => () => {
       removeTimers.current.forEach(clearTimeout);
@@ -871,19 +1081,25 @@ export default function EditEditor({
   // so the change is visible in the continuous preview. Clears itself once done.
   useEffect(() => {
     if (!pendingJump) return;
-    let raf = 0;
-    const t = window.setTimeout(() => {
-      raf = requestAnimationFrame(() => {
+    let raf: number | null = null;
+    let clearPulse: ReturnType<typeof setTimeout> | null = null;
+    const t = setTimeout(() => {
+      raf = window.requestAnimationFrame(() => {
         const el = docWrapRef.current?.querySelector(
           `[data-field="${pendingJump}"]`,
         ) as HTMLElement | null;
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("mcv-apply-pulse");
+          clearPulse = setTimeout(() => el.classList.remove("mcv-apply-pulse"), 2200);
+        }
         setPendingJump(null);
       });
     }, 300);
     return () => {
-      window.clearTimeout(t);
-      cancelAnimationFrame(raf);
+      clearTimeout(t);
+      if (clearPulse) clearTimeout(clearPulse);
+      if (raf != null) window.cancelAnimationFrame(raf);
     };
   }, [pendingJump, doc]);
   function toggleEntry(i: number) {
@@ -902,22 +1118,35 @@ export default function EditEditor({
     setContactFields(next);
     patch({ contact: composeContact(next) });
   }
-  // After "Edit manually" on a contact gap, focus the matching header input so the
-  // user lands directly on the field to fill (and the gap checks off once it has a
+  // After "Edit manually" on a header gap, focus the matching input so the user
+  // lands directly on the field to fill (and the gap checks off once it has a
   // value, via pruneResolvedFindings). The intent lives in a ref (cleared in the
   // effect without a re-render); a tick triggers the effect once the field mounts.
+  type HeaderFocusField = "name" | "headline" | "phone" | "email" | "location";
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const headlineInputRef = useRef<HTMLInputElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
-  const pendingFocusRef = useRef<"phone" | "email" | null>(null);
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  const pendingFocusRef = useRef<HeaderFocusField | null>(null);
   const [focusTick, setFocusTick] = useState(0);
-  function focusContactField(field: "phone" | "email") {
+  function focusHeaderField(field: HeaderFocusField) {
     pendingFocusRef.current = field;
     setFocusTick((t) => t + 1);
   }
   useEffect(() => {
     const field = pendingFocusRef.current;
     if (!field || mode !== "edit" || section !== "header") return;
-    const el = (field === "phone" ? phoneInputRef : emailInputRef).current;
+    const el =
+      field === "name"
+        ? nameInputRef.current
+        : field === "headline"
+          ? headlineInputRef.current
+          : field === "phone"
+            ? phoneInputRef.current
+            : field === "email"
+              ? emailInputRef.current
+              : locationInputRef.current;
     if (el) {
       el.focus();
       el.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -934,14 +1163,30 @@ export default function EditEditor({
   }
   // Show a brief "applied to X" confirmation so the user knows content landed and
   // where. A useEffect handles auto-dismiss (keyed off `applied`).
-  function flashApplied(text: string) {
-    setApplied((a) => ({ text, key: (a?.key ?? 0) + 1 }));
+  function flashApplied(text: string, target?: EditableSection) {
+    setApplied((a) => ({ text, target, key: (a?.key ?? 0) + 1 }));
+  }
+  function flashAppliedPreview(anchor: string, before: string, after: string, additions?: string[]) {
+    const added = additions?.length
+      ? additions.map((a) => a.trim()).filter(Boolean)
+      : addedTextFragments(before, after);
+    if (!anchor || !added.length) return;
+    setAppliedPreviewFlash((flash) => ({
+      anchor,
+      additions: [...new Set(added)],
+      key: (flash?.key ?? 0) + 1,
+    }));
   }
   useEffect(() => {
     if (!applied) return;
     const t = setTimeout(() => setApplied(null), 3600);
     return () => clearTimeout(t);
   }, [applied]);
+  useEffect(() => {
+    if (!appliedPreviewFlash) return;
+    const t = setTimeout(() => setAppliedPreviewFlash(null), 3400);
+    return () => clearTimeout(t);
+  }, [appliedPreviewFlash]);
   function patch(p: Partial<TailoredDoc>) {
     setDoc((d) => ({ ...d, ...p }));
     touch();
@@ -1128,12 +1373,14 @@ export default function EditEditor({
   function openSuggestionDraft(p: ProofPoint, target: EditableSection) {
     const id = suggestionId(p);
     if (suggestionDrafts[id] != null) return; // already open
-    // Show the user exactly which line this fix targets: flip the preview to its
-    // page and keep it highlighted for as long as the draft stays open.
-    const jumpEntry = target === "experience" ? findQuotedBullet(doc, p.quote)?.ei ?? 0 : 0;
-    setPendingJump(previewAnchorFor(target, jumpEntry));
+    // Keep the targeted line highlighted while the draft is open, without
+    // auto-scrolling the page away from the card the user is working in.
     setLockedFinding({ quote: p.quote, section: target });
     const fallback = draftFromFinding(p, target);
+    if (aiRewriteTarget(p)) {
+      setSuggestionDrafts((drafts) => (drafts[id] != null ? drafts : { ...drafts, [id]: fallback }));
+      return;
+    }
     // Open with an EMPTY draft + the AI spinner; the box stays blank until the
     // rewrite returns. Only fall back to the template draft in demo/no-LLM/error,
     // and only while the user hasn't started typing (draft still "").
@@ -1190,13 +1437,40 @@ export default function EditEditor({
     clearHighlight();
   }
 
-  function markSuggestionApplied(id: string) {
+  function markAgentSuggestionDecision(p: ProofPoint, decision: AgentSuggestionDecision) {
+    const key = agentSuggestionKey(p);
+    if (!key) return;
+    setAgentSuggestionDecisions((state) => ({ ...state, [key]: decision }));
+    touch();
+  }
+
+  function markSuggestionApplied(
+    id: string,
+    p?: ProofPoint,
+    decision: AgentSuggestionDecision = "accepted",
+  ) {
     setAppliedSuggestionIds((ids) => {
       const next = new Set(ids);
       next.add(id);
       return next;
     });
+    if (p) markAgentSuggestionDecision(p, decision);
     closeSuggestionDraft(id);
+  }
+
+  function decideAiRewriteSuggestion(p: ProofPoint, decision: Extract<EditDecision, "accepted" | "rejected">) {
+    const aiRewrite = aiRewriteTarget(p);
+    if (!aiRewrite) return;
+    decide(aiRewrite.entry, aiRewrite.bullet, decision);
+    const anchor = `exp-${aiRewrite.entry}-bullet-${aiRewrite.bullet}`;
+    setPendingJump(anchor);
+    flashAppliedPreview(
+      anchor,
+      decision === "accepted" ? aiRewrite.before : aiRewrite.after,
+      decision === "accepted" ? aiRewrite.after : aiRewrite.before,
+    );
+    markSuggestionApplied(suggestionId(p), p, decision);
+    flashApplied(decision === "accepted" ? "AI rewrite kept" : "Original wording restored", "experience");
   }
 
   // Open the batch reviewer for a per-bullet finding (shorten or quantify):
@@ -1211,7 +1485,7 @@ export default function EditEditor({
       entry.bullets.map((original, bi) => ({ ei, bi, original })).filter((t) => select(t.original)),
     );
     if (!targets.length) {
-      markSuggestionApplied(id); // nothing matches anymore — clear the stale finding
+      markSuggestionApplied(id, p, "resolved"); // nothing matches anymore — clear the stale finding
       return;
     }
     setShortenReview({ id, p, mode, rows: [] });
@@ -1299,7 +1573,7 @@ export default function EditEditor({
       touch();
       flashApplied(`Applied ${accepted.length} rewrite${accepted.length === 1 ? "" : "s"} to Experience`);
     }
-    markSuggestionApplied(review.id);
+    markSuggestionApplied(review.id, review.p, "accepted");
     setShortenReview(null);
     setShortenLoading(false);
   }
@@ -1310,8 +1584,8 @@ export default function EditEditor({
   }
 
   // The fit panel's "Biggest lever" turns missing posting keywords into a real
-  // action: merge the genuinely-new ones into Skills (deduped) and jump there so
-  // the user can keep the ones they actually have and prune the rest.
+  // action: merge the genuinely-new ones into Skills (deduped) while the user
+  // stays in their current review flow.
   function addKeywordsToSkills(terms: string[]) {
     const incoming = terms.map((s) => s.trim()).filter(Boolean);
     if (!incoming.length) return;
@@ -1321,13 +1595,12 @@ export default function EditEditor({
         .filter(Boolean),
     );
     const fresh = incoming.filter((s) => !have.has(s.toLowerCase()));
-    setMode("edit");
-    setSection("skills");
     // Always record them as handled (so the card shows them done), even if a term
     // was already present — the user's intent is satisfied either way.
     setAddedKeywords((prev) => new Set([...prev, ...incoming]));
     if (!fresh.length) {
-      flashApplied("Those keywords are already in your Skills");
+      setPendingJump(previewAnchorFor("skills"));
+      flashApplied("Those keywords are already in your Skills", "skills");
       return;
     }
     setDoc((d) => {
@@ -1344,7 +1617,9 @@ export default function EditEditor({
       return { ...d, skills: merged };
     });
     touch();
-    flashApplied(`Added ${fresh.length} keyword${fresh.length === 1 ? "" : "s"} to Skills, review them below`);
+    setPendingJump(previewAnchorFor("skills"));
+    flashAppliedPreview("skills", "", fresh.join(", "), fresh);
+    flashApplied(`Added ${fresh.length} keyword${fresh.length === 1 ? "" : "s"} to Skills`, "skills");
   }
 
   // Review an added keyword: keep it (sign-off) or remove it (revert from Skills).
@@ -1377,10 +1652,17 @@ export default function EditEditor({
     if (!text) return;
     const id = suggestionId(p);
     let jumpEntry = 0; // which list entry the edit landed on (for the page jump)
+    let flashAnchor = previewAnchorFor(target, jumpEntry);
+    let flashBefore = p.quote ?? "";
+    let flashAfter = text;
+    let flashAdditions: string[] | undefined;
     if (target === "experience") {
       const hit = findQuotedBullet(doc, p.quote);
       jumpEntry = hit?.ei ?? 0;
       const bulletText = cleanBulletText(text);
+      flashAnchor = hit ? `exp-${hit.ei}-bullet-${hit.bi}` : previewAnchorFor("experience", jumpEntry);
+      flashBefore = hit ? doc.experience[hit.ei]?.bullets[hit.bi] ?? p.quote ?? "" : "";
+      flashAfter = bulletText;
       setDoc((d) => {
         if (hit && d.experience[hit.ei]?.bullets[hit.bi] != null) {
           return {
@@ -1421,8 +1703,11 @@ export default function EditEditor({
         return next;
       });
     } else if (target === "summary") {
+      const quote = p.quote?.trim();
+      flashAnchor = "summary";
+      flashBefore = quote && doc.summary.includes(quote) ? quote : doc.summary;
+      flashAfter = text;
       setDoc((d) => {
-        const quote = p.quote?.trim();
         if (quote && d.summary.includes(quote)) {
           return { ...d, summary: d.summary.replace(quote, text) };
         }
@@ -1431,19 +1716,27 @@ export default function EditEditor({
         return { ...d, summary: text };
       });
     } else if (target === "header") {
+      const headline = normalizeHeadline(text.split(/\r?\n/)[0], role) || doc.headline;
+      flashAnchor = "header";
+      flashBefore = doc.headline;
+      flashAfter = headline;
       setDoc((d) => ({ ...d, headline: normalizeHeadline(text.split(/\r?\n/)[0], role) || d.headline }));
     } else if (target === "skills") {
       const incoming = parseSkillInput(text).map(stripSkillLabel).filter(Boolean);
+      const have = new Set(
+        [...(doc.skills ?? []), ...(doc.skillGroups ?? []).flatMap((g) => g.skills)]
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean),
+      );
+      const fresh = incoming.map((s) => s.trim()).filter((s) => s && !have.has(s.toLowerCase()));
+      flashAnchor = "skills";
+      flashBefore = "";
+      flashAfter = fresh.join(", ");
+      flashAdditions = fresh;
       setDoc((d) => {
         // Converge into existing skills: add only genuinely-new ones (deduped,
         // case-insensitive) and fold them into the first existing group rather
         // than spawning a separate "Suggested additions" group.
-        const have = new Set(
-          [...(d.skills ?? []), ...(d.skillGroups ?? []).flatMap((g) => g.skills)]
-            .map((s) => s.trim().toLowerCase())
-            .filter(Boolean),
-        );
-        const fresh = incoming.map((s) => s.trim()).filter((s) => s && !have.has(s.toLowerCase()));
         if (!fresh.length) return d;
         const merged = Array.from(new Set([...(d.skills ?? []), ...fresh]));
         if (d.skillGroups?.length) {
@@ -1461,18 +1754,24 @@ export default function EditEditor({
       const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
       const name = (lines[0] ?? "Suggested project").replace(/^project name:\s*/i, "");
       const description = (lines.slice(1).join(" ") || lines[0] || text).replace(/^result:\s*/i, "");
+      flashAnchor = previewAnchorFor("projects");
+      flashAfter = description;
       setDoc((d) => ({
         ...d,
         projects: [...(d.projects ?? []), { name, description }],
       }));
     } else if (target === "education") {
       const [degree = text, school = "", dates = ""] = text.split(/,\s*/);
+      flashAnchor = previewAnchorFor("education");
+      flashAfter = [degree, school, dates].filter(Boolean).join(", ");
       setDoc((d) => ({
         ...d,
         education: [...(d.education ?? []), { degree, school, dates }],
       }));
     } else if (target === "certifications") {
       const [name = text, issuer = "", date = ""] = text.split(/,\s*/);
+      flashAnchor = previewAnchorFor("certifications");
+      flashAfter = [name, issuer, date].filter(Boolean).join(", ");
       setDoc((d) => ({
         ...d,
         certifications: [...(d.certifications ?? []), { name, issuer, date }],
@@ -1484,34 +1783,23 @@ export default function EditEditor({
       severity: p.severity,
       section: target,
     });
-    setMode("edit");
-    setSection(target);
     // Flip the preview to the page the edit landed on, so a change that moves to
     // (or spans onto) page 2 is shown rather than left off-screen on page 1.
-    setPendingJump(previewAnchorFor(target, jumpEntry));
-    markSuggestionApplied(id);
+    setPendingJump(flashAnchor);
+    flashAppliedPreview(flashAnchor, flashBefore, flashAfter, flashAdditions);
+    const agentDecision =
+      p.suggestedRewrite?.trim() && text !== p.suggestedRewrite.trim() ? "edited" : "accepted";
+    const aiRewrite = aiRewriteTarget(p);
+    if (aiRewrite) {
+      setDecisions((state) => ({
+        ...state,
+        [bulletKey(aiRewrite.entry, aiRewrite.bullet)]:
+          agentDecision === "accepted" ? "accepted" : "edited",
+      }));
+    }
+    markSuggestionApplied(id, p, agentDecision);
     touch();
-    flashApplied(`Applied to ${SECTION_LABEL[target]}`);
-  }
-
-  function addManualSuggestion() {
-    const fix = manualSuggestion.fix.trim();
-    if (!fix) return;
-    const sectionKey = manualSuggestion.section;
-    const title =
-      manualSuggestion.title.trim() || `${SECTION_LABEL[sectionKey]} suggestion`;
-    const p: ProofPoint = {
-      title,
-      summary: `User-added suggestion for ${SECTION_LABEL[sectionKey].toLowerCase()}.`,
-      why: "Added manually while reviewing this resume.",
-      fix,
-      severity: "medium",
-      category: "manual",
-      ruleId: `manual:${sectionKey}:${Date.now()}`,
-    };
-    setManualProofPoints((points) => [p, ...points]);
-    setManualSuggestion({ section: sectionKey, title: "", fix: "" });
-    setManualSuggestionOpen(false);
+    flashApplied(`Applied to ${SECTION_LABEL[target]}`, target);
   }
 
   async function groupWithAI() {
@@ -1682,6 +1970,7 @@ export default function EditEditor({
     setDoc(cloneDoc(normalizedOriginalDoc));
     setContactFields(parseContact(normalizedOriginalDoc.contact));
     setDecisions({});
+    setAgentSuggestionDecisions({});
     setReview(null);
     setReviewError(null);
     setFeedbackError(null);
@@ -1698,14 +1987,14 @@ export default function EditEditor({
       let ok = false;
       let error: string | undefined;
       if (onSave) {
-        const r = await onSave({ doc: docToSave, decisions, userEdited: true });
+        const r = await onSave({ doc: docToSave, decisions, agentReview: currentAgentReview, userEdited: true });
         ok = r.ok;
         error = r.error;
       } else {
         const res = await fetch(`/api/applications/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ doc: docToSave, decisions, userEdited: true }),
+          body: JSON.stringify({ doc: docToSave, decisions, agentReview: currentAgentReview, userEdited: true }),
         });
         const data = await res.json();
         ok = res.ok && data.ok;
@@ -1825,19 +2114,70 @@ export default function EditEditor({
     summaryFitPoint && !appliedSuggestionIds.has(suggestionId(summaryFitPoint))
       ? [summaryFitPoint, ...shownPoints]
       : shownPoints;
+  const activeAgentShown = hasAgentPasses
+    ? allShown.filter((p) => p.agentId === activeAgentPass)
+    : allShown;
+  const agentProgress = Object.fromEntries(
+    AGENT_PASS_ORDER.map((id) => {
+      const total = agentProofPoints.filter((p) => p.agentId === id).length;
+      const unresolved = allShown.filter((p) => p.agentId === id).length;
+      const reviewed = Math.max(0, total - unresolved);
+      return [id, { reviewed, total, complete: total > 0 && unresolved === 0 }];
+    }),
+  ) as AgentReviewState["agentPassProgress"];
+  const currentAgentReview: AgentReviewState | undefined = hasAgentPasses
+    ? {
+        agentSuggestions: agentSuggestionDecisions,
+        activeAgentPass,
+        agentPassProgress: agentProgress,
+      }
+    : undefined;
+  const activeAgentPassData =
+    availableAgentPasses.find((pass) => pass.id === activeAgentPass) ?? availableAgentPasses[0] ?? null;
+  const feedbackShown = hasAgentPasses ? allShown.filter((p) => p.agentId) : allShown;
+  const agentSectionChanges = hasAgentPasses
+    ? (["header", "summary", "experience", "projects", "education", "certifications", "skills"] as Section[])
+        .map((key) => ({
+          key,
+          label: SECTION_LABEL[key],
+          badge: feedbackShown.filter((p) => suggestionTarget(p) === key).length,
+        }))
+        .filter((item) => item.badge > 0)
+    : [];
+  const allAgentPassesReviewed =
+    hasAgentPasses &&
+    availableAgentPasses.every((pass) => {
+      const progress = agentProgress[pass.id];
+      return !progress.total || progress.complete;
+    });
+  // Aggregate progress across all three passes, for the panel's progress meter.
+  const agentTotal = AGENT_PASS_ORDER.reduce((sum, id) => sum + (agentProgress[id]?.total ?? 0), 0);
+  const agentReviewed = AGENT_PASS_ORDER.reduce(
+    (sum, id) => sum + (agentProgress[id]?.reviewed ?? 0),
+    0,
+  );
+  // The first pass that still has open suggestions, in Ada → Remy → Max order.
+  // Used to point the user at the next pass once the active one is cleared.
+  const nextIncompletePass =
+    availableAgentPasses.find((pass) => {
+      const pr = agentProgress[pass.id];
+      return pr && pr.total > 0 && !pr.complete;
+    }) ?? null;
 
   // Suggestions that belong to a given section (deterministic findings carry a
   // targetSection), rendered inline at the top of that section's panel.
   const sectionFixes = (s: Section): ProofPoint[] =>
-    allShown.filter((p) => suggestionTarget(p) === s);
+    (hasAgentPasses ? activeAgentShown : allShown).filter((p) => suggestionTarget(p) === s);
   // Nav badges count what each section surfaces inline: its suggestions, the
   // Experience AI rewrites (diffs), and the Skills keyword suggestions + reviews.
   const skillsKwAttention = unaddedKeywords.length + kwPending.length;
+  const includePendingDiffs = !hasAgentPasses;
+  const includeSkillKeywords = !hasAgentPasses || activeAgentPass === "ada_ats";
   const sectionBadge = (s: Section): number | undefined => {
     const n =
       sectionFixes(s).length +
-      (s === "experience" ? totalPending : 0) +
-      (s === "skills" ? skillsKwAttention : 0);
+      (s === "experience" && includePendingDiffs ? totalPending : 0) +
+      (s === "skills" && includeSkillKeywords ? skillsKwAttention : 0);
     return n || undefined;
   };
   const NAV: { key: Section; label: string; badge?: number }[] = [
@@ -1850,12 +2190,12 @@ export default function EditEditor({
     { key: "skills", label: "Skills", badge: sectionBadge("skills") },
   ];
   // Feedback is a top-level tab now (not a nav row); its label/badge live there.
-  const feedbackLabel = onGetFeedback ? "Feedback" : "Suggestions";
-  const showFeedbackTab = allShown.length > 0 || Boolean(onGetFeedback);
+  const feedbackLabel = hasAgentPasses ? "3 Agent Review" : onGetFeedback ? "Feedback" : "Suggestions";
+  const showFeedbackTab = hasAgentPasses || allShown.length > 0 || Boolean(onGetFeedback);
   // Total open changes across every section (suggestions + Experience rewrites +
   // Skills keyword actions) — drives the Feedback tab badge and the by-section
   // summary inside it, so both match the per-section nav badges.
-  const sectionsWithChanges = NAV.filter((n) => n.badge);
+  const sectionsWithChanges = hasAgentPasses ? agentSectionChanges : NAV.filter((n) => n.badge);
   const totalOpenChanges = sectionsWithChanges.reduce((sum, n) => sum + (n.badge ?? 0), 0);
 
   // Keywords to tint green in the preview: the posting's role keywords when this
@@ -1963,15 +2303,24 @@ export default function EditEditor({
   // The review banner spans every AI-driven change: bullet rewrites AND keywords
   // added to Skills. Each added keyword is "pending" until kept or removed, so the
   // count reads e.g. "0 of 8 reviewed" right after a bulk keyword add.
-  const totalChanges = bulletDiffs.length + addedKwList.length;
-  const pendingChanges = totalPending + kwPending.length;
-  const reviewedChanges = totalChanges - pendingChanges;
+  const agentTotalChanges = hasAgentPasses
+    ? availableAgentPasses.reduce((sum, pass) => sum + (agentProgress[pass.id]?.total ?? 0), 0)
+    : 0;
+  const agentReviewedChanges = hasAgentPasses
+    ? availableAgentPasses.reduce((sum, pass) => sum + (agentProgress[pass.id]?.reviewed ?? 0), 0)
+    : 0;
+  const totalChanges = hasAgentPasses ? agentTotalChanges : bulletDiffs.length + addedKwList.length;
+  const reviewedChanges = hasAgentPasses
+    ? agentReviewedChanges
+    : totalChanges - (totalPending + kwPending.length);
+  const pendingChanges = Math.max(0, totalChanges - reviewedChanges);
+  const reviewProgressLabel = hasAgentPasses ? "agent changes reviewed" : "AI changes reviewed";
   const reviewProgressNode =
     totalChanges > 0 ? (
       <span
         className={"tmE-reviewprog" + (pendingChanges === 0 ? " is-done" : "")}
         data-testid="revision-reviewed-count"
-        title={`${reviewedChanges} of ${totalChanges} AI changes reviewed`}
+        title={`${reviewedChanges} of ${totalChanges} ${reviewProgressLabel}`}
       >
         {pendingChanges === 0 ? <Check size={13} /> : <ListChecks size={13} />}
         <span className="tmE-reviewprog-dots" aria-hidden="true">
@@ -1980,7 +2329,7 @@ export default function EditEditor({
           ))}
         </span>
         <span className="tmE-reviewprog-label">
-          {reviewedChanges} of {totalChanges} AI changes reviewed
+          {reviewedChanges} of {totalChanges} {reviewProgressLabel}
         </span>
       </span>
     ) : null;
@@ -2010,6 +2359,25 @@ export default function EditEditor({
       !/\b(?:trim|cut|remov|delet|drop|shorten|condens|quantif|metric|measur|number|spac|whitespace|format|capitali|casing|punctuat|consisten|align|reorder|reorganiz|rephras|reword|clarif|overlap|date|grammar|typo|tense)/.test(
         fixText,
       );
+    const agentKey = agentSuggestionKey(p);
+    const isAgentFix = Boolean(agentKey && p.agentId);
+    const isAiRewriteFix = Boolean(aiRewriteTarget(p));
+    // Jump to this finding's section in the editor (header gaps land on the field).
+    const goEditManually = () => {
+      track("resume_feedback_suggestion_clicked", {
+        rule_id: p.ruleId,
+        category: p.category,
+        severity: p.severity,
+        section: target,
+      });
+      setMode("edit");
+      setSection(target);
+      if (p.ruleId === "header_missing_name") focusHeaderField("name");
+      else if (p.ruleId === "header_missing_title") focusHeaderField("headline");
+      else if (p.ruleId === "header_missing_location") focusHeaderField("location");
+      else if (p.ruleId === "header_missing_phone") focusHeaderField("phone");
+      else if (p.ruleId === "header_missing_email") focusHeaderField("email");
+    };
     return (
       <div
         key={id}
@@ -2043,6 +2411,11 @@ export default function EditEditor({
               </>
             )}
           </span>
+          {p.agentPersona && (
+            <span className={`tmE-agent-chip is-${p.agentId ?? "agent"}`}>
+              {p.agentPersona}
+            </span>
+          )}
         </div>
         {p.summary && <p className="tmE-fix-sum">{p.summary}</p>}
         {p.quote && (
@@ -2055,8 +2428,23 @@ export default function EditEditor({
             <span>Fix:</span> {p.fix}
           </p>
         )}
+        {p.truthfulnessRisk === "needs_user_input" && (
+          <p className="tmE-fix-note">
+            <AlertTriangle size={12} /> Only add real metrics you can support.
+          </p>
+        )}
         <div className="tmE-fix-card-actions">
-          {canAiDraft(p) && (
+          {/* One clear primary action. For an AI rewrite that's Accept (keep it);
+              otherwise it's the AI draft; for a header gap it's the manual jump. */}
+          {isAiRewriteFix ? (
+            <button
+              type="button"
+              className="tmE-fix-apply is-primary"
+              onClick={() => decideAiRewriteSuggestion(p, "accepted")}
+            >
+              <Check size={13} /> Accept
+            </button>
+          ) : canAiDraft(p) ? (
             <button
               type="button"
               className="tmE-fix-apply"
@@ -2073,26 +2461,53 @@ export default function EditEditor({
                     ? "Draft fix with AI"
                     : "Edit draft"}
             </button>
+          ) : (
+            <button type="button" className="tmE-fix-apply" onClick={goEditManually}>
+              Edit manually →
+            </button>
           )}
-          <button
-            type="button"
-            className={canAiDraft(p) ? "tmE-fix-goto" : "tmE-fix-apply"}
-            onClick={() => {
-              track("resume_feedback_suggestion_clicked", {
-                rule_id: p.ruleId,
-                category: p.category,
-                severity: p.severity,
-                section: target,
-              });
-              setMode("edit");
-              setSection(target);
-              // Contact gaps point at a specific field — land the cursor there.
-              if (p.ruleId === "header_missing_phone") focusContactField("phone");
-              else if (p.ruleId === "header_missing_email") focusContactField("email");
-            }}
-          >
-            Edit manually →
-          </button>
+          {/* Quiet secondary actions: tweak, jump to the section, or dismiss.
+              Omitted entirely for a header gap (its only action is the primary). */}
+          {(isAiRewriteFix || canAiDraft(p) || isAgentFix) && (
+          <div className="tmE-fix-actions-minor">
+            {isAiRewriteFix && (
+              <button
+                type="button"
+                className="tmE-fix-goto"
+                onClick={() => openSuggestionDraft(p, target)}
+              >
+                Edit
+              </button>
+            )}
+            {!isAiRewriteFix && canAiDraft(p) && (
+              <button type="button" className="tmE-fix-goto" onClick={goEditManually}>
+                Edit manually →
+              </button>
+            )}
+            {isAiRewriteFix ? (
+              <button
+                type="button"
+                className="tmE-fix-goto"
+                onClick={() => decideAiRewriteSuggestion(p, "rejected")}
+              >
+                Reject
+              </button>
+            ) : (
+              isAgentFix && (
+                <button
+                  type="button"
+                  className="tmE-fix-goto"
+                  onClick={() => {
+                    markAgentSuggestionDecision(p, "resolved");
+                    flashApplied(`${p.agentPersona ?? "Agent"} suggestion dismissed`);
+                  }}
+                >
+                  Dismiss
+                </button>
+              )
+            )}
+          </div>
+          )}
         </div>
         {draft != null && (
           <div className="tmE-suggestion-draft">
@@ -2162,7 +2577,18 @@ export default function EditEditor({
     <div className={"tmE-wrap" + (wideEditMode ? " is-workmode" : "")}>
       {applied && (
         <div className="tmE-applied-toast" role="status" aria-live="polite">
-          <Check size={14} /> {applied.text}
+          <Check size={14} /> <span>{applied.text}</span>
+          {applied.target && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode("edit");
+                setSection(applied.target!);
+              }}
+            >
+              Edit {SECTION_LABEL[applied.target]}
+            </button>
+          )}
         </div>
       )}
       <div className="tmE-head">
@@ -2252,6 +2678,14 @@ export default function EditEditor({
               type="button"
               className="tm-btn tm-btn--primary tm-btn--sm tmE-reviewbar-cta"
               onClick={() => {
+                if (hasAgentPasses) {
+                  const nextPass =
+                    availableAgentPasses.find((pass) => !agentProgress[pass.id]?.complete)?.id ??
+                    activeAgentPass;
+                  setActiveAgentPass(nextPass);
+                  setMode("feedback");
+                  return;
+                }
                 setMode("edit");
                 setSection(totalPending > 0 ? "experience" : "skills");
               }}
@@ -2398,11 +2832,11 @@ export default function EditEditor({
               )}
               <div className="tmE-field">
                 <label>Name</label>
-                <input className="tmE-input" value={doc.name} onChange={(e) => patch({ name: e.target.value })} />
+                <input ref={nameInputRef} className="tmE-input" value={doc.name} onChange={(e) => patch({ name: e.target.value })} />
               </div>
               <div className="tmE-field">
                 <label>Headline</label>
-                <input className="tmE-input" value={doc.headline} onChange={(e) => patch({ headline: e.target.value })} />
+                <input ref={headlineInputRef} className="tmE-input" value={doc.headline} onChange={(e) => patch({ headline: e.target.value })} />
               </div>
               <label className="tmE-field-grouplabel">Contact</label>
               <div className="tmE-contact-grid">
@@ -2416,7 +2850,7 @@ export default function EditEditor({
                 </div>
                 <div className="tmE-field" style={{ marginBottom: 0 }}>
                   <label>City / State</label>
-                  <input className="tmE-input" value={contactFields.location} placeholder="Portland, OR" onChange={(e) => updateContact({ location: e.target.value })} />
+                  <input ref={locationInputRef} className="tmE-input" value={contactFields.location} placeholder="Portland, OR" onChange={(e) => updateContact({ location: e.target.value })} />
                 </div>
                 <div className="tmE-field" style={{ marginBottom: 0 }}>
                   <label>LinkedIn URL</label>
@@ -2448,7 +2882,7 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Experience</h2>
               <p className="tmE-panel-sub">
-                {bulletDiffs.length > 0
+                {bulletDiffs.length > 0 && !hasAgentPasses
                   ? "These AI rewrites are already in your resume. Keep each one, or revert to your original wording (struck-through words were removed, green words were added)."
                   : "Edit any line. Highlighted text in the preview shows posting keywords and metrics."}
               </p>
@@ -2501,7 +2935,7 @@ export default function EditEditor({
                       const key = bulletKey(ei, bi);
                       const diff = diffs.get(key);
                       const decision = decisions[key];
-                      if (!diff) {
+                      if (!diff || hasAgentPasses) {
                         return (
                           <div key={bi} className="tmE-bullet-row">
                             <textarea className="tmE-textarea" value={b} onChange={(ev) => setBulletText(ei, bi, ev.target.value)} />
@@ -2996,26 +3430,25 @@ export default function EditEditor({
               <div className="tmE-fix-top">
                 <div>
                   <h2 className="tmE-panel-title">
-                    {onGetFeedback ? "Resume feedback" : "Suggestions from your audit"}
+                    {hasAgentPasses
+                      ? "3 Agent Review"
+                      : onGetFeedback
+                        ? "Resume feedback"
+                        : "Suggestions from your audit"}
                   </h2>
                   <p className="tmE-panel-sub">
-                    {!onGetFeedback
-                      ? "Open a card to jump to its section."
-                      : feedbackLoading
-                        ? "Reviewing your content…"
-                        : allShown.length > 0
-                          ? "Open a card to jump to its section."
-                          : "Run a review to see suggestions here."}
+                    {hasAgentPasses
+                      ? "Three quick passes. Finish one, then move to the next."
+                      : !onGetFeedback
+                        ? "Open a card to jump to its section."
+                        : feedbackLoading
+                          ? "Reviewing your content…"
+                          : allShown.length > 0
+                            ? "Open a card to jump to its section."
+                            : "Run a review to see suggestions here."}
                   </p>
                 </div>
                 <div className="tmE-fix-top-actions">
-                  <button
-                    type="button"
-                    className="tm-btn tm-btn--outline tm-btn--sm"
-                    onClick={() => setManualSuggestionOpen((open) => !open)}
-                  >
-                    <Plus size={13} /> Add suggestion
-                  </button>
                 {onGetFeedback && (
                   <button
                     type="button"
@@ -3036,75 +3469,85 @@ export default function EditEditor({
                 )}
                 </div>
               </div>
-              {feedbackLoading && <ReviewProgress />}
-              {feedbackError && <p className="tmE-fix-status">{feedbackError}</p>}
-              {manualSuggestionOpen && (
-                <div className="tmE-manual-suggestion">
-                  <div className="tmE-row2">
-                    <div className="tmE-field" style={{ marginBottom: 0 }}>
-                      <label>Section</label>
-                      <select
-                        className="tmE-input"
-                        value={manualSuggestion.section}
-                        onChange={(e) =>
-                          setManualSuggestion((s) => ({
-                            ...s,
-                            section: e.target.value as EditableSection,
-                          }))
-                        }
-                      >
-                        {EDITABLE_SECTIONS.map((key) => (
-                          <option key={key} value={key}>
-                            {SECTION_LABEL[key]}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="tmE-field" style={{ marginBottom: 0 }}>
-                      <label>Title</label>
-                      <input
-                        className="tmE-input"
-                        value={manualSuggestion.title}
-                        placeholder="Add stronger support metric"
-                        onChange={(e) =>
-                          setManualSuggestion((s) => ({ ...s, title: e.target.value }))
-                        }
+              {hasAgentPasses && activeAgentPassData && (
+                <div className="tmE-agent-review">
+                  {/* One progress meter for all three passes — the single "how far
+                      along am I" signal, replacing the old eyebrow + banner copy. */}
+                  <div className="tmE-agent-progress">
+                    <div className="tmE-agent-progress-track" aria-hidden="true">
+                      <span
+                        style={{
+                          width: `${agentTotal ? Math.round((agentReviewed / agentTotal) * 100) : 100}%`,
+                        }}
                       />
                     </div>
+                    <p className="tmE-agent-progress-label">
+                      {allAgentPassesReviewed
+                        ? "All 3 agent passes reviewed."
+                        : `${agentReviewed} of ${agentTotal} reviewed`}
+                    </p>
                   </div>
-                  <div className="tmE-field" style={{ marginTop: 10, marginBottom: 0 }}>
-                    <label>Suggestion</label>
-                    <textarea
-                      className="tmE-textarea"
-                      value={manualSuggestion.fix}
-                      placeholder="Managed 3 enterprise accounts and reduced response backlog 28%."
-                      onChange={(e) =>
-                        setManualSuggestion((s) => ({ ...s, fix: e.target.value }))
-                      }
-                    />
+                  {/* The three passes — the primary selector. Clicking one focuses
+                      the card list below on just that pass (guided, one at a time). */}
+                  <div className="tmE-agent-tabs" role="tablist" aria-label="3 agent review passes">
+                    {availableAgentPasses.map((pass) => {
+                      const progress = agentProgress[pass.id];
+                      const unresolved = Math.max(0, progress.total - progress.reviewed);
+                      const active = pass.id === activeAgentPass;
+                      return (
+                        <button
+                          key={pass.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={active}
+                          className={
+                            "tmE-agent-tab is-" +
+                            pass.id +
+                            (active ? " is-active" : "") +
+                            (progress.complete ? " is-done" : "")
+                          }
+                          onClick={() => {
+                            setActiveAgentPass(pass.id);
+                            setMode("feedback");
+                          }}
+                          data-testid={`agent-pass-${pass.id}`}
+                        >
+                          <span className="tmE-agent-tab-top">
+                            <span className="tmE-agent-tab-name">{pass.persona}</span>
+                            <span className="tmE-agent-score" title={AGENT_PASS_SCORE_HELP[pass.id]}>
+                              {AGENT_PASS_SCORE_COPY[pass.id] ?? pass.scoreLabel}{" "}
+                              {typeof pass.score === "number" ? `${pass.score}/100` : "--"}
+                            </span>
+                          </span>
+                          <span className="tmE-agent-tab-status">
+                            {progress.complete ? (
+                              <>
+                                <Check size={12} /> Reviewed
+                              </>
+                            ) : (
+                              `${unresolved} to review`
+                            )}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
-                  <div className="tmE-fix-card-actions">
-                    <button
-                      type="button"
-                      className="tmE-fix-apply"
-                      onClick={addManualSuggestion}
-                      disabled={!manualSuggestion.fix.trim()}
-                    >
-                      <Plus size={13} /> Add card
-                    </button>
-                    <button
-                      type="button"
-                      className="tmE-fix-goto"
-                      onClick={() => setManualSuggestionOpen(false)}
-                    >
-                      Cancel
-                    </button>
+                  {/* One context line for the ACTIVE pass only (not all three) —
+                      what this agent checks and the one specific thing it flagged. */}
+                  <div className="tmE-agent-context">
+                    <b>
+                      {activeAgentPassData.persona} · {activeAgentPassData.specialty}
+                    </b>
+                    {activeAgentPassData.summary && <p>{activeAgentPassData.summary}</p>}
+                    <small>{AGENT_PASS_SCORE_HELP[activeAgentPass]}</small>
                   </div>
                 </div>
               )}
-              {/* Summary across all categories: counts per section (same circled
-                  badge as the nav), each jumping into that section to act. */}
-              {sectionsWithChanges.length > 0 && (
+              {feedbackLoading && <ReviewProgress />}
+              {feedbackError && <p className="tmE-fix-status">{feedbackError}</p>}
+              {/* By-section jump grid — only in plain feedback mode. In agent mode the
+                  cards are already focused per pass, so the grid is redundant noise. */}
+              {!hasAgentPasses && sectionsWithChanges.length > 0 && (
                 <div className="tmE-fixsum">
                   <p className="tmE-fixsum-head">
                     {totalOpenChanges} suggestion{totalOpenChanges === 1 ? "" : "s"} across{" "}
@@ -3130,15 +3573,40 @@ export default function EditEditor({
                   </div>
                 </div>
               )}
+              {/* Active pass cleared: confirm it, then point at the next pass (or
+                  done). This is the "what's next" handoff between passes. */}
+              {hasAgentPasses && activeAgentShown.length === 0 && (
+                <div className="tmE-agent-done">
+                  <p className="tmE-agent-done-msg">
+                    <Check size={15} />{" "}
+                    {activeAgentPassData
+                      ? `${activeAgentPassData.persona}'s pass is complete.`
+                      : "This pass is complete."}
+                  </p>
+                  {nextIncompletePass ? (
+                    <button
+                      type="button"
+                      className="tmE-agent-next"
+                      onClick={() => setActiveAgentPass(nextIncompletePass.id)}
+                    >
+                      Next: {nextIncompletePass.persona}&rsquo;s pass <ArrowRight size={14} />
+                    </button>
+                  ) : (
+                    <p className="tmE-agent-done-sub">
+                      Every pass is reviewed. Your resume is ready to download.
+                    </p>
+                  )}
+                </div>
+              )}
               {(["high", "medium", "low"] as const).map((sev) => {
-                const group = allShown.filter((p) => p.severity === sev);
+                const group = activeAgentShown.filter((p) => p.severity === sev);
                 if (group.length === 0) return null;
                 // Global running index so cards fade in one after another across all
                 // three severity groups (not restarting the stagger per group).
                 const offset =
                   sev === "high"
                     ? 0
-                    : allShown.filter(
+                    : activeAgentShown.filter(
                         (p) =>
                           p.severity === "high" ||
                           (sev === "low" && p.severity === "medium"),
@@ -3216,7 +3684,15 @@ export default function EditEditor({
                   className="tmE-doc-scaler"
                   style={{ transform: `scale(${docScale})` }}
                 >
-                  <PrintDoc doc={doc} id={id} resumeOnly hideToolbar markPlaceholders highlightKeywords={showMatches ? previewKeywords : undefined} />
+                  <PrintDoc
+                    doc={doc}
+                    id={id}
+                    resumeOnly
+                    hideToolbar
+                    markPlaceholders
+                    highlightKeywords={showMatches ? previewKeywords : undefined}
+                    appliedHighlights={appliedPreviewHighlights}
+                  />
                 </div>
                 {cursorTop != null && (
                   <div className="tmE-cursor" style={{ top: `${cursorTop}px` }} aria-hidden="true">

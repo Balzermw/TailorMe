@@ -13,7 +13,7 @@ test("@critical editor supports adding content, saving, feedback, and target-job
   await page.getByRole("button", { name: /Save resume/i }).click();
   await expect(page.getByText(/^Saved$/)).toBeVisible();
 
-  await page.getByRole("button", { name: /^Feedback/i }).click();
+  await page.getByRole("tab", { name: /^Feedback/i }).click();
   await page.getByRole("button", { name: /Get feedback/i }).click();
   await expect(page.locator(".tmE-fix-status")).toContainText(/Looks solid|No major issues/i, {
     timeout: 10_000,

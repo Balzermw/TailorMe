@@ -28,12 +28,12 @@ test("@critical revision accept, reject, edit, reload, and print stay in sync", 
   await openRevisionFixture(page);
 
   const preview = page.getByTestId("resume-live-preview");
-  await expect(page.getByTestId("revision-reviewed-count")).toHaveText("0/3 changes reviewed");
+  await expect(page.getByTestId("revision-reviewed-count")).toHaveText("0 of 3 AI changes reviewed");
   await expect(page.getByRole("button", { name: /Review my edits/i })).toHaveCount(0);
 
   await page.getByTestId("revision-accept-0-0").click();
   await expect(page.getByTestId("revision-accept-0-0")).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("revision-reviewed-count")).toHaveText("1/3 changes reviewed");
+  await expect(page.getByTestId("revision-reviewed-count")).toHaveText("1 of 3 AI changes reviewed");
   await expect(preview).toContainText(E2E_REVISION_ACCEPTED_TEXT);
   await expect(page.getByRole("button", { name: /Review my edits/i })).toHaveCount(0);
 
@@ -46,22 +46,22 @@ test("@critical revision accept, reject, edit, reload, and print stay in sync", 
   await expect(preview).toContainText(E2E_REVISION_BAD_AI_TEXT);
   await page.getByTestId("revision-reject-0-1").click();
   await expect(preview).toContainText(E2E_REVISION_REJECTED_SOURCE_TEXT);
-  await expect(page.getByTestId("revision-reviewed-count")).toHaveText("2/3 changes reviewed");
+  await expect(page.getByTestId("revision-reviewed-count")).toHaveText("2 of 3 AI changes reviewed");
 
   await page.getByTestId("revision-edit-0-2").click();
   await expect(page.getByTestId("revision-edit-0-2")).toHaveAttribute("aria-pressed", "true");
   await page.getByTestId("revision-custom-bullet-0-2").fill(E2E_REVISION_CUSTOM_TEXT);
   await expect(page.getByRole("button", { name: /Review my edits/i })).toBeVisible();
   await expect(preview).toContainText(E2E_REVISION_CUSTOM_TEXT);
-  await expect(page.getByTestId("revision-reviewed-count")).toHaveText("3/3 changes reviewed");
+  await expect(page.getByTestId("revision-reviewed-count")).toHaveText("3 of 3 AI changes reviewed");
 
   await page.getByRole("button", { name: /Save edits/i }).click();
-  await expect(page.getByText(/^Saved$/)).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Saved$/ })).toBeVisible();
 
   await page.reload();
   await expect(page.getByText(/Customer Operations Analyst/i)).toBeVisible();
   await page.getByRole("button", { name: /^Experience/i }).click();
-  await expect(page.getByTestId("revision-reviewed-count")).toHaveText("3/3 changes reviewed");
+  await expect(page.getByTestId("revision-reviewed-count")).toHaveText("3 of 3 AI changes reviewed");
   await expect(page.getByTestId("revision-accept-0-0")).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("revision-reject-0-1")).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("revision-edit-0-2")).toHaveAttribute("aria-pressed", "true");
@@ -86,7 +86,7 @@ test("@critical resolved feedback suggestions clear without duplicating pending 
   const telemetryBodies = await captureTelemetry(page);
   await openRevisionFixture(page);
 
-  await page.getByRole("button", { name: /^Feedback/i }).click();
+  await page.getByRole("tab", { name: /^Feedback/i }).click();
   await expect(page.getByTestId("feedback-suggestion")).toHaveCount(2);
   await expect(page.getByText("Rewrite the stale tracker line")).toBeVisible();
   await expect(page.getByText("Add a project section")).toBeVisible();
@@ -102,7 +102,7 @@ test("@critical resolved feedback suggestions clear without duplicating pending 
     new RegExp(E2E_REVISION_QUOTED_TEXT, "i"),
   );
 
-  await page.getByRole("button", { name: /^Feedback/i }).click();
+  await page.getByRole("tab", { name: /^Feedback/i }).click();
   await expect(page.getByText("Rewrite the stale tracker line")).toHaveCount(0);
   await expect(page.getByText("Add a project section")).toBeVisible();
   await expect(page.getByRole("button", { name: /Up to date/i })).toHaveCount(0);
@@ -191,10 +191,10 @@ test("@critical review my edits sends changed bullets, handles verdicts, undo, a
   );
 
   await page.getByRole("button", { name: /Undo my edits/i }).click();
-  await expect(page.getByTestId("revision-reviewed-count")).toHaveText("0/3 changes reviewed");
+  await expect(page.getByTestId("revision-reviewed-count")).toHaveText("0 of 3 AI changes reviewed");
   await expect(page.getByRole("button", { name: /Review my edits/i })).toHaveCount(0);
   await page.getByRole("button", { name: /Save edits/i }).click();
-  await expect(page.getByText(/^Saved$/)).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Saved$/ })).toBeVisible();
   expect(reviewCalls).toBe(1);
 
   await page.getByRole("button", { name: /^Summary/i }).click();
