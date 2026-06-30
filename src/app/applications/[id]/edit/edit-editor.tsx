@@ -1741,22 +1741,28 @@ export default function EditEditor({
     .filter((k) => !k.inResume)
     .map((k) => k.term)
     .slice(0, 8);
-  // Nav badges reflect what a section actually surfaces inline: Experience shows
-  // its AI rewrites (diffs), Skills shows the missing-keyword suggestion. (Other
-  // sections' deterministic suggestions still live in the Suggestions tab; they
-  // get inline cards + badges in a follow-up.)
+  // Suggestions that belong to a given section (deterministic findings carry a
+  // targetSection), rendered inline at the top of that section's panel.
+  const sectionFixes = (s: Section): ProofPoint[] =>
+    shownPoints.filter((p) => suggestionTarget(p) === s);
+  // Nav badges count what each section surfaces inline: its suggestions, plus the
+  // Experience AI rewrites (diffs) and the Skills missing-keyword card.
+  const skillsKwPending = missingKeywords.some((t) => !addedKeywords.has(t)) ? 1 : 0;
+  const sectionBadge = (s: Section): number | undefined => {
+    const n =
+      sectionFixes(s).length +
+      (s === "experience" ? totalPending : 0) +
+      (s === "skills" ? skillsKwPending : 0);
+    return n || undefined;
+  };
   const NAV: { key: Section; label: string; badge?: number }[] = [
-    { key: "header", label: "Header" },
-    { key: "summary", label: "Summary" },
-    { key: "experience", label: "Experience", badge: totalPending || undefined },
-    { key: "projects", label: "Projects" },
-    { key: "education", label: "Education" },
-    { key: "certifications", label: "Certifications" },
-    {
-      key: "skills",
-      label: "Skills",
-      badge: missingKeywords.some((t) => !addedKeywords.has(t)) ? 1 : undefined,
-    },
+    { key: "header", label: "Header", badge: sectionBadge("header") },
+    { key: "summary", label: "Summary", badge: sectionBadge("summary") },
+    { key: "experience", label: "Experience", badge: sectionBadge("experience") },
+    { key: "projects", label: "Projects", badge: sectionBadge("projects") },
+    { key: "education", label: "Education", badge: sectionBadge("education") },
+    { key: "certifications", label: "Certifications", badge: sectionBadge("certifications") },
+    { key: "skills", label: "Skills", badge: sectionBadge("skills") },
   ];
   // Feedback is a top-level tab now (not a nav row); its label/badge live there.
   const feedbackLabel = onGetFeedback ? "Feedback" : "Suggestions";
@@ -1893,6 +1899,169 @@ export default function EditEditor({
     section === "certifications" ||
     section === "skills";
 
+  // One suggestion card, reused by the Feedback tab AND each section panel, so a
+  // finding shows up inside the section it belongs to. Closes over the draft/apply
+  // handlers; `i` drives the fade-in stagger.
+  const renderFix = (p: ProofPoint, i: number) => {
+    const target = suggestionTarget(p);
+    const id = suggestionId(p);
+    const draft = suggestionDrafts[id];
+    const rewriting = rewritingIds.has(id);
+    // [bracket] slots in the draft the user must fill before applying.
+    const phCount = draft ? (draft.match(/\[[^\]]+\]/g) || []).length : 0;
+    // "Adds content" = net-new material (keywords, a summary), not a rework/removal.
+    const fixText = `${p.title} ${p.category ?? ""} ${p.summary ?? ""} ${p.fix ?? ""}`.toLowerCase();
+    const addsContent =
+      !p.quote &&
+      /\b(?:add|include|incorporate|introduce|missing|lack|absent)\b/.test(fixText) &&
+      !/\b(?:trim|cut|remov|delet|drop|shorten|condens|quantif|metric|measur|number|spac|whitespace|format|capitali|casing|punctuat|consisten|align|reorder|reorganiz|rephras|reword|clarif|overlap|date|grammar|typo|tense)/.test(
+        fixText,
+      );
+    return (
+      <div
+        key={id}
+        className="tmE-fix tmE-fix--in"
+        style={{ animationDelay: `${Math.min(i * 70, 700)}ms` }}
+        data-testid="feedback-suggestion"
+        data-suggestion-title={p.title}
+        data-rule-id={p.ruleId ?? ""}
+        onMouseEnter={() => highlightFinding(p.quote, target)}
+        onMouseLeave={() =>
+          lockedFinding ? highlightFinding(lockedFinding.quote, lockedFinding.section) : clearHighlight()
+        }
+      >
+        <div className="tmE-fix-titlerow">
+          <b>{p.title}</b>
+          <span
+            className={"tmE-fix-kind " + (addsContent ? "tmE-fix-kind--add" : "tmE-fix-kind--edit")}
+            title={
+              addsContent
+                ? "Adds new content — nothing in your resume is replaced"
+                : "Reworks text already in your resume"
+            }
+          >
+            {addsContent ? (
+              <>
+                <Plus size={11} /> Adds content
+              </>
+            ) : (
+              <>
+                <PenLine size={11} /> Rewrites
+              </>
+            )}
+          </span>
+        </div>
+        {p.summary && <p className="tmE-fix-sum">{p.summary}</p>}
+        {p.quote && (
+          <p className="tmE-fix-quote" title={`From your ${SECTION_LABEL[target]} section`}>
+            “{p.quote}”
+          </p>
+        )}
+        {p.fix && (
+          <p className="tmE-fix-fix">
+            <span>Fix:</span> {p.fix}
+          </p>
+        )}
+        <div className="tmE-fix-card-actions">
+          {canAiDraft(p) && (
+            <button
+              type="button"
+              className="tmE-fix-apply"
+              onClick={() =>
+                bulletReviewMode(p) ? void openBulletReview(p) : openSuggestionDraft(p, target)
+              }
+            >
+              <PenLine size={13} />{" "}
+              {bulletReviewMode(p) === "shorten"
+                ? "Shorten bullets with AI"
+                : bulletReviewMode(p) === "quantify"
+                  ? "Add metrics with AI"
+                  : draft == null
+                    ? "Draft fix with AI"
+                    : "Edit draft"}
+            </button>
+          )}
+          <button
+            type="button"
+            className={canAiDraft(p) ? "tmE-fix-goto" : "tmE-fix-apply"}
+            onClick={() => {
+              track("resume_feedback_suggestion_clicked", {
+                rule_id: p.ruleId,
+                category: p.category,
+                severity: p.severity,
+                section: target,
+              });
+              setMode("edit");
+              setSection(target);
+            }}
+          >
+            Edit manually →
+          </button>
+        </div>
+        {draft != null && (
+          <div className="tmE-suggestion-draft">
+            <label>Draft</label>
+            {rewriting ? (
+              <p className="tmE-draft-hint tmE-draft-hint--ai">
+                <Loader2 size={12} className="tmE-draft-spin" /> Drafting a rewrite with AI…
+              </p>
+            ) : (
+              phCount > 0 && (
+                <p className="tmE-draft-hint">
+                  <span className="tmE-draft-token">[ ]</span>
+                  {phCount === 1
+                    ? "1 highlighted spot needs your details"
+                    : `${phCount} highlighted spots need your details`}{" "}
+                  before applying.
+                </p>
+              )
+            )}
+            <div className={"tmE-draft-input" + (phCount > 0 ? " has-ph" : "")}>
+              {phCount > 0 && (
+                <div className="tmE-draft-marks" aria-hidden="true">
+                  {draft.split(/(\[[^\]]+\])/g).map((seg, j) =>
+                    /^\[[^\]]+\]$/.test(seg) ? (
+                      <mark key={j} className="tmE-ph">
+                        {seg}
+                      </mark>
+                    ) : (
+                      <span key={j}>{seg}</span>
+                    ),
+                  )}
+                  {"\n"}
+                </div>
+              )}
+              <textarea
+                className={"tmE-textarea tmE-draft-ta" + (phCount > 0 ? " tmE-textarea--hasplaceholder" : "")}
+                value={draft}
+                onChange={(e) => updateSuggestionDraft(id, e.target.value)}
+                onScroll={(e) => {
+                  const marks = e.currentTarget.parentElement?.querySelector(".tmE-draft-marks");
+                  if (marks instanceof HTMLElement) {
+                    marks.scrollTop = e.currentTarget.scrollTop;
+                    marks.scrollLeft = e.currentTarget.scrollLeft;
+                  }
+                }}
+              />
+            </div>
+            <div className="tmE-fix-card-actions">
+              <button
+                type="button"
+                className="tmE-fix-apply is-primary"
+                onClick={() => applySuggestionDraft(p, target, draft)}
+                disabled={!draft.trim() || rewriting}
+              >
+                <Check size={13} /> Apply to {SECTION_LABEL[target]}
+              </button>
+              <button type="button" className="tmE-fix-goto" onClick={() => closeSuggestionDraft(id)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
   return (
     <div className={"tmE-wrap" + (wideEditMode ? " is-workmode" : "")}>
       {applied && (
@@ -2128,6 +2297,9 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Header</h2>
               <p className="tmE-panel-sub">Your name, target headline, and contact details.</p>
+              {sectionFixes("header").length > 0 && (
+                <div className="tmE-secfixes">{sectionFixes("header").map((p, i) => renderFix(p, i))}</div>
+              )}
               <div className="tmE-field">
                 <label>Name</label>
                 <input className="tmE-input" value={doc.name} onChange={(e) => patch({ name: e.target.value })} />
@@ -2167,6 +2339,9 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Summary</h2>
               <p className="tmE-panel-sub">The first thing a recruiter reads. Keep it tight and aimed at this role.</p>
+              {sectionFixes("summary").length > 0 && (
+                <div className="tmE-secfixes">{sectionFixes("summary").map((p, i) => renderFix(p, i))}</div>
+              )}
               <div className="tmE-field">
                 <textarea className="tmE-textarea tmE-textarea--lg" value={doc.summary} onChange={(e) => patch({ summary: e.target.value })} />
               </div>
@@ -2181,6 +2356,9 @@ export default function EditEditor({
                   ? "These AI rewrites are already in your resume. Keep each one, or revert to your original wording (struck-through words were removed, green words were added)."
                   : "Edit any line. Highlighted text in the preview shows posting keywords and metrics."}
               </p>
+              {sectionFixes("experience").length > 0 && (
+                <div className="tmE-secfixes">{sectionFixes("experience").map((p, i) => renderFix(p, i))}</div>
+              )}
               {doc.experience.map((e, ei) => {
                 const open = openEntries.has(ei);
                 const meta = [e.company, cleanResumeDate(e.dates)].filter(Boolean).join(" · ");
@@ -2329,6 +2507,9 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Projects</h2>
               <p className="tmE-panel-sub">Side projects, portfolio, or open source: the name plus what you did and any result.</p>
+              {sectionFixes("projects").length > 0 && (
+                <div className="tmE-secfixes">{sectionFixes("projects").map((p, i) => renderFix(p, i))}</div>
+              )}
               {(doc.projects ?? []).map((p, i) => {
                 const key = removeCardKey("project", i);
                 return (
@@ -2537,6 +2718,9 @@ export default function EditEditor({
                     </div>
                   );
                 })()}
+              {sectionFixes("skills").length > 0 && (
+                <div className="tmE-secfixes">{sectionFixes("skills").map((p, i) => renderFix(p, i))}</div>
+              )}
               {doc.skillGroups?.length ? (
                 <>
                   <p className="tmE-panel-sub">
@@ -2794,193 +2978,7 @@ export default function EditEditor({
                       {SEV[sev].label}
                       <span style={{ background: SEV[sev].bg, color: SEV[sev].color }}>{group.length}</span>
                     </p>
-                    {group.map((p, i) => {
-                      const target = suggestionTarget(p);
-                      const id = suggestionId(p);
-                      const draft = suggestionDrafts[id];
-                      const rewriting = rewritingIds.has(id);
-                      // [bracket] slots in the draft the user must fill before applying.
-                      const phCount = draft ? (draft.match(/\[[^\]]+\]/g) || []).length : 0;
-                      // "Adds content" = net-new material (keywords, a summary), not a
-                      // rework or removal of existing text. Require a genuine add-intent
-                      // AND no rework/remove verb; a quote always means there's existing
-                      // text to edit. Keeps Trim/Quantify/Spacing out of "Adds content".
-                      const fixText =
-                        `${p.title} ${p.category ?? ""} ${p.summary ?? ""} ${p.fix ?? ""}`.toLowerCase();
-                      // Stems anchored with a LEADING \b only (no trailing boundary) so
-                      // "spac" matches "spaces/spacing" but "cut" can't match "execute".
-                      const addsContent =
-                        !p.quote &&
-                        /\b(?:add|include|incorporate|introduce|missing|lack|absent)\b/.test(fixText) &&
-                        !/\b(?:trim|cut|remov|delet|drop|shorten|condens|quantif|metric|measur|number|spac|whitespace|format|capitali|casing|punctuat|consisten|align|reorder|reorganiz|rephras|reword|clarif|overlap|date|grammar|typo|tense)/.test(
-                          fixText,
-                        );
-                      return (
-                        <div
-                          key={i}
-                          className="tmE-fix tmE-fix--in"
-                          style={{ animationDelay: `${Math.min((offset + i) * 70, 700)}ms` }}
-                          data-testid="feedback-suggestion"
-                          data-suggestion-title={p.title}
-                          data-rule-id={p.ruleId ?? ""}
-                          onMouseEnter={() => highlightFinding(p.quote, target)}
-                          onMouseLeave={() =>
-                            lockedFinding
-                              ? highlightFinding(lockedFinding.quote, lockedFinding.section)
-                              : clearHighlight()
-                          }
-                        >
-                          <div className="tmE-fix-titlerow">
-                            <b>{p.title}</b>
-                            <span
-                              className={
-                                "tmE-fix-kind " +
-                                (addsContent ? "tmE-fix-kind--add" : "tmE-fix-kind--edit")
-                              }
-                              title={
-                                addsContent
-                                  ? "Adds new content — nothing in your resume is replaced"
-                                  : "Reworks text already in your resume"
-                              }
-                            >
-                              {addsContent ? (
-                                <>
-                                  <Plus size={11} /> Adds content
-                                </>
-                              ) : (
-                                <>
-                                  <PenLine size={11} /> Rewrites
-                                </>
-                              )}
-                            </span>
-                          </div>
-                          {p.summary && <p className="tmE-fix-sum">{p.summary}</p>}
-                          {p.quote && (
-                            <p
-                              className="tmE-fix-quote"
-                              title={`From your ${SECTION_LABEL[target]} section`}
-                            >
-                              “{p.quote}”
-                            </p>
-                          )}
-                          {p.fix && <p className="tmE-fix-fix"><span>Fix:</span> {p.fix}</p>}
-                          <div className="tmE-fix-card-actions">
-                            {canAiDraft(p) && (
-                              <button
-                                type="button"
-                                className="tmE-fix-apply"
-                                onClick={() =>
-                                  bulletReviewMode(p)
-                                    ? void openBulletReview(p)
-                                    : openSuggestionDraft(p, target)
-                                }
-                              >
-                                <PenLine size={13} />{" "}
-                                {bulletReviewMode(p) === "shorten"
-                                  ? "Shorten bullets with AI"
-                                  : bulletReviewMode(p) === "quantify"
-                                    ? "Add metrics with AI"
-                                    : draft == null
-                                      ? "Draft fix with AI"
-                                      : "Edit draft"}
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              className={canAiDraft(p) ? "tmE-fix-goto" : "tmE-fix-apply"}
-                              onClick={() => {
-                                // Per-suggestion telemetry — counts/ids/categories
-                                // only, never résumé content. rule_id is present
-                                // only for rules-engine findings; sanitizeProps
-                                // drops it when undefined (legacy LLM points).
-                                track("resume_feedback_suggestion_clicked", {
-                                  rule_id: p.ruleId,
-                                  category: p.category,
-                                  severity: p.severity,
-                                  section: target,
-                                });
-                                setMode("edit");
-                                setSection(target);
-                              }}
-                            >
-                              Edit manually →
-                            </button>
-                          </div>
-                          {draft != null && (
-                            <div className="tmE-suggestion-draft">
-                              <label>Draft</label>
-                              {rewriting ? (
-                                <p className="tmE-draft-hint tmE-draft-hint--ai">
-                                  <Loader2 size={12} className="tmE-draft-spin" /> Drafting a rewrite
-                                  with AI…
-                                </p>
-                              ) : (
-                                phCount > 0 && (
-                                  <p className="tmE-draft-hint">
-                                    <span className="tmE-draft-token">[ ]</span>
-                                    {phCount === 1
-                                      ? "1 highlighted spot needs your details"
-                                      : `${phCount} highlighted spots need your details`}{" "}
-                                    before applying.
-                                  </p>
-                                )
-                              )}
-                              <div className={"tmE-draft-input" + (phCount > 0 ? " has-ph" : "")}>
-                                {phCount > 0 && (
-                                  <div className="tmE-draft-marks" aria-hidden="true">
-                                    {draft.split(/(\[[^\]]+\])/g).map((seg, j) =>
-                                      /^\[[^\]]+\]$/.test(seg) ? (
-                                        <mark key={j} className="tmE-ph">
-                                          {seg}
-                                        </mark>
-                                      ) : (
-                                        <span key={j}>{seg}</span>
-                                      ),
-                                    )}
-                                    {"\n"}
-                                  </div>
-                                )}
-                                <textarea
-                                  className={
-                                    "tmE-textarea tmE-draft-ta" +
-                                    (phCount > 0 ? " tmE-textarea--hasplaceholder" : "")
-                                  }
-                                  value={draft}
-                                  onChange={(e) => updateSuggestionDraft(id, e.target.value)}
-                                  onScroll={(e) => {
-                                    const marks =
-                                      e.currentTarget.parentElement?.querySelector(
-                                        ".tmE-draft-marks",
-                                      );
-                                    if (marks instanceof HTMLElement) {
-                                      marks.scrollTop = e.currentTarget.scrollTop;
-                                      marks.scrollLeft = e.currentTarget.scrollLeft;
-                                    }
-                                  }}
-                                />
-                              </div>
-                              <div className="tmE-fix-card-actions">
-                                <button
-                                  type="button"
-                                  className="tmE-fix-apply is-primary"
-                                  onClick={() => applySuggestionDraft(p, target, draft)}
-                                  disabled={!draft.trim() || rewriting}
-                                >
-                                  <Check size={13} /> Apply to {SECTION_LABEL[target]}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="tmE-fix-goto"
-                                  onClick={() => closeSuggestionDraft(id)}
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {group.map((p, i) => renderFix(p, offset + i))}
                   </div>
                 );
               })}
