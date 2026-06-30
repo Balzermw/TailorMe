@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { refineFeedback } from "./deterministicFeedback";
 import { groundFindings } from "./groundFindings";
+import { fixSection } from "@/lib/apply/sections";
 import type { TailoredDoc } from "@/lib/types";
 
 function docWith(contact: string): TailoredDoc {
@@ -143,5 +144,93 @@ describe("refineFeedback sparse-experience detection", () => {
     );
     const grounded = groundFindings(proofPoints, "", { templated: true });
     expect(grounded.some((p) => p.ruleId === "experience_sparse_bullets")).toBe(true);
+  });
+});
+
+// Complete contact + 2-bullet experience so only the education/cert gaps assert.
+function docWithEduCert(
+  education: NonNullable<TailoredDoc["education"]>,
+  certifications: NonNullable<TailoredDoc["certifications"]>,
+): TailoredDoc {
+  return {
+    name: "Michael Balzer",
+    headline: "Advisory Solutions Consultant",
+    contact: "612-227-1149 | you@example.com | Sacramento, CA",
+    summary: "Senior consultant with enterprise cloud-platform experience.",
+    experience: [
+      {
+        role: "Consultant",
+        company: "ServiceNow",
+        dates: "2021 - Present",
+        bullets: [
+          "Delivered platform rollouts for enterprise clients.",
+          "Cut onboarding time 40% across three teams.",
+        ],
+      },
+    ],
+    skills: ["ServiceNow", "ITSM"],
+    education,
+    certifications,
+    coverLetter: "",
+  };
+}
+
+describe("refineFeedback education + certification gaps", () => {
+  it("flags an education entry missing dates, routed to the Education section", () => {
+    const { proofPoints } = refineFeedback(
+      docWithEduCert([{ school: "CSU Sacramento", degree: "BA, Analytic Philosophy", dates: "" }], []),
+      [],
+    );
+    const edu = proofPoints.find((p) => p.ruleId === "education_missing_dates");
+    expect(edu).toBeTruthy();
+    expect(fixSection(edu!)).toBe("education");
+  });
+
+  it("does not flag education when dates are present", () => {
+    const { proofPoints } = refineFeedback(
+      docWithEduCert(
+        [{ school: "CSU Sacramento", degree: "BA, Analytic Philosophy", dates: "2014 - 2016" }],
+        [],
+      ),
+      [],
+    );
+    expect(proofPoints.some((p) => p.ruleId === "education_missing_dates")).toBe(false);
+  });
+
+  it("flags a certification missing its issuer/date, routed to Certifications", () => {
+    const { proofPoints } = refineFeedback(
+      docWithEduCert([], [{ name: "Demo2Win Certification", issuer: "", date: "" }]),
+      [],
+    );
+    const cert = proofPoints.find((p) => p.ruleId === "certifications_incomplete");
+    expect(cert).toBeTruthy();
+    expect(fixSection(cert!)).toBe("certifications");
+  });
+
+  it("does not flag a complete certification", () => {
+    const { proofPoints } = refineFeedback(
+      docWithEduCert([], [{ name: "Demo2Win Certification", issuer: "2Win", date: "2022" }]),
+      [],
+    );
+    expect(proofPoints.some((p) => p.ruleId === "certifications_incomplete")).toBe(false);
+  });
+
+  it("never invents findings when there is no education or certifications section", () => {
+    const { proofPoints } = refineFeedback(docWithEduCert([], []), []);
+    expect(proofPoints.some((p) => p.ruleId === "education_missing_dates")).toBe(false);
+    expect(proofPoints.some((p) => p.ruleId === "certifications_incomplete")).toBe(false);
+  });
+
+  it("education + cert findings survive the groundFindings trust layer", () => {
+    const { proofPoints } = refineFeedback(
+      docWithEduCert(
+        [{ school: "CSU Sacramento", degree: "BA, Analytic Philosophy", dates: "" }],
+        [{ name: "Demo2Win Certification", issuer: "", date: "" }],
+      ),
+      [],
+    );
+    const grounded = groundFindings(proofPoints, "", { templated: true });
+    expect(grounded.some((p) => p.ruleId === "education_missing_dates")).toBe(true);
+    expect(grounded.some((p) => p.ruleId === "certifications_incomplete")).toBe(true);
   });
 });

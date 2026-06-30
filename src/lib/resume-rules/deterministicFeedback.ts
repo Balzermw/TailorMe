@@ -186,6 +186,64 @@ function sparseExperienceProofPoints(doc: TailoredDoc): ProofPoint[] {
   ];
 }
 
+// Education entries that exist but are missing their dates: an undated degree
+// leaves a gap in the career timeline and some ATS forms expect a year. We never
+// flag a MISSING education section (omitting it is a legitimate choice) — only an
+// incomplete entry, computed from the doc. No targetSection set: fixSection routes
+// "education" text to the Education section. Skipped if already raised.
+function educationGapProofPoints(doc: TailoredDoc, existing: ProofPoint[]): ProofPoint[] {
+  const edu = doc.education ?? [];
+  if (!edu.length) return [];
+  const alreadyRaised = existing.some((p) =>
+    /education|degree|graduat/i.test(`${p.title} ${p.summary} ${p.fix}`),
+  );
+  if (alreadyRaised) return [];
+  const undated = edu.filter((e) => (e.degree.trim() || e.school.trim()) && !e.dates.trim());
+  if (!undated.length) return [];
+  const first = undated[0];
+  const label = [first.degree, first.school].filter((s) => s && s.trim()).join(", ") || "your education";
+  return [
+    {
+      title: "Add dates to your education",
+      summary: `${label} has no dates. Graduation timing helps a recruiter place your career, and an undated degree reads as incomplete.`,
+      why: "A degree without a year makes your timeline harder to follow, and some ATS forms expect a graduation date.",
+      fix: "Add the start and end (or graduation) year to each education entry.",
+      quote: undefined,
+      severity: "low",
+      ruleId: "education_missing_dates",
+      category: "education",
+    },
+  ];
+}
+
+// Certification entries missing their issuer or date: a credential is more
+// credible (and verifiable) with its source and year. Computed from the doc; we
+// never invent certifications. "certification" text routes to the Certifications
+// section via fixSection. Skipped if already raised.
+function certificationGapProofPoints(doc: TailoredDoc, existing: ProofPoint[]): ProofPoint[] {
+  const certs = doc.certifications ?? [];
+  if (!certs.length) return [];
+  const alreadyRaised = existing.some((p) =>
+    /certif|credential|license/i.test(`${p.title} ${p.summary} ${p.fix}`),
+  );
+  if (alreadyRaised) return [];
+  const incomplete = certs.filter((c) => c.name.trim() && (!c.issuer.trim() || !c.date.trim()));
+  if (!incomplete.length) return [];
+  const first = incomplete[0];
+  return [
+    {
+      title: "Complete your certification details",
+      summary: `"${first.name.trim()}" is missing its issuer or date. A certification reads as more credible with its source and the year earned.`,
+      why: "An issuing organization and a date let a recruiter confirm a certification at a glance.",
+      fix: "Add the issuer and the year earned to each certification.",
+      quote: undefined,
+      severity: "low",
+      ruleId: "certifications_incomplete",
+      category: "certifications",
+    },
+  ];
+}
+
 // Fold the LLM proof points + deterministic rule findings into one deduped,
 // ranked, capped set. Falls back to the raw proof points if the doc can't be
 // rendered to LaTeX (the engine's detectors read LaTeX structure).
@@ -208,13 +266,20 @@ export function refineFeedback(
     // need bullets written. Both are computed from the doc, ahead of style nits.
     const contactGaps = contactGapProofPoints(doc, filteredProofPoints);
     const sparseGaps = sparseExperienceProofPoints(doc);
+    const eduGaps = educationGapProofPoints(doc, filteredProofPoints);
+    const certGaps = certificationGapProofPoints(doc, filteredProofPoints);
     return {
-      proofPoints: [...contactGaps, ...sparseGaps, ...filteredProofPoints],
+      proofPoints: [...contactGaps, ...sparseGaps, ...eduGaps, ...certGaps, ...filteredProofPoints],
       stats: {
         rulesLoaded: result.stats.rulesLoaded,
         candidates: result.stats.candidateFindingsCount,
         deduped: result.stats.dedupedFindingsCount,
-        surfaced: filteredProofPoints.length + contactGaps.length + sparseGaps.length,
+        surfaced:
+          filteredProofPoints.length +
+          contactGaps.length +
+          sparseGaps.length +
+          eduGaps.length +
+          certGaps.length,
         suppressed: result.stats.suppressedCount + contradictionSuppressed,
       },
     };
@@ -224,6 +289,8 @@ export function refineFeedback(
       proofPoints: [
         ...contactGapProofPoints(doc, proofPoints),
         ...sparseExperienceProofPoints(doc),
+        ...educationGapProofPoints(doc, proofPoints),
+        ...certificationGapProofPoints(doc, proofPoints),
         ...proofPoints,
       ],
       stats: null,

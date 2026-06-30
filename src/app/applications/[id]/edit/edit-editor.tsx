@@ -2551,6 +2551,11 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Certifications</h2>
               <p className="tmE-panel-sub">Licenses and certifications: name, who issued it, and when.</p>
+              {sectionFixes("certifications").length > 0 && (
+                <div className="tmE-secfixes">
+                  {sectionFixes("certifications").map((p, i) => renderFix(p, i))}
+                </div>
+              )}
               {(doc.certifications ?? []).map((c, i) => {
                 const key = removeCardKey("certification", i);
                 return (
@@ -2598,6 +2603,9 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Education</h2>
               <p className="tmE-panel-sub">Degrees, schools, and dates. Add anything the tailoring missed.</p>
+              {sectionFixes("education").length > 0 && (
+                <div className="tmE-secfixes">{sectionFixes("education").map((p, i) => renderFix(p, i))}</div>
+              )}
               {(doc.education ?? []).map((ed, i) => {
                 const key = removeCardKey("education", i);
                 return (
