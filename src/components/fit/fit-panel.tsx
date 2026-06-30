@@ -73,10 +73,26 @@ export function FitPanel({
             {scores.join(" → ")}
           </span>
         )}
-        <span className="tmFit-track" aria-hidden="true">
-          <span className="tmFit-fill" style={{ width: `${fit.overall}%`, background: color }} />
-        </span>
+        {onRecheck && (
+          <button
+            type="button"
+            className="tm-btn tm-btn--primary tm-btn--sm tmFit-recheck"
+            onClick={onRecheck}
+            disabled={rechecking || !pendingChanges}
+            title={
+              pendingChanges
+                ? "Re-scores your current draft against this job and saves it. Free, no credit."
+                : "Edit a line to improve your resume, then re-check to move your fit."
+            }
+          >
+            {rechecking ? <Loader2 size={14} className="tmFit-spin" /> : <RefreshCw size={14} />}
+            {rechecking ? "Re-checking..." : "Re-check"}
+          </button>
+        )}
       </div>
+      <span className="tmFit-track" aria-hidden="true">
+        <span className="tmFit-fill" style={{ width: `${fit.overall}%`, background: color }} />
+      </span>
 
       {missingKeywords.length > 0 ? (
         <div className="tmFit-leverbox">
@@ -106,25 +122,6 @@ export function FitPanel({
           The score dipped on your last re-check, usually because an edit removed matched evidence.
           Add it back or strengthen it, then re-check.
         </p>
-      )}
-
-      {onRecheck && (
-        <div className="tmFit-actions">
-          <button
-            type="button"
-            className="tm-btn tm-btn--primary tm-btn--sm"
-            onClick={onRecheck}
-            disabled={rechecking || !pendingChanges}
-          >
-            {rechecking ? <Loader2 size={14} className="tmFit-spin" /> : <RefreshCw size={14} />}
-            {rechecking ? "Re-checking..." : "Re-check fit"}
-          </button>
-          <span className="tm-small tmFit-hint">
-            {pendingChanges
-              ? "Re-scores your current draft against this job and saves it. Free, no credit."
-              : "Edit a line to improve your resume, then re-check to move your fit."}
-          </span>
-        </div>
       )}
 
       {demoNote && (

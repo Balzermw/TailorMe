@@ -1826,6 +1826,11 @@ export default function EditEditor({
   // Feedback is a top-level tab now (not a nav row); its label/badge live there.
   const feedbackLabel = onGetFeedback ? "Feedback" : "Suggestions";
   const showFeedbackTab = allShown.length > 0 || Boolean(onGetFeedback);
+  // Total open changes across every section (suggestions + Experience rewrites +
+  // Skills keyword actions) — drives the Feedback tab badge and the by-section
+  // summary inside it, so both match the per-section nav badges.
+  const sectionsWithChanges = NAV.filter((n) => n.badge);
+  const totalOpenChanges = sectionsWithChanges.reduce((sum, n) => sum + (n.badge ?? 0), 0);
 
   // Keywords to tint green in the preview: the posting's role keywords when this
   // résumé is targeted at a job, else the résumé's own skills/tools (the terms an
@@ -2256,8 +2261,8 @@ export default function EditEditor({
             onClick={() => setMode("feedback")}
           >
             <ListChecks size={14} /> {feedbackLabel}
-            {allShown.length > 0 && (
-              <span className="tmE-modetab-badge">{allShown.length}</span>
+            {totalOpenChanges > 0 && (
+              <span className="tmE-modetab-badge">{totalOpenChanges}</span>
             )}
           </button>
         )}
@@ -3065,6 +3070,34 @@ export default function EditEditor({
                     >
                       Cancel
                     </button>
+                  </div>
+                </div>
+              )}
+              {/* Summary across all categories: counts per section (same circled
+                  badge as the nav), each jumping into that section to act. */}
+              {sectionsWithChanges.length > 0 && (
+                <div className="tmE-fixsum">
+                  <p className="tmE-fixsum-head">
+                    {totalOpenChanges} suggestion{totalOpenChanges === 1 ? "" : "s"} across{" "}
+                    {sectionsWithChanges.length} section
+                    {sectionsWithChanges.length === 1 ? "" : "s"}
+                  </p>
+                  <div className="tmE-fixsum-grid">
+                    {sectionsWithChanges.map((n) => (
+                      <button
+                        key={n.key}
+                        type="button"
+                        className="tmE-fixsum-row"
+                        onClick={() => {
+                          setMode("edit");
+                          setSection(n.key);
+                        }}
+                      >
+                        <span className="tmE-fixsum-label">{n.label}</span>
+                        <span className="tmE-tree-badge">{n.badge}</span>
+                        <ArrowRight size={13} className="tmE-fixsum-arrow" />
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}

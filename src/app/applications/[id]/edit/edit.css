@@ -1768,6 +1768,53 @@
   gap: 12px;
   margin-bottom: 16px;
 }
+/* By-section summary at the top of the Feedback tab: a scannable count per
+   category (same circled badge as the nav), each row jumping into that section. */
+.tmE-fixsum {
+  margin-bottom: 18px;
+}
+.tmE-fixsum-head {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tm-slate);
+  margin: 0 0 8px;
+}
+.tmE-fixsum-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 6px;
+}
+.tmE-fixsum-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  border: 0.5px solid var(--tm-border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  color: var(--tm-ink);
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.tmE-fixsum-row:hover {
+  border-color: var(--tm-blue-600);
+  background: var(--tm-gray);
+}
+.tmE-fixsum-label {
+  margin-right: auto;
+  font-weight: 500;
+}
+.tmE-fixsum-row .tmE-tree-badge {
+  margin-left: 0;
+}
+.tmE-fixsum-arrow {
+  flex: none;
+  color: var(--tm-zinc);
+}
 /* In-section suggestion card (a finding owned by its section, e.g. the Skills
    keyword suggestion) — amber tone, matching the Feedback cards. */
 .tmE-secsug {
