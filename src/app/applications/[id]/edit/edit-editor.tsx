@@ -626,6 +626,12 @@ export default function EditEditor({
   const [coverOpen, setCoverOpen] = useState(false);
   const [coverEditing, setCoverEditing] = useState(false);
   const [msg, setMsg] = useState<{ text: string; err: boolean } | null>(null);
+  // Transient "we applied that, and here's where" confirmation toast. The `key`
+  // bumps on every fire so re-firing the same text restarts the auto-dismiss.
+  const [applied, setApplied] = useState<{ text: string; key: number } | null>(null);
+  // Posting keywords the user has added to Skills this session — so the keyword
+  // suggestion card can show them as done instead of still prompting.
+  const [addedKeywords, setAddedKeywords] = useState<Set<string>>(() => new Set());
   const [dirty, setDirty] = useState(initialDocNormalized);
   const [review, setReview] = useState<{ items: ReviewItem[] } | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -896,6 +902,16 @@ export default function EditEditor({
     setDirty(true);
     setMsg(null);
   }
+  // Show a brief "applied to X" confirmation so the user knows content landed and
+  // where. A useEffect handles auto-dismiss (keyed off `applied`).
+  function flashApplied(text: string) {
+    setApplied((a) => ({ text, key: (a?.key ?? 0) + 1 }));
+  }
+  useEffect(() => {
+    if (!applied) return;
+    const t = setTimeout(() => setApplied(null), 3600);
+    return () => clearTimeout(t);
+  }, [applied]);
   function patch(p: Partial<TailoredDoc>) {
     setDoc((d) => ({ ...d, ...p }));
     touch();
@@ -1251,6 +1267,7 @@ export default function EditEditor({
         section: "experience",
       });
       touch();
+      flashApplied(`Applied ${accepted.length} rewrite${accepted.length === 1 ? "" : "s"} to Experience`);
     }
     markSuggestionApplied(review.id);
     setShortenReview(null);
@@ -1268,14 +1285,22 @@ export default function EditEditor({
   function addKeywordsToSkills(terms: string[]) {
     const incoming = terms.map((s) => s.trim()).filter(Boolean);
     if (!incoming.length) return;
+    const have = new Set(
+      [...(doc.skills ?? []), ...(doc.skillGroups ?? []).flatMap((g) => g.skills)]
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean),
+    );
+    const fresh = incoming.filter((s) => !have.has(s.toLowerCase()));
+    setMode("edit");
+    setSection("skills");
+    // Always record them as handled (so the card shows them done), even if a term
+    // was already present — the user's intent is satisfied either way.
+    setAddedKeywords((prev) => new Set([...prev, ...incoming]));
+    if (!fresh.length) {
+      flashApplied("Those keywords are already in your Skills");
+      return;
+    }
     setDoc((d) => {
-      const have = new Set(
-        [...(d.skills ?? []), ...(d.skillGroups ?? []).flatMap((g) => g.skills)]
-          .map((s) => s.trim().toLowerCase())
-          .filter(Boolean),
-      );
-      const fresh = incoming.filter((s) => !have.has(s.toLowerCase()));
-      if (!fresh.length) return d;
       const merged = Array.from(new Set([...(d.skills ?? []), ...fresh]));
       if (d.skillGroups?.length) {
         return {
@@ -1289,8 +1314,7 @@ export default function EditEditor({
       return { ...d, skills: merged };
     });
     touch();
-    setMode("edit");
-    setSection("skills");
+    flashApplied(`Added ${fresh.length} keyword${fresh.length === 1 ? "" : "s"} to Skills`);
   }
 
   function applySuggestionDraft(p: ProofPoint, target: EditableSection, draft: string) {
@@ -1412,6 +1436,7 @@ export default function EditEditor({
     setPendingJump(previewAnchorFor(target, jumpEntry));
     markSuggestionApplied(id);
     touch();
+    flashApplied(`Applied to ${SECTION_LABEL[target]}`);
   }
 
   function addManualSuggestion() {
@@ -1727,7 +1752,11 @@ export default function EditEditor({
     { key: "projects", label: "Projects" },
     { key: "education", label: "Education" },
     { key: "certifications", label: "Certifications" },
-    { key: "skills", label: "Skills", badge: missingKeywords.length ? 1 : undefined },
+    {
+      key: "skills",
+      label: "Skills",
+      badge: missingKeywords.some((t) => !addedKeywords.has(t)) ? 1 : undefined,
+    },
   ];
   // Feedback is a top-level tab now (not a nav row); its label/badge live there.
   const feedbackLabel = onGetFeedback ? "Feedback" : "Suggestions";
@@ -1866,6 +1895,11 @@ export default function EditEditor({
 
   return (
     <div className={"tmE-wrap" + (wideEditMode ? " is-workmode" : "")}>
+      {applied && (
+        <div className="tmE-applied-toast" role="status" aria-live="polite">
+          <Check size={14} /> {applied.text}
+        </div>
+      )}
       <div className="tmE-head">
         <Link className="tmE-back" href={backHref}>
           <ArrowLeft size={15} /> {backLabel}
@@ -2437,42 +2471,72 @@ export default function EditEditor({
           {section === "skills" && (
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Skills</h2>
-              {missingKeywords.length > 0 && (
-                <div className="tmE-secsug">
-                  <div className="tmE-secsug-head">
-                    <span className="tmE-secsug-eyebrow">
-                      <Sparkles size={12} /> Suggestion
-                    </span>
-                    <b>
-                      Add {missingKeywords.length} keyword{missingKeywords.length === 1 ? "" : "s"} the
-                      posting screens for
-                    </b>
-                  </div>
-                  <div className="tmF-chips">
-                    {missingKeywords.map((t) => (
-                      <span
-                        key={t}
-                        className="tmEv-pill"
-                        style={{ color: "#854f0b", background: "#fff", border: "0.5px solid rgba(133,79,11,.3)" }}
-                      >
-                        <Plus size={11} /> {t}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="tmE-secsug-note">
-                    Add these only where your experience genuinely backs them.
-                  </p>
-                  <div className="tmE-fix-card-actions">
-                    <button
-                      type="button"
-                      className="tmE-fix-apply"
-                      onClick={() => addKeywordsToSkills(missingKeywords)}
-                    >
-                      <Plus size={13} /> Add to skills
-                    </button>
-                  </div>
-                </div>
-              )}
+              {missingKeywords.length > 0 &&
+                (() => {
+                  const unadded = missingKeywords.filter((t) => !addedKeywords.has(t));
+                  const allAdded = unadded.length === 0;
+                  return (
+                    <div className={"tmE-secsug" + (allAdded ? " is-done" : "")}>
+                      <div className="tmE-secsug-head">
+                        <span className="tmE-secsug-eyebrow">
+                          {allAdded ? <Check size={12} /> : <Sparkles size={12} />}{" "}
+                          {allAdded ? "Added" : "Suggestion"}
+                        </span>
+                        <b>
+                          {allAdded
+                            ? `${missingKeywords.length} keyword${missingKeywords.length === 1 ? "" : "s"} added to Skills`
+                            : `Add ${unadded.length} keyword${unadded.length === 1 ? "" : "s"} the posting screens for`}
+                        </b>
+                      </div>
+                      <div className="tmF-chips">
+                        {missingKeywords.map((t) => {
+                          const done = addedKeywords.has(t);
+                          return (
+                            <span
+                              key={t}
+                              className="tmEv-pill"
+                              style={
+                                done
+                                  ? {
+                                      color: "var(--tm-mint-700)",
+                                      background: "var(--tm-mint-50)",
+                                      border: "0.5px solid rgba(33,146,107,.28)",
+                                    }
+                                  : {
+                                      color: "#854f0b",
+                                      background: "#fff",
+                                      border: "0.5px solid rgba(133,79,11,.3)",
+                                    }
+                              }
+                            >
+                              {done ? <Check size={11} /> : <Plus size={11} />} {t}
+                            </span>
+                          );
+                        })}
+                      </div>
+                      {!allAdded && (
+                        <p className="tmE-secsug-note">
+                          Add these only where your experience genuinely backs them.
+                        </p>
+                      )}
+                      <div className="tmE-fix-card-actions">
+                        {allAdded ? (
+                          <span className="tmE-secsug-done">
+                            <Check size={13} /> Added to your Skills below
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="tmE-fix-apply"
+                            onClick={() => addKeywordsToSkills(unadded)}
+                          >
+                            <Plus size={13} /> Add to skills
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               {doc.skillGroups?.length ? (
                 <>
                   <p className="tmE-panel-sub">

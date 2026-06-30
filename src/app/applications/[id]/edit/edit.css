@@ -1797,6 +1797,56 @@
   color: var(--tm-zinc);
   line-height: 1.45;
 }
+/* Done state once the keyword(s) have been added to Skills. */
+.tmE-secsug.is-done {
+  border-color: rgba(33, 146, 107, 0.3);
+  background: var(--tm-mint-50);
+}
+.tmE-secsug.is-done .tmE-secsug-eyebrow {
+  color: var(--tm-mint-700);
+}
+.tmE-secsug-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--tm-mint-700);
+}
+/* "Applied to X" confirmation toast — so the user sees content landed, and where. */
+.tmE-applied-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--tm-mint-600);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 6px 24px rgba(24, 24, 27, 0.18);
+  animation: tmE-toast-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes tmE-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tmE-applied-toast {
+    animation: none;
+  }
+}
 .tmE-fix {
   border: 0.5px solid var(--tm-border);
   border-radius: 11px;
