@@ -7,56 +7,32 @@ import { ROUTES } from "@/components/landing/data";
 // panel's "earned escalation". Single source of truth so the pitch copy and
 // styling never drift between surfaces. Both link to ROUTES.coaching (no gating).
 
-/** Honest, conversion-friendly nudge toward a manual expert review on weak fit. */
+/** Honest, conversion-friendly nudge toward a manual expert review on weak fit.
+ * Compact + animated so it sits under the fit score without crowding it. */
 export function ManualReviewCTA({ overall }: { overall: number }) {
   const line =
     overall >= 60
-      ? "Your resume shows relevant experience, but there are notable gaps for this role."
+      ? "Relevant experience, but notable gaps for this role."
       : overall >= 45
-        ? "This role may be a stretch based on your current resume. The gaps below are real, but fixable."
-        : "Based on this resume, this role looks like a significant stretch right now.";
+        ? "A stretch on paper, but the gaps below are real and fixable."
+        : "A significant stretch for this résumé right now.";
   return (
-    <div
-      style={{
-        marginTop: "16px",
-        border: "0.5px solid rgba(67,115,219,.3)",
-        background: "var(--tm-blue-50)",
-        borderRadius: "12px",
-        padding: "16px 18px",
-        display: "flex",
-        gap: "14px",
-        alignItems: "flex-start",
-      }}
-    >
+    <div className="tmFit-michael">
       <Image
         src="/michael.png"
         alt="Michael, Head of Res.Me"
-        width={52}
-        height={52}
-        style={{
-          width: "52px",
-          height: "52px",
-          borderRadius: "50%",
-          objectFit: "cover",
-          border: "0.5px solid var(--tm-border)",
-          flex: "none",
-        }}
+        width={34}
+        height={34}
+        className="tmFit-michael-img"
       />
-      <div style={{ minWidth: 0 }}>
-        <p style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--tm-ink)", lineHeight: 1.5 }}>
-          {line}
+      <div className="tmFit-michael-body">
+        <p className="tmFit-michael-line">{line}</p>
+        <p className="tmFit-michael-sub">
+          Michael (Certified Resume Writer, 650+ résumés) can rewrite it for this role and coach your
+          positioning.
         </p>
-        <p className="tm-small" style={{ marginTop: "6px", fontSize: "12.5px", lineHeight: 1.5 }}>
-          I&apos;m Michael, Head of Res.Me and a Certified Professional Resume Writer. I&apos;ve
-          rewritten plenty of resumes that didn&apos;t look qualified on paper. I can do the same for
-          yours, coach you on strategy, and tell you honestly which roles fit.
-        </p>
-        <Link
-          href={ROUTES.coaching}
-          className="tm-btn tm-btn--outline tmF-manual-cta"
-          style={{ marginTop: "12px" }}
-        >
-          <PenLine size={13} /> Get a rewrite or coaching from Michael
+        <Link href={ROUTES.coaching} className="tm-btn tm-btn--outline tm-btn--sm tmF-manual-cta">
+          <PenLine size={13} /> Get coaching from Michael
         </Link>
       </div>
     </div>

@@ -49,37 +49,61 @@ export default async function EditPage({
   const app = await getApplication(id);
   const doc = app?.result?.doc ?? null;
 
-  return (
-    <div className="tm">
-      <Nav active="Dashboard" />
-      <main>
-        {doc && app ? (
-          <EditEditor
-            id={id}
-            doc={doc}
-            originalDoc={app.result?.originalDoc ?? null}
-            bulletDiffs={app.result?.bulletDiffs ?? []}
-            initialDecisions={app.result?.edits?.decisions ?? {}}
-            keywords={app.result?.keywords ?? []}
-            verificationStatus={app.result?.verification?.status ?? null}
-            initialUserEdited={app.result?.edits?.userEdited ?? false}
-            proofPoints={app.result?.proofPoints ?? []}
-            company={app.company}
-            role={app.role}
-            initialFit={app.result?.fit ?? null}
-            initialHistory={app.result?.fitHistory}
-            canRecheck={Boolean(app.result?.postingText)}
-          />
-        ) : (
+  // Not a DB row → fall back to the local loader, which reads it from the
+  // browser. That's the free "Open editor" on-ramp, which stashes a scored
+  // application in localStorage. Both on-ramps land in the same editor.
+  if (!app) {
+    return (
+      <div className="tm">
+        <Nav active="Dashboard" />
+        <main>
+          <LocalApplicationEditLoader id={id} />
+        </main>
+      </div>
+    );
+  }
+
+  // A real account application that has no editable document yet (e.g. scored
+  // but not tailored). Don't hand it to the local loader — give an accurate
+  // server-rendered notice.
+  if (!doc) {
+    return (
+      <div className="tm">
+        <Nav active="Dashboard" />
+        <main>
           <div style={{ padding: "64px 24px", textAlign: "center" }}>
             <p className="tm-body">
-              This document isn’t available to edit.{" "}
+              This document isn&apos;t available to edit.{" "}
               <Link href={ROUTES.dashboard} style={{ color: "var(--tm-blue-600)" }}>
                 Back to dashboard
               </Link>
             </p>
           </div>
-        )}
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="tm">
+      <Nav active="Dashboard" />
+      <main>
+        <EditEditor
+          id={id}
+          doc={doc}
+          originalDoc={app.result?.originalDoc ?? null}
+          bulletDiffs={app.result?.bulletDiffs ?? []}
+          initialDecisions={app.result?.edits?.decisions ?? {}}
+          keywords={app.result?.keywords ?? []}
+          verificationStatus={app.result?.verification?.status ?? null}
+          initialUserEdited={app.result?.edits?.userEdited ?? false}
+          proofPoints={app.result?.proofPoints ?? []}
+          company={app.company}
+          role={app.role}
+          initialFit={app.result?.fit ?? null}
+          initialHistory={app.result?.fitHistory}
+          canRecheck={Boolean(app.result?.postingText)}
+        />
       </main>
     </div>
   );

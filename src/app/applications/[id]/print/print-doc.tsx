@@ -68,6 +68,7 @@ export default function PrintDoc({
   resumeOnly = false,
   hideToolbar = false,
   highlightKeywords,
+  markPlaceholders = false,
   backHref,
   backLabel = "Back to editor",
 }: {
@@ -76,6 +77,7 @@ export default function PrintDoc({
   resumeOnly?: boolean; // editor preview shows the résumé only (no cover letter)
   hideToolbar?: boolean; // editor has its own download controls
   highlightKeywords?: string[]; // editor preview: tint posting keywords + metrics
+  markPlaceholders?: boolean; // editor preview: flag unfilled [brackets] (never in the PDF)
   backHref?: string; // override the toolbar "Back" link (base resume → /resume/edit)
   backLabel?: string;
 }) {
@@ -103,7 +105,9 @@ export default function PrintDoc({
   }, [hideToolbar]);
 
   const hl = (t: string) =>
-    highlightKeywords !== undefined ? highlight(t, highlightKeywords) : t;
+    highlightKeywords !== undefined || markPlaceholders
+      ? highlight(t, highlightKeywords ?? [], { placeholders: markPlaceholders })
+      : t;
   const first = doc.name.split(/\s+/).slice(0, -1).join(" ") || doc.name;
   const last =
     doc.name.split(/\s+/).length > 1
@@ -159,8 +163,8 @@ export default function PrintDoc({
                     <div className="mcv-entry-role">{e.role}</div>
                     <div className="mcv-entry-company">{e.company}</div>
                     <ul>
-                      {e.bullets.map((b, i) => (
-                        <li key={i}>{hl(b)}</li>
+                      {e.bullets.map((b, bi) => (
+                        <li key={bi} data-field={`exp-${i}-bullet-${bi}`}>{hl(b)}</li>
                       ))}
                     </ul>
                   </div>

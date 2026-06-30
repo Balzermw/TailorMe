@@ -1541,6 +1541,23 @@ const STAT_STOP = new Set([
   "cutting", "boosting", "growing", "reducing", "improving",
 ]);
 
+// A stat is a genuine RESULT metric, not a bare year ("2021") or tenure ("5 years").
+// Keeps the "numbers already in your resume" list consistent with hasHardMetric()
+// and the "X/Y bullets are quantified" meter (which already strip years/dates).
+const TIME_LABEL_RE = /^(years?|yrs?|months?|mos?|weeks?|days?|hours?|hrs?|quarters?|qtrs?)\b/i;
+function isResultMetric(value: string, label: string): boolean {
+  const v = value.trim();
+  if (!v) return false;
+  if (/^(19|20)\d{2}$/.test(v)) return false; // a bare year is not an achievement
+  const bare = v.replace(/[.,]/g, "");
+  if (/^\d+$/.test(bare) && TIME_LABEL_RE.test(label.trim())) return false; // "5 years" tenure
+  // Strong result signals: percent, money, a 3x multiplier, N+, grouped (1,200) or scaled (45M/12k).
+  if (/[%$]|\b\d[\d.,]*\s?x\b|\d\s?\+|\d{1,3}(?:,\d{3})+|\d[\d.,]*\s?(?:k|m|b|bn|million|billion)\b/i.test(v))
+    return true;
+  // Otherwise keep only a short, plausible bare count (e.g. "25 demos", "6 engineers").
+  return /^\d{1,3}$/.test(bare);
+}
+
 /** Pull real quantified wins out of the resume: a value + a short label. */
 function extractStats(
   text: string,
@@ -1579,11 +1596,10 @@ function extractStats(
       if (label.length >= 3) break;
     }
     if (label.length === 0) continue;
+    const labelStr = label.join(" ");
+    if (!isResultMetric(value, labelStr)) continue;
     seen.add(key);
-    out.push({
-      value,
-      label: label.join(" "),
-    });
+    out.push({ value, label: labelStr });
   }
   return out;
 }
@@ -1709,11 +1725,54 @@ async function rankLines(
         s.value &&
         s.label &&
         /\d/.test(s.value) &&
+        isResultMetric(s.value, s.label) &&
         !containsContactInfo(s.value) &&
         !containsContactInfo(s.label),
     )
     .slice(0, 4);
   return { lines, impactStats };
+}
+
+// True when a line carries a hard number that isn't just a year or a date.
+function hasHardMetric(line: string): boolean {
+  return /\d/.test(
+    line.replace(/\b(19|20)\d{2}\b/g, "").replace(/\b\d{1,2}[/-]\d{1,2}\b/g, ""),
+  );
+}
+// Pull accomplishment bullets out of the raw résumé and split them by whether they
+// already carry a number. Max reads this to name the exact lines still missing one
+// (the free audit has no tailored bullets to inspect, so we read the text).
+function impactBullets(resumeText: string): { withNum: string[]; needsNum: string[] } {
+  const marked = resumeText
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => /^[•\-*●▪·]\s+/.test(l))
+    .map((l) => l.replace(/^[•\-*●▪·]\s+/, "").trim())
+    .filter((l) => l.length >= 25 && /[a-z]/i.test(l));
+  return {
+    withNum: marked.filter(hasHardMetric),
+    needsNum: marked.filter((l) => !hasHardMetric(l)),
+  };
+}
+// A concrete, deterministic nudge for the KIND of number a bullet could take, from
+// its leading verb — no LLM call, just orientation for the user. Matches verb STEMS
+// with common suffixes so gerund/present/past forms ("Supporting", "Contributing",
+// "Inspired") all land on a real hint instead of the generic "a number".
+function metricHint(text: string): string {
+  const t = text.toLowerCase();
+  const has = (...stems: string[]) =>
+    stems.some((s) => new RegExp(`\\b${s}(?:e|ed|ing|es|s|d)?\\b`).test(t));
+  if (has("lead", "led", "manage", "mentor", "onboard", "coach", "supervise", "direct", "hire", "train", "ramp"))
+    return "team size or # of people";
+  if (has("improv", "increas", "reduc", "cut", "accelerat", "streamlin", "boost", "grow", "grew", "rais", "decreas", "sav", "optimiz", "enhanc", "sharpen", "speed"))
+    return "% change or time saved";
+  if (has("driv", "drove", "generat", "deliver", "clos", "achiev", "win", "won", "secur", "sell", "sold"))
+    return "$ or % impact";
+  if (has("build", "built", "creat", "develop", "launch", "ship", "design", "automat", "implement", "standardiz", "introduc", "present"))
+    return "count or scale";
+  if (has("support", "maintain", "handl", "serv", "advis", "prepar", "contribut", "assist", "collaborat", "partner"))
+    return "# of accounts or volume";
+  return "a number";
 }
 
 /** Assemble the three review agents from real pipeline outputs + one rank call. */
@@ -1785,17 +1844,28 @@ export async function buildAgents(
     value: s.value,
     label: s.label,
   }));
-  // Roughly how many substantive lines carry a hard number (not just a year) —
-  // a quick read on how quantified the resume is overall, shown as a meter.
-  const quant = (() => {
-    const lines = resumeText
-      .split(/\r?\n/)
-      .map((l) => l.replace(/^[\s•\-*●▪·]+/, "").trim())
-      .filter((l) => l.length >= 40 && /[a-z]/i.test(l));
-    const hasMetric = (l: string) =>
-      /\d/.test(l.replace(/\b(19|20)\d{2}\b/g, "").replace(/\b\d{1,2}[/-]\d{1,2}\b/g, ""));
-    return { count: lines.filter(hasMetric).length, total: lines.length };
-  })();
+  // How many accomplishment bullets carry a hard number, and exactly which ones
+  // still need one. Prefer real bullet lines so the meter + list describe
+  // accomplishments, not summary/skills lines; fall back to the looser
+  // all-substantive-lines read only when a résumé has no bullet markers.
+  const { withNum, needsNum } = impactBullets(resumeText);
+  const haveBullets = withNum.length + needsNum.length >= 3;
+  const quant = haveBullets
+    ? { count: withNum.length, total: withNum.length + needsNum.length }
+    : (() => {
+        const lines = resumeText
+          .split(/\r?\n/)
+          .map((l) => l.replace(/^[\s•\-*●▪·]+/, "").trim())
+          .filter((l) => l.length >= 40 && /[a-z]/i.test(l));
+        return { count: lines.filter(hasHardMetric).length, total: lines.length };
+      })();
+  const needsList = haveBullets
+    ? needsNum.slice(0, 6).map((text) => ({
+        text: text.length > 96 ? text.slice(0, 95).trimEnd() + "…" : text,
+        hint: metricHint(text),
+      }))
+    : [];
+  const needsMore = haveBullets ? Math.max(0, needsNum.length - needsList.length) : 0;
   const impact: AuditAgent = {
     id: "impact",
     ...AGENT_META.impact,
@@ -1810,13 +1880,14 @@ export async function buildAgents(
     after: pair?.after,
     stats,
     quantified: quant.total > 0 ? quant : undefined,
+    needsMetric: needsList.length ? needsList : undefined,
+    needsMetricMore: needsMore,
   };
   const rolefit: AuditAgent = {
     id: "rolefit",
     ...AGENT_META.rolefit,
     title: "Your bullets, ranked",
-    subtitle: "bullets taken from existing resume",
-    chip: "Hard limit · 2 pages",
+    subtitle: "how relevant each of your bullets is to this role, strongest kept",
     footer: "",
     detail:
       "Remy scores every line 0–100 for relevance to this posting, keeps the strongest, and " +

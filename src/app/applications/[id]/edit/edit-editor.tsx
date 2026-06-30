@@ -5,10 +5,9 @@ import Link from "next/link";
 import {
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   Check,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   ChevronUp,
   Download,
   Eye,
@@ -45,6 +44,7 @@ import { track, getSessionId } from "@/lib/track";
 import { ROUTES } from "@/components/landing/data";
 import { bulletKey, diffMap, wordDiff } from "@/lib/apply/redline";
 import { highlightHits } from "@/lib/highlight";
+import { groundFindings } from "@/lib/resume-rules/groundFindings";
 import {
   composeContact,
   normalizeContactFields,
@@ -52,7 +52,12 @@ import {
   parseContact,
   type ContactFields,
 } from "@/lib/apply/contact";
-import { normalizeHeadline, stripTemplateGuidance } from "@/lib/apply/sanitize-doc";
+import {
+  cleanSkillGroups,
+  normalizeHeadline,
+  stripSkillLabel,
+  stripTemplateGuidance,
+} from "@/lib/apply/sanitize-doc";
 import { type Section, SECTION_LABEL, fixSection } from "@/lib/apply/sections";
 import { cleanResumeDate } from "@/lib/apply/dates";
 import PrintDoc from "../print/print-doc";
@@ -95,6 +100,10 @@ function pruneResolvedFindings(
 ): ProofPoint[] {
   const hay = normForMatch(docPlainText(doc));
   return points.filter((p) => {
+    // Contact gaps resolve live: once the email/phone is in the header, the ask is
+    // done and the suggestion checks itself off (no quote to match on these).
+    if (p.ruleId === "header_missing_email") return !parseContact(doc.contact).email;
+    if (p.ruleId === "header_missing_phone") return !parseContact(doc.contact).phone;
     if (!p.quote) return true; // "missing section" issues have no quote to verify
     let q = normForMatch(p.quote);
     // Drop a leading section-header word (e.g. "Skills") that isn't in the body.
@@ -117,6 +126,7 @@ function parseSkillInput(value: string): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
 }
+
 
 function skillSignature(skills: string[] | undefined): string {
   return Array.from(
@@ -213,6 +223,27 @@ type GroupSkillsResponse = {
 };
 type EditableSection = Exclude<Section, "fixes">;
 
+// The preview's data-field anchor for an editable section. List sections point at
+// a specific entry so a cross-page edit jumps to the exact item, not the section.
+function previewAnchorFor(target: EditableSection, entry = 0): string {
+  switch (target) {
+    case "summary":
+      return "summary";
+    case "skills":
+      return "skills";
+    case "experience":
+      return `exp-${entry}`;
+    case "projects":
+      return `proj-${entry}`;
+    case "education":
+      return `edu-${entry}`;
+    case "certifications":
+      return `cert-${entry}`;
+    default:
+      return "header";
+  }
+}
+
 // Top-level editor tabs (resume.co-style): Edit the content, pick a Design, or
 // review Feedback. The preview stays mounted across all three.
 type EditorMode = "edit" | "design" | "feedback";
@@ -241,6 +272,18 @@ const EDITABLE_SECTIONS: EditableSection[] = [
 
 function suggestionId(p: ProofPoint): string {
   return [p.ruleId || "feedback", p.title, p.quote ?? "", p.fix].join("|");
+}
+
+// Whether an AI draft makes sense for this finding. Contact-detail gaps need the
+// user's own info (the AI can't invent an email or phone number), so those offer
+// only "Edit manually" — no "Draft fix with AI".
+function canAiDraft(p: ProofPoint): boolean {
+  if (p.ruleId === "header_missing_email" || p.ruleId === "header_missing_phone") return false;
+  const blob = `${p.title} ${p.summary} ${p.fix ?? ""}`.toLowerCase();
+  return !(
+    /\b(?:add|include|provide|enter|missing|no)\b/.test(blob) &&
+    /\b(?:email address|e-?mail|phone number|telephone|mobile number)\b/.test(blob)
+  );
 }
 
 function manualSection(p: ProofPoint): EditableSection | null {
@@ -296,6 +339,66 @@ function draftFromFinding(p: ProofPoint, target: EditableSection): string {
   if (target === "certifications") return "[Certification], [Issuer], [Year]";
   if (target === "skills") return fix.replace(/^add\s+/i, "").replace(/\.$/, "");
   return fix;
+}
+
+// --- Shorten-bullets flow (a multi-bullet fix, reviewed one bullet at a time) ---
+// One over-long bullet and its AI/trimmed replacement, with the user's accept flag.
+type ShortenRow = { ei: number; bi: number; original: string; shortened: string; accepted: boolean };
+
+// Mirror bullet_length_1_to_2_lines (evaluateLatexResumeRules.ts): a bullet is
+// over the 1-2 line target past ~220 chars or ~35 words.
+function isLongBullet(text: string): boolean {
+  const t = (text ?? "").trim();
+  return t.length > 220 || t.split(/\s+/).filter(Boolean).length > 35;
+}
+// Mirror quantify_impact_metrics (evaluateLatexResumeRules.ts): a bullet "needs
+// a metric" when it carries no number/%/$/scale word.
+const HAS_METRIC = /(\d|%|\$|\bpercent\b|million|billion|thousand|\bk\b)/i;
+function needsMetric(text: string): boolean {
+  return !HAS_METRIC.test(text ?? "");
+}
+// Bullet-level findings that apply across MANY bullets (so they go through the
+// batch reviewer, not the single-draft box). Returns the review mode or null.
+function bulletReviewMode(p: ProofPoint): "shorten" | "quantify" | null {
+  if (p.ruleId === "bullet_length_1_to_2_lines") return "shorten";
+  if (p.ruleId === "quantify_impact_metrics") return "quantify";
+  const blob = `${p.title} ${p.fix ?? ""}`.toLowerCase();
+  if (!/\bbullet|metric|number|result/.test(blob)) return null;
+  if (/\b(shorten|too long|trim|cut down|over the)\b/.test(blob)) return "shorten";
+  if (/\b(metric|quantif|number|measurable)\b/.test(blob)) return "quantify";
+  return null;
+}
+// Demo/no-LLM fallback for quantify: we can't invent a real figure, so append a
+// short bracketed placeholder for the user to fill in. Honest by construction.
+function quantifyFallback(text: string): string {
+  const t = (text ?? "").trim().replace(/[.\s]+$/, "");
+  return `${t} ([add a metric: %, $, count, or time saved]).`;
+}
+// Demo/no-LLM fallback: trim a long bullet to one idea at a sentence or word
+// boundary. Honest — no fabricated content, just a tighter version to confirm.
+function trimBullet(text: string): string {
+  const t = (text ?? "").trim().replace(/\s+/g, " ");
+  if (t.length <= 200) return t;
+  const sentence = t.match(/^.{60,200}?[.!?](?:\s|$)/)?.[0]?.trim();
+  if (sentence) return sentence.replace(/[.!?]+$/, "");
+  let cut = t.slice(0, 185);
+  const sp = cut.lastIndexOf(" ");
+  if (sp > 80) cut = cut.slice(0, sp);
+  return cut.replace(/[\s,;:]+(?:and|or|with|to|for|the|a|an|that|which|including)?$/i, "").trim();
+}
+
+// An applied experience edit must be just the bullet. The AI rewrite is given
+// section context, so it can echo a leading "Role — Company" header or bullet
+// markers; strip those so the role title never lands inside a bullet.
+function cleanBulletText(text: string): string {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^[\s•*•‣▪\-–—]+/, "").trim())
+    .filter(Boolean);
+  if (lines.length > 1 && /\s[—–-]\s/.test(lines[0]) && lines[0].length <= 80) {
+    lines.shift(); // drop a "Role — Company" style header line the rewrite echoed
+  }
+  return lines.join(" ").trim() || text.trim();
 }
 
 function findQuotedBullet(doc: TailoredDoc, quote: string | undefined): { ei: number; bi: number } | null {
@@ -412,9 +515,31 @@ function normalizeEditorDoc(doc: TailoredDoc, targetRole: string): TailoredDoc {
   // Drop leftover résumé-template guidance (e.g. "Add a concise 1-2 sentence
   // professional summary…") that an imported PDF can carry into the summary.
   const summary = stripTemplateGuidance(doc.summary);
-  return contact === doc.contact && headline === doc.headline && summary === doc.summary
-    ? doc
-    : { ...doc, contact, headline, summary };
+  // Self-heal skill groups a past bad apply may have mangled (labels dumped in
+  // as skills, duplicates). No-op on clean groups.
+  const healedGroups = doc.skillGroups?.length ? cleanSkillGroups(doc.skillGroups) : doc.skillGroups;
+  const groupsChanged =
+    !!doc.skillGroups?.length && JSON.stringify(healedGroups) !== JSON.stringify(doc.skillGroups);
+  if (
+    contact === doc.contact &&
+    headline === doc.headline &&
+    summary === doc.summary &&
+    !groupsChanged
+  ) {
+    return doc;
+  }
+  return {
+    ...doc,
+    contact,
+    headline,
+    summary,
+    ...(groupsChanged
+      ? {
+          skillGroups: healedGroups,
+          skills: Array.from(new Set((healedGroups ?? []).flatMap((g) => g.skills))),
+        }
+      : {}),
+  };
 }
 
 export default function EditEditor({
@@ -505,6 +630,16 @@ export default function EditEditor({
   const [coverOpen, setCoverOpen] = useState(false);
   const [coverEditing, setCoverEditing] = useState(false);
   const [msg, setMsg] = useState<{ text: string; err: boolean } | null>(null);
+  // Transient "we applied that, and here's where" confirmation toast. The `key`
+  // bumps on every fire so re-firing the same text restarts the auto-dismiss.
+  const [applied, setApplied] = useState<{ text: string; key: number } | null>(null);
+  // Posting keywords the user has added to Skills this session — so the keyword
+  // suggestion card can show them as done instead of still prompting.
+  const [addedKeywords, setAddedKeywords] = useState<Set<string>>(() => new Set());
+  // Adding a keyword is an AI-driven change, so each one is reviewable (kept or
+  // removed) and counts in the review banner alongside the bullet rewrites, until
+  // the user signs off on it. Session-local, like addedKeywords.
+  const [keywordDecisions, setKeywordDecisions] = useState<Record<string, "kept" | "removed">>({});
   const [dirty, setDirty] = useState(initialDocNormalized);
   const [review, setReview] = useState<{ items: ReviewItem[] } | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -520,6 +655,15 @@ export default function EditEditor({
   const [suggestionDrafts, setSuggestionDrafts] = useState<Record<string, string>>({});
   // Suggestions whose draft is currently being generated by the AI rewrite call.
   const [rewritingIds, setRewritingIds] = useState<Set<string>>(() => new Set());
+  // The "shorten over-long bullets" batch reviewer: one row per long bullet, each
+  // with its AI/trimmed replacement and an accept flag. Null when closed.
+  const [shortenReview, setShortenReview] = useState<{
+    id: string;
+    p: ProofPoint;
+    mode: "shorten" | "quantify";
+    rows: ShortenRow[];
+  } | null>(null);
+  const [shortenLoading, setShortenLoading] = useState(false);
   const [manualSuggestionOpen, setManualSuggestionOpen] = useState(false);
   const [manualSuggestion, setManualSuggestion] = useState<ManualSuggestionForm>({
     section: "experience",
@@ -529,15 +673,17 @@ export default function EditEditor({
   // What the panel actually shows: findings whose quoted text still exists in the
   // doc. Derived (not stored) so it updates live as the user edits — applying a
   // suggested change drops its finding, and structuring-fixed ones never surface.
-  const allProofPoints = useMemo(
-    () => [...proofPoints, ...manualProofPoints],
-    [manualProofPoints, proofPoints],
-  );
-  // The doc's text at mount, captured once via a lazy initializer.
-  // pruneResolvedFindings uses it so a finding is only dropped when an edit
-  // removes its quote — not when the quote never matched the freshly-structured
-  // doc (that kept the panel count below the number the audit handoff promised).
+  // The doc's text at mount, captured once via a lazy initializer. Used to ground
+  // findings (was the quoted evidence ever real in this résumé?) and by
+  // pruneResolvedFindings (drop a finding only once an edit removes its quote).
   const [initialDocHay] = useState(() => normForMatch(docPlainText(doc)));
+  // Trust layer: drop template-owned / myth findings and any whose quoted
+  // evidence can't be verified in the résumé BEFORE the panel shows them. Manual
+  // (user-added) suggestions are never grounded away.
+  const allProofPoints = useMemo(
+    () => [...groundFindings(proofPoints, initialDocHay, { templated: true }), ...manualProofPoints],
+    [manualProofPoints, proofPoints, initialDocHay],
+  );
   const shownPoints = useMemo(
     () =>
       pruneResolvedFindings(allProofPoints, doc, initialDocHay).filter(
@@ -562,13 +708,17 @@ export default function EditEditor({
   // where the résumé spills onto page 2+ (the downloaded PDF is the exact split).
   const docWrapRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
-  // Page navigator: the preview paginates into real US-Letter sheets — content is
-  // padded so a block never crosses a page edge — and shows ONE sheet at a time,
-  // flipped with the pager. pageCount = number of sheets; sheetPx = one sheet's
-  // unscaled (pre-zoom) height.
-  const [pageCount, setPageCount] = useState(1);
-  const [sheetPx, setSheetPx] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  // The edit-fields column. On a section change we scroll THIS into view (never
+  // the résumé section), so switching sections keeps the text inputs visible.
+  const editMainRef = useRef<HTMLDivElement>(null);
+  // After an applied edit, the exact preview anchor to scroll to, so an edit lands
+  // visibly in the (continuously-scrolling) preview rather than off-screen.
+  const [pendingJump, setPendingJump] = useState<string | null>(null);
+  // While a suggestion's draft is open, keep its targeted line highlighted in the
+  // preview (not just on hover) so the user always sees WHAT they're editing.
+  const [lockedFinding, setLockedFinding] = useState<{ quote?: string; section: Section } | null>(
+    null,
+  );
   // "You are here": a small avatar in the preview, level with the section being
   // edited. Null = hidden (off the current page, or not in Edit mode).
   const [cursorTop, setCursorTop] = useState<number | null>(null);
@@ -597,23 +747,10 @@ export default function EditEditor({
       // Fit the fixed-width document to the panel (zoom-to-fit-width), capped.
       const scale = Math.min(1.5, viewport.clientWidth / PREVIEW_DOC_WIDTH);
       setDocScale((prev) => (Math.abs(prev - scale) > 0.001 ? scale : prev));
-      // One US-Letter sheet at the document's true (pre-zoom) width.
-      const sheet = (page.offsetWidth * 11) / 8.5;
-      // Clear our sheet-fill (and any stale per-block padding from older builds) so
-      // we measure the TRUE content height, then split it into whole sheets. We
-      // slice on the sheet edge — padding every block down to avoid splits left the
-      // pages looking half-empty and inflated the page count.
+      // Continuous scroll: the preview is one tall sheet that scrolls, so we only
+      // need the document's true (natural) height scaled to the on-screen zoom, to
+      // size the scroll area. No page splitting / sheet-fill padding.
       page.style.minHeight = "";
-      page
-        .querySelectorAll<HTMLElement>(".mcv-head, .mcv-body > *")
-        .forEach((el) => {
-          el.style.marginTop = "";
-        });
-      const contentH = page.offsetHeight;
-      const pages = Math.max(1, Math.ceil((contentH - 8) / sheet));
-      page.style.minHeight = `${Math.round(pages * sheet)}px`; // fill out whole sheets
-      setSheetPx((prev) => (prev != null && Math.abs(prev - sheet) < 1 ? prev : Math.round(sheet)));
-      setPageCount(pages);
       setDocHeight(Math.round(page.offsetHeight * scale));
     };
     measure();
@@ -627,18 +764,9 @@ export default function EditEditor({
       ro.disconnect();
     };
   }, [doc]);
-  // Page navigator: one sheet shown at a time. We translate the scaler up by whole
-  // sheets (pre-scale coords, applied before the zoom), so each page shows only
-  // its own content. Clamp the page when pagination changes (an edit can add or
-  // remove a page).
-  const totalPages = pageCount;
-  const paged = pageCount > 1 && sheetPx != null;
-  const pageHeightScaled = sheetPx != null ? Math.round(sheetPx * docScale) : null;
-  // Clamp at render so a pagination change (an edit added/removed a page) can't
-  // strand the indicator past the last page — no effect/setState needed.
-  const safePage = Math.min(Math.max(1, currentPage), totalPages);
-  const pageTranslate = paged && safePage > 1 ? (safePage - 1) * (sheetPx ?? 0) : 0;
-  const goToPage = (p: number) => setCurrentPage(Math.min(Math.max(1, p), totalPages));
+  // Scaled width of the document, so the scroll area (sizer) matches the zoomed
+  // doc and centers it.
+  const docWidthScaled = Math.round(PREVIEW_DOC_WIDTH * docScale);
   // Experience entries collapse to a one-line header; open entries that still
   // have AI rewrites to review so those aren't hidden.
   const [openEntries, setOpenEntries] = useState<Set<number>>(() => {
@@ -675,44 +803,89 @@ export default function EditEditor({
       .slice(0, 2) || "Y";
   const prevAnchorRef = useRef<string | null>(null);
   useEffect(() => {
-    const compute = () => {
-      const vp = viewportRef.current;
+    // The off-screen thing we point an arrow at: a highlighted finding, else the
+    // section being edited.
+    const arrowTarget = (): HTMLElement | null =>
+      (previewRef.current?.querySelector(".mcv-hl") as HTMLElement | null) ||
+      (editingAnchor
+        ? (docWrapRef.current?.querySelector(`[data-field="${editingAnchor}"]`) as HTMLElement | null)
+        : null);
+    // Arrow direction: is the target above or below the viewport? null when in view.
+    const computeDir = () => {
+      const el = arrowTarget();
+      if (!el) {
+        setHlDir(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      setHlDir(r.bottom < 72 ? "up" : r.top > vh - 40 ? "down" : null);
+    };
+    // The "you are here" avatar sits at the section's offset inside the scroll
+    // content, so it tracks the résumé as the page scrolls.
+    const computeCursor = () => {
       const scaler = docWrapRef.current;
       const el = editingAnchor ? scaler?.querySelector(`[data-field="${editingAnchor}"]`) : null;
-      if (!vp || !scaler || !el) {
+      if (!scaler || !el) {
         setCursorTop(null);
         return;
       }
-      const vr = vp.getBoundingClientRect();
       const sr = scaler.getBoundingClientRect();
       const er = (el as HTMLElement).getBoundingClientRect();
-      // When the SECTION changes (not on manual paging), flip the pager to the
-      // page holding it so the avatar is on-screen. (er.top - sr.top) is
-      // translate-invariant, so divide by the scale for the unscaled offset.
-      const anchorChanged = prevAnchorRef.current !== editingAnchor;
-      prevAnchorRef.current = editingAnchor;
-      if (anchorChanged && pageCount > 1 && sheetPx && docScale > 0) {
-        const unscaledTop = (er.top - sr.top) / docScale;
-        const targetPage = Math.min(pageCount, Math.floor(unscaledTop / sheetPx) + 1);
-        if (targetPage !== currentPage) {
-          setCurrentPage(targetPage);
-          return; // reposition on the re-run after the flip
-        }
-      }
-      const top = er.top - vr.top;
-      // Only show it when the anchored block is on the visible page.
-      setCursorTop(top >= -10 && top <= vr.height - 10 ? Math.max(2, top) : null);
+      setCursorTop(Math.max(2, er.top - sr.top));
     };
-    // rAF + a post-transition pass; never set state synchronously in the effect.
+    const compute = () => {
+      computeCursor();
+      computeDir();
+    };
+    // On a SECTION change, keep the edit fields in view (scroll UP to them only if
+    // needed) — never scroll DOWN to the résumé section. The arrow points there
+    // instead, and the user can tap it to jump.
+    const anchorChanged = prevAnchorRef.current !== editingAnchor;
+    prevAnchorRef.current = editingAnchor;
+    if (anchorChanged) {
+      // Target the section TITLE (small), not the tall column — scrollIntoView
+      // treats a viewport-spanning element as already "in view" and won't move.
+      const titleEl = editMainRef.current?.querySelector(".tmE-panel-title");
+      (titleEl ?? editMainRef.current)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
     const raf = requestAnimationFrame(compute);
-    const t = setTimeout(compute, 350); // settle after a page-flip transition
+    const t = setTimeout(compute, 200); // settle after reflow
+    // Keep the arrow accurate while the page scrolls (incl. our own smooth scroll).
+    let sraf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(sraf);
+      sraf = requestAnimationFrame(computeDir);
+    };
     window.addEventListener("resize", compute);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(sraf);
       clearTimeout(t);
       window.removeEventListener("resize", compute);
+      window.removeEventListener("scroll", onScroll);
     };
-  }, [editingAnchor, currentPage, docScale, sheetPx, pageCount, doc, openEntries]);
+  }, [editingAnchor, docScale, doc, openEntries]);
+  // After an apply, let the doc re-render, then scroll the edited block into view
+  // so the change is visible in the continuous preview. Clears itself once done.
+  useEffect(() => {
+    if (!pendingJump) return;
+    let raf = 0;
+    const t = window.setTimeout(() => {
+      raf = requestAnimationFrame(() => {
+        const el = docWrapRef.current?.querySelector(
+          `[data-field="${pendingJump}"]`,
+        ) as HTMLElement | null;
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setPendingJump(null);
+      });
+    }, 300);
+    return () => {
+      window.clearTimeout(t);
+      cancelAnimationFrame(raf);
+    };
+  }, [pendingJump, doc]);
   function toggleEntry(i: number) {
     setOpenEntries((prev) => {
       const next = new Set(prev);
@@ -729,6 +902,28 @@ export default function EditEditor({
     setContactFields(next);
     patch({ contact: composeContact(next) });
   }
+  // After "Edit manually" on a contact gap, focus the matching header input so the
+  // user lands directly on the field to fill (and the gap checks off once it has a
+  // value, via pruneResolvedFindings). The intent lives in a ref (cleared in the
+  // effect without a re-render); a tick triggers the effect once the field mounts.
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const pendingFocusRef = useRef<"phone" | "email" | null>(null);
+  const [focusTick, setFocusTick] = useState(0);
+  function focusContactField(field: "phone" | "email") {
+    pendingFocusRef.current = field;
+    setFocusTick((t) => t + 1);
+  }
+  useEffect(() => {
+    const field = pendingFocusRef.current;
+    if (!field || mode !== "edit" || section !== "header") return;
+    const el = (field === "phone" ? phoneInputRef : emailInputRef).current;
+    if (el) {
+      el.focus();
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    pendingFocusRef.current = null;
+  }, [focusTick, mode, section]);
 
   const diffs = diffMap(bulletDiffs);
   const totalPending = bulletDiffs.filter((d) => !decisions[bulletKey(d.entry, d.bullet)]).length;
@@ -737,6 +932,16 @@ export default function EditEditor({
     setDirty(true);
     setMsg(null);
   }
+  // Show a brief "applied to X" confirmation so the user knows content landed and
+  // where. A useEffect handles auto-dismiss (keyed off `applied`).
+  function flashApplied(text: string) {
+    setApplied((a) => ({ text, key: (a?.key ?? 0) + 1 }));
+  }
+  useEffect(() => {
+    if (!applied) return;
+    const t = setTimeout(() => setApplied(null), 3600);
+    return () => clearTimeout(t);
+  }, [applied]);
   function patch(p: Partial<TailoredDoc>) {
     setDoc((d) => ({ ...d, ...p }));
     touch();
@@ -899,14 +1104,20 @@ export default function EditEditor({
     if (p.quote?.trim()) return p.quote.trim();
     if (target === "summary") return doc.summary ?? "";
     if (target === "skills")
-      return doc.skillGroups?.length
-        ? doc.skillGroups.map((g) => `${g.label}: ${g.skills.join(", ")}`).join("\n")
-        : (doc.skills ?? []).join(", ");
+      // Flat comma list (NO group labels) so the rewrite returns a clean list we
+      // can merge — feeding it "Label: a, b" made it echo labels back as skills.
+      return (
+        doc.skillGroups?.length
+          ? doc.skillGroups.flatMap((g) => g.skills)
+          : (doc.skills ?? [])
+      ).join(", ");
     if (target === "header") return doc.contact ?? "";
     if (target === "experience")
+      // Bullets only (no "Role — Company" headers) so the rewrite can't echo a
+      // role title into the bullet it produces.
       return doc.experience
-        .map((e) => `${e.role} — ${e.company}\n${e.bullets.join("\n")}`)
-        .join("\n\n")
+        .flatMap((e) => e.bullets)
+        .join("\n")
         .slice(0, 2000);
     return "";
   }
@@ -917,10 +1128,22 @@ export default function EditEditor({
   function openSuggestionDraft(p: ProofPoint, target: EditableSection) {
     const id = suggestionId(p);
     if (suggestionDrafts[id] != null) return; // already open
+    // Show the user exactly which line this fix targets: flip the preview to its
+    // page and keep it highlighted for as long as the draft stays open.
+    const jumpEntry = target === "experience" ? findQuotedBullet(doc, p.quote)?.ei ?? 0 : 0;
+    setPendingJump(previewAnchorFor(target, jumpEntry));
+    setLockedFinding({ quote: p.quote, section: target });
     const fallback = draftFromFinding(p, target);
-    setSuggestionDrafts((drafts) => (drafts[id] != null ? drafts : { ...drafts, [id]: fallback }));
+    // Open with an EMPTY draft + the AI spinner; the box stays blank until the
+    // rewrite returns. Only fall back to the template draft in demo/no-LLM/error,
+    // and only while the user hasn't started typing (draft still "").
+    setSuggestionDrafts((drafts) => (drafts[id] != null ? drafts : { ...drafts, [id]: "" }));
     setRewritingIds((s) => new Set(s).add(id));
     void (async () => {
+      const applyFallback = () =>
+        setSuggestionDrafts((drafts) =>
+          drafts[id] === "" ? { ...drafts, [id]: fallback } : drafts,
+        );
       try {
         const res = await fetch("/api/resume/rewrite", {
           method: "POST",
@@ -935,11 +1158,13 @@ export default function EditEditor({
         const data = await res.json().catch(() => ({}));
         if (res.ok && typeof data.rewrite === "string" && data.rewrite.trim()) {
           setSuggestionDrafts((drafts) =>
-            drafts[id] === fallback ? { ...drafts, [id]: data.rewrite.trim() } : drafts,
+            drafts[id] === "" ? { ...drafts, [id]: data.rewrite.trim() } : drafts,
           );
+        } else {
+          applyFallback(); // demo mode ({ demo: true }) or empty response
         }
       } catch {
-        /* keep the template fallback */
+        applyFallback();
       } finally {
         setRewritingIds((s) => {
           const n = new Set(s);
@@ -960,6 +1185,9 @@ export default function EditEditor({
       delete next[id];
       return next;
     });
+    // Release the persistent preview highlight once the draft is gone.
+    setLockedFinding(null);
+    clearHighlight();
   }
 
   function markSuggestionApplied(id: string) {
@@ -971,12 +1199,188 @@ export default function EditEditor({
     closeSuggestionDraft(id);
   }
 
+  // Open the batch reviewer for a per-bullet finding (shorten or quantify):
+  // collect every bullet that matches, ask the AI (or a deterministic fallback in
+  // demo) for a revised version of each, and present them as accept/reject rows.
+  async function openBulletReview(p: ProofPoint) {
+    const mode = bulletReviewMode(p);
+    if (!mode) return;
+    const id = suggestionId(p);
+    const select = mode === "shorten" ? isLongBullet : needsMetric;
+    const targets = doc.experience.flatMap((entry, ei) =>
+      entry.bullets.map((original, bi) => ({ ei, bi, original })).filter((t) => select(t.original)),
+    );
+    if (!targets.length) {
+      markSuggestionApplied(id); // nothing matches anymore — clear the stale finding
+      return;
+    }
+    setShortenReview({ id, p, mode, rows: [] });
+    setShortenLoading(true);
+    const issue =
+      mode === "shorten"
+        ? "This experience bullet is over the 1-2 line target."
+        : "This experience bullet states the task but has no measurable result.";
+    const advice =
+      mode === "shorten"
+        ? "Shorten it to one idea, result first. Stay strictly truthful; do not invent any detail."
+        : "Turn each task into a result, leading with scope and specifics. Add a modest, realistic " +
+          "metric only where it fits naturally, and vary the kind of metric across bullets. One line.";
+    // One batched call (not one per bullet): the model sees every bullet at once and
+    // varies its metrics, instead of stamping the same "15%" on each in isolation.
+    let rewrites: string[] = [];
+    try {
+      const res = await fetch("/api/resume/rewrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-tm-session": getSessionId() ?? "" },
+        body: JSON.stringify({
+          section: "experience",
+          issue,
+          advice,
+          bullets: targets.map((t) => t.original),
+          allowEstimates: mode === "quantify",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.rewrites)) rewrites = data.rewrites;
+    } catch {
+      /* fall back to the deterministic rewrite per bullet below */
+    }
+    const rows: ShortenRow[] = targets.map((t, i) => {
+      const ai = typeof rewrites[i] === "string" ? cleanBulletText(rewrites[i].trim()) : "";
+      const fallback = mode === "shorten" ? trimBullet(t.original) : quantifyFallback(t.original);
+      return { ...t, shortened: ai || fallback, accepted: true };
+    });
+    // Keep only rows that actually changed (and, for shorten, got shorter).
+    const useful = rows.filter((r) => {
+      const next = r.shortened.trim();
+      if (!next || next === r.original.trim()) return false;
+      return mode === "shorten" ? next.length < r.original.trim().length : true;
+    });
+    setShortenReview((cur) => (cur && cur.id === id ? { ...cur, rows: useful } : cur));
+    setShortenLoading(false);
+  }
+
+  function patchShortenRow(index: number, patch: Partial<ShortenRow>) {
+    setShortenReview((s) =>
+      s ? { ...s, rows: s.rows.map((r, i) => (i === index ? { ...r, ...patch } : r)) } : s,
+    );
+  }
+  function setAllShortenAccepted(accepted: boolean) {
+    setShortenReview((s) => (s ? { ...s, rows: s.rows.map((r) => ({ ...r, accepted })) } : s));
+  }
+
+  function applyShorten() {
+    const review = shortenReview;
+    if (!review) return;
+    const accepted = review.rows.filter(
+      (r) => r.accepted && r.shortened.trim() && r.shortened.trim() !== r.original.trim(),
+    );
+    if (accepted.length) {
+      setDoc((d) => ({
+        ...d,
+        experience: d.experience.map((entry, ei) => {
+          const forEntry = accepted.filter((r) => r.ei === ei);
+          if (!forEntry.length) return entry;
+          return {
+            ...entry,
+            bullets: entry.bullets.map((bullet, bi) => {
+              const row = forEntry.find((r) => r.bi === bi);
+              return row ? row.shortened.trim() : bullet;
+            }),
+          };
+        }),
+      }));
+      track("resume_feedback_suggestion_applied", {
+        rule_id: review.p.ruleId,
+        category: review.p.category,
+        severity: review.p.severity,
+        section: "experience",
+      });
+      touch();
+      flashApplied(`Applied ${accepted.length} rewrite${accepted.length === 1 ? "" : "s"} to Experience`);
+    }
+    markSuggestionApplied(review.id);
+    setShortenReview(null);
+    setShortenLoading(false);
+  }
+
+  function cancelShorten() {
+    setShortenReview(null);
+    setShortenLoading(false);
+  }
+
+  // The fit panel's "Biggest lever" turns missing posting keywords into a real
+  // action: merge the genuinely-new ones into Skills (deduped) and jump there so
+  // the user can keep the ones they actually have and prune the rest.
+  function addKeywordsToSkills(terms: string[]) {
+    const incoming = terms.map((s) => s.trim()).filter(Boolean);
+    if (!incoming.length) return;
+    const have = new Set(
+      [...(doc.skills ?? []), ...(doc.skillGroups ?? []).flatMap((g) => g.skills)]
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean),
+    );
+    const fresh = incoming.filter((s) => !have.has(s.toLowerCase()));
+    setMode("edit");
+    setSection("skills");
+    // Always record them as handled (so the card shows them done), even if a term
+    // was already present — the user's intent is satisfied either way.
+    setAddedKeywords((prev) => new Set([...prev, ...incoming]));
+    if (!fresh.length) {
+      flashApplied("Those keywords are already in your Skills");
+      return;
+    }
+    setDoc((d) => {
+      const merged = Array.from(new Set([...(d.skills ?? []), ...fresh]));
+      if (d.skillGroups?.length) {
+        return {
+          ...d,
+          skills: merged,
+          skillGroups: d.skillGroups.map((g, i) =>
+            i === 0 ? { ...g, skills: [...g.skills, ...fresh] } : g,
+          ),
+        };
+      }
+      return { ...d, skills: merged };
+    });
+    touch();
+    flashApplied(`Added ${fresh.length} keyword${fresh.length === 1 ? "" : "s"} to Skills, review them below`);
+  }
+
+  // Review an added keyword: keep it (sign-off) or remove it (revert from Skills).
+  // Either way it counts as reviewed in the change banner.
+  function keepAllKeywords(terms: string[]) {
+    setKeywordDecisions((prev) => {
+      const next = { ...prev };
+      for (const t of terms) if (!next[t]) next[t] = "kept";
+      return next;
+    });
+    flashApplied(`Kept ${terms.length} keyword${terms.length === 1 ? "" : "s"} in Skills`);
+  }
+  function removeAddedKeyword(term: string) {
+    const low = term.trim().toLowerCase();
+    setKeywordDecisions((prev) => ({ ...prev, [term]: "removed" }));
+    setDoc((d) => ({
+      ...d,
+      skills: (d.skills ?? []).filter((s) => s.trim().toLowerCase() !== low),
+      skillGroups: d.skillGroups?.map((g) => ({
+        ...g,
+        skills: g.skills.filter((s) => s.trim().toLowerCase() !== low),
+      })),
+    }));
+    touch();
+    flashApplied(`Removed "${term}" from Skills`);
+  }
+
   function applySuggestionDraft(p: ProofPoint, target: EditableSection, draft: string) {
     const text = draft.trim();
     if (!text) return;
     const id = suggestionId(p);
+    let jumpEntry = 0; // which list entry the edit landed on (for the page jump)
     if (target === "experience") {
       const hit = findQuotedBullet(doc, p.quote);
+      jumpEntry = hit?.ei ?? 0;
+      const bulletText = cleanBulletText(text);
       setDoc((d) => {
         if (hit && d.experience[hit.ei]?.bullets[hit.bi] != null) {
           return {
@@ -985,7 +1389,7 @@ export default function EditEditor({
               ei === hit.ei
                 ? {
                     ...entry,
-                    bullets: entry.bullets.map((bullet, bi) => (bi === hit.bi ? text : bullet)),
+                    bullets: entry.bullets.map((bullet, bi) => (bi === hit.bi ? bulletText : bullet)),
                   }
                 : entry,
             ),
@@ -995,7 +1399,7 @@ export default function EditEditor({
           return {
             ...d,
             experience: d.experience.map((entry, ei) =>
-              ei === 0 ? { ...entry, bullets: [...entry.bullets, text] } : entry,
+              ei === 0 ? { ...entry, bullets: [...entry.bullets, bulletText] } : entry,
             ),
           };
         }
@@ -1006,7 +1410,7 @@ export default function EditEditor({
               role: d.headline || "Role",
               company: "",
               dates: "",
-              bullets: [text],
+              bullets: [bulletText],
             },
           ],
         };
@@ -1022,25 +1426,36 @@ export default function EditEditor({
         if (quote && d.summary.includes(quote)) {
           return { ...d, summary: d.summary.replace(quote, text) };
         }
-        return { ...d, summary: d.summary.trim() ? `${d.summary.trim()}\n\n${text}` : text };
+        // A summary draft is a complete rewrite — replace the whole summary rather
+        // than appending (which stacked two summaries). Empty summary -> just sets it.
+        return { ...d, summary: text };
       });
     } else if (target === "header") {
       setDoc((d) => ({ ...d, headline: normalizeHeadline(text.split(/\r?\n/)[0], role) || d.headline }));
     } else if (target === "skills") {
-      const skills = parseSkillInput(text);
+      const incoming = parseSkillInput(text).map(stripSkillLabel).filter(Boolean);
       setDoc((d) => {
-        const merged = Array.from(new Set([...(d.skills ?? []), ...skills].map((s) => s.trim()).filter(Boolean)));
+        // Converge into existing skills: add only genuinely-new ones (deduped,
+        // case-insensitive) and fold them into the first existing group rather
+        // than spawning a separate "Suggested additions" group.
+        const have = new Set(
+          [...(d.skills ?? []), ...(d.skillGroups ?? []).flatMap((g) => g.skills)]
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean),
+        );
+        const fresh = incoming.map((s) => s.trim()).filter((s) => s && !have.has(s.toLowerCase()));
+        if (!fresh.length) return d;
+        const merged = Array.from(new Set([...(d.skills ?? []), ...fresh]));
         if (d.skillGroups?.length) {
           return {
             ...d,
             skills: merged,
-            skillGroups: [
-              ...d.skillGroups,
-              { label: "Suggested additions", skills: skills.length ? skills : [text] },
-            ],
+            skillGroups: d.skillGroups.map((g, i) =>
+              i === 0 ? { ...g, skills: [...g.skills, ...fresh] } : g,
+            ),
           };
         }
-        return { ...d, skills: merged.length ? merged : [...(d.skills ?? []), text] };
+        return { ...d, skills: merged };
       });
     } else if (target === "projects") {
       const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
@@ -1071,8 +1486,12 @@ export default function EditEditor({
     });
     setMode("edit");
     setSection(target);
+    // Flip the preview to the page the edit landed on, so a change that moves to
+    // (or spans onto) page 2 is shown rather than left off-screen on page 1.
+    setPendingJump(previewAnchorFor(target, jumpEntry));
     markSuggestionApplied(id);
     touch();
+    flashApplied(`Applied to ${SECTION_LABEL[target]}`);
   }
 
   function addManualSuggestion() {
@@ -1371,18 +1790,73 @@ export default function EditEditor({
     void save(next);
   }
 
+  // Must-have posting keywords missing from the resume — surfaced as a Skills
+  // suggestion (the "lever") so the action lives in its section, with a nav badge.
+  const missingKeywords = (fit?.keywords ?? [])
+    .filter((k) => !k.inResume)
+    .map((k) => k.term)
+    .slice(0, 8);
+  // Keywords already added to Skills this session are AI changes pending review
+  // (keep / remove); the rest are still unadded suggestions.
+  const unaddedKeywords = missingKeywords.filter((t) => !addedKeywords.has(t));
+  const addedKwList = missingKeywords.filter((t) => addedKeywords.has(t));
+  const kwPending = addedKwList.filter((t) => !keywordDecisions[t]);
+
+  // A posting-aware Summary suggestion: rework the summary to target the role and
+  // its must-have keywords. Synthesized from the fit (the rules engine is résumé-
+  // only) and threaded through the normal suggestion card, so "Draft fix with AI"
+  // rewrites the summary toward the posting. Dropped once applied.
+  const summaryFitPoint: ProofPoint | null =
+    kind === "application" && missingKeywords.length > 0 && (doc.summary?.trim()?.length ?? 0) > 0
+      ? {
+          title: "Tailor your summary to this posting",
+          summary:
+            "Your summary reads generically. It is the first thing a recruiter reads, so pointing it at this role (and the keywords it screens for) lifts your fit right away.",
+          why: "Recruiters and ATS weigh the summary heavily; one aimed at the posting signals fit in the first few seconds.",
+          fix: `Rework your summary to target ${role || "this role"}, working in the keywords this posting screens for where you genuinely have them: ${missingKeywords.slice(0, 6).join(", ")}.`,
+          severity: "high",
+          ruleId: "summary_tailor_to_posting",
+          category: "summary",
+          targetSection: "summary",
+        }
+      : null;
+  // The full surfaced set = deterministic findings + the synthesized summary point.
+  const allShown =
+    summaryFitPoint && !appliedSuggestionIds.has(suggestionId(summaryFitPoint))
+      ? [summaryFitPoint, ...shownPoints]
+      : shownPoints;
+
+  // Suggestions that belong to a given section (deterministic findings carry a
+  // targetSection), rendered inline at the top of that section's panel.
+  const sectionFixes = (s: Section): ProofPoint[] =>
+    allShown.filter((p) => suggestionTarget(p) === s);
+  // Nav badges count what each section surfaces inline: its suggestions, the
+  // Experience AI rewrites (diffs), and the Skills keyword suggestions + reviews.
+  const skillsKwAttention = unaddedKeywords.length + kwPending.length;
+  const sectionBadge = (s: Section): number | undefined => {
+    const n =
+      sectionFixes(s).length +
+      (s === "experience" ? totalPending : 0) +
+      (s === "skills" ? skillsKwAttention : 0);
+    return n || undefined;
+  };
   const NAV: { key: Section; label: string; badge?: number }[] = [
-    { key: "header", label: "Header" },
-    { key: "summary", label: "Summary" },
-    { key: "experience", label: "Experience", badge: totalPending || undefined },
-    { key: "projects", label: "Projects" },
-    { key: "education", label: "Education" },
-    { key: "certifications", label: "Certifications" },
-    { key: "skills", label: "Skills" },
+    { key: "header", label: "Header", badge: sectionBadge("header") },
+    { key: "summary", label: "Summary", badge: sectionBadge("summary") },
+    { key: "experience", label: "Experience", badge: sectionBadge("experience") },
+    { key: "projects", label: "Projects", badge: sectionBadge("projects") },
+    { key: "education", label: "Education", badge: sectionBadge("education") },
+    { key: "certifications", label: "Certifications", badge: sectionBadge("certifications") },
+    { key: "skills", label: "Skills", badge: sectionBadge("skills") },
   ];
   // Feedback is a top-level tab now (not a nav row); its label/badge live there.
   const feedbackLabel = onGetFeedback ? "Feedback" : "Suggestions";
-  const showFeedbackTab = shownPoints.length > 0 || Boolean(onGetFeedback);
+  const showFeedbackTab = allShown.length > 0 || Boolean(onGetFeedback);
+  // Total open changes across every section (suggestions + Experience rewrites +
+  // Skills keyword actions) — drives the Feedback tab badge and the by-section
+  // summary inside it, so both match the per-section nav badges.
+  const sectionsWithChanges = NAV.filter((n) => n.badge);
+  const totalOpenChanges = sectionsWithChanges.reduce((sum, n) => sum + (n.badge ?? 0), 0);
 
   // Keywords to tint green in the preview: the posting's role keywords when this
   // résumé is targeted at a job, else the résumé's own skills/tools (the terms an
@@ -1407,6 +1881,18 @@ export default function EditEditor({
     previewRef.current
       ?.querySelectorAll(".mcv-hl")
       .forEach((e) => e.classList.remove("mcv-hl"));
+    setHlDir(null);
+  }
+  // Tapping the directional arrow jumps to whatever is off-screen: a highlighted
+  // finding, else the section being edited. User-initiated, so it's the one time
+  // we scroll the page to a preview block (section clicks never auto-scroll).
+  function jumpToArrowTarget() {
+    const target =
+      previewRef.current?.querySelector(".mcv-hl") ||
+      (editingAnchor
+        ? docWrapRef.current?.querySelector(`[data-field="${editingAnchor}"]`)
+        : null);
+    (target as HTMLElement | null)?.scrollIntoView({ behavior: "smooth", block: "center" });
     setHlDir(null);
   }
   function highlightFinding(quote: string | undefined, section: Section) {
@@ -1459,7 +1945,45 @@ export default function EditEditor({
     }
   }
 
+  // Re-apply the locked highlight after the preview re-renders, so the targeted
+  // line stays lit while the draft is open. Defined after highlightFinding so the
+  // compiler can track it.
+  useEffect(() => {
+    if (!lockedFinding) return;
+    const raf = requestAnimationFrame(() =>
+      highlightFinding(lockedFinding.quote, lockedFinding.section),
+    );
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockedFinding, doc]);
+
   const reviewableChangeCount = collectChanges().length;
+  // AI-changes review progress — surfaced in a banner across the top of the editor
+  // (above the mode tabs) so "review your changes" is the first thing you see.
+  // The review banner spans every AI-driven change: bullet rewrites AND keywords
+  // added to Skills. Each added keyword is "pending" until kept or removed, so the
+  // count reads e.g. "0 of 8 reviewed" right after a bulk keyword add.
+  const totalChanges = bulletDiffs.length + addedKwList.length;
+  const pendingChanges = totalPending + kwPending.length;
+  const reviewedChanges = totalChanges - pendingChanges;
+  const reviewProgressNode =
+    totalChanges > 0 ? (
+      <span
+        className={"tmE-reviewprog" + (pendingChanges === 0 ? " is-done" : "")}
+        data-testid="revision-reviewed-count"
+        title={`${reviewedChanges} of ${totalChanges} AI changes reviewed`}
+      >
+        {pendingChanges === 0 ? <Check size={13} /> : <ListChecks size={13} />}
+        <span className="tmE-reviewprog-dots" aria-hidden="true">
+          {Array.from({ length: totalChanges }).map((_, i) => (
+            <i key={i} className={i < reviewedChanges ? "is-done" : ""} />
+          ))}
+        </span>
+        <span className="tmE-reviewprog-label">
+          {reviewedChanges} of {totalChanges} AI changes reviewed
+        </span>
+      </span>
+    ) : null;
   const wideEditMode =
     mode !== "edit" || // Design + Feedback want the wider working layout
     section === "experience" ||
@@ -1468,8 +1992,179 @@ export default function EditEditor({
     section === "certifications" ||
     section === "skills";
 
+  // One suggestion card, reused by the Feedback tab AND each section panel, so a
+  // finding shows up inside the section it belongs to. Closes over the draft/apply
+  // handlers; `i` drives the fade-in stagger.
+  const renderFix = (p: ProofPoint, i: number) => {
+    const target = suggestionTarget(p);
+    const id = suggestionId(p);
+    const draft = suggestionDrafts[id];
+    const rewriting = rewritingIds.has(id);
+    // [bracket] slots in the draft the user must fill before applying.
+    const phCount = draft ? (draft.match(/\[[^\]]+\]/g) || []).length : 0;
+    // "Adds content" = net-new material (keywords, a summary), not a rework/removal.
+    const fixText = `${p.title} ${p.category ?? ""} ${p.summary ?? ""} ${p.fix ?? ""}`.toLowerCase();
+    const addsContent =
+      !p.quote &&
+      /\b(?:add|include|incorporate|introduce|missing|lack|absent)\b/.test(fixText) &&
+      !/\b(?:trim|cut|remov|delet|drop|shorten|condens|quantif|metric|measur|number|spac|whitespace|format|capitali|casing|punctuat|consisten|align|reorder|reorganiz|rephras|reword|clarif|overlap|date|grammar|typo|tense)/.test(
+        fixText,
+      );
+    return (
+      <div
+        key={id}
+        className="tmE-fix tmE-fix--in"
+        style={{ animationDelay: `${Math.min(i * 70, 700)}ms` }}
+        data-testid="feedback-suggestion"
+        data-suggestion-title={p.title}
+        data-rule-id={p.ruleId ?? ""}
+        onMouseEnter={() => highlightFinding(p.quote, target)}
+        onMouseLeave={() =>
+          lockedFinding ? highlightFinding(lockedFinding.quote, lockedFinding.section) : clearHighlight()
+        }
+      >
+        <div className="tmE-fix-titlerow">
+          <b>{p.title}</b>
+          <span
+            className={"tmE-fix-kind " + (addsContent ? "tmE-fix-kind--add" : "tmE-fix-kind--edit")}
+            title={
+              addsContent
+                ? "Adds new content — nothing in your resume is replaced"
+                : "Reworks text already in your resume"
+            }
+          >
+            {addsContent ? (
+              <>
+                <Plus size={11} /> Adds content
+              </>
+            ) : (
+              <>
+                <PenLine size={11} /> Rewrites
+              </>
+            )}
+          </span>
+        </div>
+        {p.summary && <p className="tmE-fix-sum">{p.summary}</p>}
+        {p.quote && (
+          <p className="tmE-fix-quote" title={`From your ${SECTION_LABEL[target]} section`}>
+            “{p.quote}”
+          </p>
+        )}
+        {p.fix && (
+          <p className="tmE-fix-fix">
+            <span>Fix:</span> {p.fix}
+          </p>
+        )}
+        <div className="tmE-fix-card-actions">
+          {canAiDraft(p) && (
+            <button
+              type="button"
+              className="tmE-fix-apply"
+              onClick={() =>
+                bulletReviewMode(p) ? void openBulletReview(p) : openSuggestionDraft(p, target)
+              }
+            >
+              <PenLine size={13} />{" "}
+              {bulletReviewMode(p) === "shorten"
+                ? "Shorten bullets with AI"
+                : bulletReviewMode(p) === "quantify"
+                  ? "Add metrics with AI"
+                  : draft == null
+                    ? "Draft fix with AI"
+                    : "Edit draft"}
+            </button>
+          )}
+          <button
+            type="button"
+            className={canAiDraft(p) ? "tmE-fix-goto" : "tmE-fix-apply"}
+            onClick={() => {
+              track("resume_feedback_suggestion_clicked", {
+                rule_id: p.ruleId,
+                category: p.category,
+                severity: p.severity,
+                section: target,
+              });
+              setMode("edit");
+              setSection(target);
+              // Contact gaps point at a specific field — land the cursor there.
+              if (p.ruleId === "header_missing_phone") focusContactField("phone");
+              else if (p.ruleId === "header_missing_email") focusContactField("email");
+            }}
+          >
+            Edit manually →
+          </button>
+        </div>
+        {draft != null && (
+          <div className="tmE-suggestion-draft">
+            <label>Draft</label>
+            {rewriting ? (
+              <p className="tmE-draft-hint tmE-draft-hint--ai">
+                <Loader2 size={12} className="tmE-draft-spin" /> Drafting a rewrite with AI…
+              </p>
+            ) : (
+              phCount > 0 && (
+                <p className="tmE-draft-hint">
+                  <span className="tmE-draft-token">[ ]</span>
+                  {phCount === 1
+                    ? "1 highlighted spot needs your details"
+                    : `${phCount} highlighted spots need your details`}{" "}
+                  before applying.
+                </p>
+              )
+            )}
+            <div className={"tmE-draft-input" + (phCount > 0 ? " has-ph" : "")}>
+              {phCount > 0 && (
+                <div className="tmE-draft-marks" aria-hidden="true">
+                  {draft.split(/(\[[^\]]+\])/g).map((seg, j) =>
+                    /^\[[^\]]+\]$/.test(seg) ? (
+                      <mark key={j} className="tmE-ph">
+                        {seg}
+                      </mark>
+                    ) : (
+                      <span key={j}>{seg}</span>
+                    ),
+                  )}
+                  {"\n"}
+                </div>
+              )}
+              <textarea
+                className={"tmE-textarea tmE-draft-ta" + (phCount > 0 ? " tmE-textarea--hasplaceholder" : "")}
+                value={draft}
+                onChange={(e) => updateSuggestionDraft(id, e.target.value)}
+                onScroll={(e) => {
+                  const marks = e.currentTarget.parentElement?.querySelector(".tmE-draft-marks");
+                  if (marks instanceof HTMLElement) {
+                    marks.scrollTop = e.currentTarget.scrollTop;
+                    marks.scrollLeft = e.currentTarget.scrollLeft;
+                  }
+                }}
+              />
+            </div>
+            <div className="tmE-fix-card-actions">
+              <button
+                type="button"
+                className="tmE-fix-apply is-primary"
+                onClick={() => applySuggestionDraft(p, target, draft)}
+                disabled={!draft.trim() || rewriting}
+              >
+                <Check size={13} /> Apply to {SECTION_LABEL[target]}
+              </button>
+              <button type="button" className="tmE-fix-goto" onClick={() => closeSuggestionDraft(id)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
   return (
     <div className={"tmE-wrap" + (wideEditMode ? " is-workmode" : "")}>
+      {applied && (
+        <div className="tmE-applied-toast" role="status" aria-live="polite">
+          <Check size={14} /> {applied.text}
+        </div>
+      )}
       <div className="tmE-head">
         <Link className="tmE-back" href={backHref}>
           <ArrowLeft size={15} /> {backLabel}
@@ -1479,7 +2174,7 @@ export default function EditEditor({
             {kind === "resume" ? doc.headline?.trim() || "Base resume" : role}
             {company && <span className="tmE-head-co"> at {company}</span>}
           </h1>
-          {(shownPoints.length > 0 || originalDoc) && (
+          {(allShown.length > 0 || originalDoc) && (
             <button
               type="button"
               className="tmE-optimized"
@@ -1487,39 +2182,10 @@ export default function EditEditor({
               title="This resume has AI feedback — open the Feedback tab"
             >
               <Sparkles size={12} /> Optimized resume
-              {shownPoints.length > 0 && (
-                <span className="tmE-optimized-count">{shownPoints.length}</span>
-              )}
             </button>
           )}
         </div>
         <div className="tmE-head-right">
-          {/* Review-progress cluster: how much of the AI changes you've reviewed. */}
-          {bulletDiffs.length > 0 && (
-            <div className="tmE-status">
-              {bulletDiffs.length > 0 && (
-                <span
-                  className={"tmE-reviewprog" + (totalPending === 0 ? " is-done" : "")}
-                  data-testid="revision-reviewed-count"
-                  title={`${bulletDiffs.length - totalPending} of ${bulletDiffs.length} AI changes reviewed`}
-                >
-                  {totalPending === 0 ? <Check size={13} /> : <ListChecks size={13} />}
-                  <span className="tmE-reviewprog-dots" aria-hidden="true">
-                    {bulletDiffs.map((d, i) => (
-                      <i
-                        key={bulletKey(d.entry, d.bullet)}
-                        className={i < bulletDiffs.length - totalPending ? "is-done" : ""}
-                      />
-                    ))}
-                  </span>
-                  {/* Kept for screen readers (and the visible string the e2e suite asserts). */}
-                  <span className="tmE-sr">
-                    {bulletDiffs.length - totalPending}/{bulletDiffs.length} changes reviewed
-                  </span>
-                </span>
-              )}
-            </div>
-          )}
           {msg?.err && <span className="tmE-save-status is-err">{msg.text}</span>}
           {reviewableChangeCount > 0 && originalDoc && (
             <button
@@ -1573,16 +2239,28 @@ export default function EditEditor({
           >
             <Download size={14} /> PDF
           </a>
-          <button
-            type="button"
-            className={"tm-btn tm-btn--sm " + (onTargetJob ? "tm-btn--outline" : "tm-btn--primary")}
-            onClick={() => void save()}
-            disabled={saving || !dirty}
-          >
-            {saving ? "Saving…" : dirty ? (kind === "resume" ? "Save resume" : "Save edits") : "Saved"}
-          </button>
+          {/* Save lives on the preview's bottom-left pill (tmE-saved), so no
+              duplicate save button up here. */}
         </div>
       </div>
+
+      {kind === "application" && reviewProgressNode && (
+        <div className={"tmE-reviewbar tmF-anim" + (pendingChanges === 0 ? " is-done" : "")}>
+          {reviewProgressNode}
+          {pendingChanges > 0 && (
+            <button
+              type="button"
+              className="tm-btn tm-btn--primary tm-btn--sm tmE-reviewbar-cta"
+              onClick={() => {
+                setMode("edit");
+                setSection(totalPending > 0 ? "experience" : "skills");
+              }}
+            >
+              Review {pendingChanges} change{pendingChanges === 1 ? "" : "s"} <ArrowRight size={14} />
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="tmE-modetabs" role="tablist" aria-label="Editor mode">
         <button
@@ -1612,8 +2290,8 @@ export default function EditEditor({
             onClick={() => setMode("feedback")}
           >
             <ListChecks size={14} /> {feedbackLabel}
-            {shownPoints.length > 0 && (
-              <span className="tmE-modetab-badge">{shownPoints.length}</span>
+            {totalOpenChanges > 0 && (
+              <span className="tmE-modetab-badge">{totalOpenChanges}</span>
             )}
           </button>
         )}
@@ -1638,7 +2316,7 @@ export default function EditEditor({
         )}
 
         {/* ---- one section at a time ---- */}
-        <div className="tmE-main">
+        <div className="tmE-main" ref={editMainRef}>
           {kind === "application" && fit && (
             <div className="tmF-anim" style={{ marginBottom: "14px" }}>
               <FitPanel
@@ -1647,6 +2325,10 @@ export default function EditEditor({
                 onRecheck={canRecheck ? runRecheck : undefined}
                 rechecking={rechecking}
                 pendingChanges={dirty}
+                onReviewKeywords={() => {
+                  setMode("edit");
+                  setSection("skills");
+                }}
               />
             </div>
           )}
@@ -1711,6 +2393,9 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Header</h2>
               <p className="tmE-panel-sub">Your name, target headline, and contact details.</p>
+              {sectionFixes("header").length > 0 && (
+                <div className="tmE-secfixes">{sectionFixes("header").map((p, i) => renderFix(p, i))}</div>
+              )}
               <div className="tmE-field">
                 <label>Name</label>
                 <input className="tmE-input" value={doc.name} onChange={(e) => patch({ name: e.target.value })} />
@@ -1723,11 +2408,11 @@ export default function EditEditor({
               <div className="tmE-contact-grid">
                 <div className="tmE-field" style={{ marginBottom: 0 }}>
                   <label>Phone</label>
-                  <input className="tmE-input" value={contactFields.phone} placeholder="612-227-1149" onChange={(e) => updateContact({ phone: e.target.value })} />
+                  <input ref={phoneInputRef} className="tmE-input" value={contactFields.phone} placeholder="612-227-1149" onChange={(e) => updateContact({ phone: e.target.value })} />
                 </div>
                 <div className="tmE-field" style={{ marginBottom: 0 }}>
                   <label>Email</label>
-                  <input className="tmE-input" type="email" value={contactFields.email} placeholder="you@email.com" onChange={(e) => updateContact({ email: e.target.value })} />
+                  <input ref={emailInputRef} className="tmE-input" type="email" value={contactFields.email} placeholder="you@email.com" onChange={(e) => updateContact({ email: e.target.value })} />
                 </div>
                 <div className="tmE-field" style={{ marginBottom: 0 }}>
                   <label>City / State</label>
@@ -1750,6 +2435,9 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Summary</h2>
               <p className="tmE-panel-sub">The first thing a recruiter reads. Keep it tight and aimed at this role.</p>
+              {sectionFixes("summary").length > 0 && (
+                <div className="tmE-secfixes">{sectionFixes("summary").map((p, i) => renderFix(p, i))}</div>
+              )}
               <div className="tmE-field">
                 <textarea className="tmE-textarea tmE-textarea--lg" value={doc.summary} onChange={(e) => patch({ summary: e.target.value })} />
               </div>
@@ -1761,9 +2449,12 @@ export default function EditEditor({
               <h2 className="tmE-panel-title">Experience</h2>
               <p className="tmE-panel-sub">
                 {bulletDiffs.length > 0
-                  ? "Accept, reject, or edit each AI rewrite. Struck-through words were removed; green words were added."
+                  ? "These AI rewrites are already in your resume. Keep each one, or revert to your original wording (struck-through words were removed, green words were added)."
                   : "Edit any line. Highlighted text in the preview shows posting keywords and metrics."}
               </p>
+              {sectionFixes("experience").length > 0 && (
+                <div className="tmE-secfixes">{sectionFixes("experience").map((p, i) => renderFix(p, i))}</div>
+              )}
               {doc.experience.map((e, ei) => {
                 const open = openEntries.has(ei);
                 const meta = [e.company, cleanResumeDate(e.dates)].filter(Boolean).join(" · ");
@@ -1826,6 +2517,20 @@ export default function EditEditor({
                           className={"tmE-diff" + (decision ? " is-decided" : " is-pending")}
                           data-testid={`revision-diff-${ei}-${bi}`}
                         >
+                          <div className="tmE-diff-head">
+                            <span className="tmE-diff-kind">
+                              <Sparkles size={11} /> AI rewrite
+                            </span>
+                            <span className={"tmE-diff-status is-" + (decision || "applied")}>
+                              {decision === "accepted"
+                                ? "Kept"
+                                : decision === "rejected"
+                                  ? "Reverted to original"
+                                  : decision === "edited"
+                                    ? "Your edit"
+                                    : "Applied"}
+                            </span>
+                          </div>
                           <p className="tmE-diff-redline" aria-label={`Suggested rewrite. Original: ${diff.before}. New: ${diff.after}`}>
                             {wordDiff(diff.before, diff.after).map((seg, si) =>
                               seg.type === "equal" ? (
@@ -1850,25 +2555,27 @@ export default function EditEditor({
                           <div className="tmE-diff-actions">
                             <button
                               type="button"
-                              className={"tmE-diff-btn" + (decision === "accepted" ? " is-on is-accept" : "")}
+                              className={"tmE-diff-btn is-accept" + (decision === "accepted" ? " is-on" : "")}
                               onClick={() => decide(ei, bi, "accepted")}
                               aria-pressed={decision === "accepted"}
                               data-testid={`revision-accept-${ei}-${bi}`}
+                              title="Keep this AI change"
                             >
-                              <Check size={13} /> Accept
+                              <Check size={13} /> Keep
                             </button>
                             <button
                               type="button"
-                              className={"tmE-diff-btn" + (decision === "rejected" ? " is-on is-reject" : "")}
+                              className={"tmE-diff-btn is-reject" + (decision === "rejected" ? " is-on" : "")}
                               onClick={() => decide(ei, bi, "rejected")}
                               aria-pressed={decision === "rejected"}
                               data-testid={`revision-reject-${ei}-${bi}`}
+                              title="Restore your original wording"
                             >
-                              <X size={13} /> Reject
+                              <X size={13} /> Revert
                             </button>
                             <button
                               type="button"
-                              className={"tmE-diff-btn" + (decision === "edited" ? " is-on is-edit" : "")}
+                              className={"tmE-diff-btn is-edit" + (decision === "edited" ? " is-on" : "")}
                               onClick={() => decide(ei, bi, "edited")}
                               aria-pressed={decision === "edited"}
                               data-testid={`revision-edit-${ei}-${bi}`}
@@ -1896,6 +2603,9 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Projects</h2>
               <p className="tmE-panel-sub">Side projects, portfolio, or open source: the name plus what you did and any result.</p>
+              {sectionFixes("projects").length > 0 && (
+                <div className="tmE-secfixes">{sectionFixes("projects").map((p, i) => renderFix(p, i))}</div>
+              )}
               {(doc.projects ?? []).map((p, i) => {
                 const key = removeCardKey("project", i);
                 return (
@@ -1937,6 +2647,11 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Certifications</h2>
               <p className="tmE-panel-sub">Licenses and certifications: name, who issued it, and when.</p>
+              {sectionFixes("certifications").length > 0 && (
+                <div className="tmE-secfixes">
+                  {sectionFixes("certifications").map((p, i) => renderFix(p, i))}
+                </div>
+              )}
               {(doc.certifications ?? []).map((c, i) => {
                 const key = removeCardKey("certification", i);
                 return (
@@ -1984,6 +2699,9 @@ export default function EditEditor({
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Education</h2>
               <p className="tmE-panel-sub">Degrees, schools, and dates. Add anything the tailoring missed.</p>
+              {sectionFixes("education").length > 0 && (
+                <div className="tmE-secfixes">{sectionFixes("education").map((p, i) => renderFix(p, i))}</div>
+              )}
               {(doc.education ?? []).map((ed, i) => {
                 const key = removeCardKey("education", i);
                 return (
@@ -2038,6 +2756,114 @@ export default function EditEditor({
           {section === "skills" && (
             <section className="tmE-panel tmF-anim">
               <h2 className="tmE-panel-title">Skills</h2>
+              {missingKeywords.length > 0 &&
+                (() => {
+                  // Three states: add (some still unadded) -> review (added,
+                  // pending keep/remove) -> done (all reviewed). Added keywords
+                  // count as AI changes in the banner until reviewed here.
+                  const reviewing = unaddedKeywords.length === 0 && kwPending.length > 0;
+                  const allReviewed = unaddedKeywords.length === 0 && kwPending.length === 0;
+                  const keptCount = addedKwList.filter((t) => keywordDecisions[t] !== "removed").length;
+                  return (
+                    <div
+                      className={
+                        "tmE-secsug" + (allReviewed ? " is-done" : reviewing ? " is-review" : "")
+                      }
+                    >
+                      <div className="tmE-secsug-head">
+                        <span className="tmE-secsug-eyebrow">
+                          {allReviewed ? (
+                            <Check size={12} />
+                          ) : reviewing ? (
+                            <ListChecks size={12} />
+                          ) : (
+                            <Sparkles size={12} />
+                          )}{" "}
+                          {allReviewed ? "Added" : reviewing ? "Review" : "Suggestion"}
+                        </span>
+                        <b>
+                          {allReviewed
+                            ? `${keptCount} keyword${keptCount === 1 ? "" : "s"} added to Skills`
+                            : reviewing
+                              ? `Review ${kwPending.length} added keyword${kwPending.length === 1 ? "" : "s"}`
+                              : `Add ${unaddedKeywords.length} keyword${unaddedKeywords.length === 1 ? "" : "s"} the posting screens for`}
+                        </b>
+                      </div>
+                      <div className="tmF-chips">
+                        {missingKeywords
+                          .filter((t) => keywordDecisions[t] !== "removed")
+                          .map((t) => {
+                            const added = addedKeywords.has(t);
+                            const canRemove = added && keywordDecisions[t] !== "kept";
+                            return (
+                              <span
+                                key={t}
+                                className="tmEv-pill"
+                                style={
+                                  added
+                                    ? {
+                                        color: "var(--tm-mint-700)",
+                                        background: "var(--tm-mint-50)",
+                                        border: "0.5px solid rgba(33,146,107,.28)",
+                                      }
+                                    : {
+                                        color: "#854f0b",
+                                        background: "#fff",
+                                        border: "0.5px solid rgba(133,79,11,.3)",
+                                      }
+                                }
+                              >
+                                {added ? <Check size={11} /> : <Plus size={11} />} {t}
+                                {canRemove && (
+                                  <button
+                                    type="button"
+                                    className="tmE-kw-x"
+                                    aria-label={`Remove ${t} from Skills`}
+                                    onClick={() => removeAddedKeyword(t)}
+                                  >
+                                    <X size={11} />
+                                  </button>
+                                )}
+                              </span>
+                            );
+                          })}
+                      </div>
+                      <p className="tmE-secsug-note">
+                        {allReviewed
+                          ? "Added to your Skills below."
+                          : reviewing
+                            ? "Keep the ones your experience backs up; remove any it doesn't."
+                            : "Add these only where your experience genuinely backs them."}
+                      </p>
+                      <div className="tmE-fix-card-actions">
+                        {allReviewed ? (
+                          <span className="tmE-secsug-done">
+                            <Check size={13} /> Reviewed
+                          </span>
+                        ) : reviewing ? (
+                          <button
+                            type="button"
+                            className="tmE-fix-apply"
+                            onClick={() => keepAllKeywords(kwPending)}
+                          >
+                            <Check size={13} /> Keep all ({kwPending.length})
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="tmE-fix-apply"
+                            onClick={() => addKeywordsToSkills(unaddedKeywords)}
+                          >
+                            <Plus size={13} /> Add to skills
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              {sectionFixes("skills").length > 0 && (
+                <div className="tmE-secfixes">{sectionFixes("skills").map((p, i) => renderFix(p, i))}</div>
+              )}
               {doc.skillGroups?.length ? (
                 <>
                   <p className="tmE-panel-sub">
@@ -2177,7 +3003,7 @@ export default function EditEditor({
                       ? "Open a card to jump to its section."
                       : feedbackLoading
                         ? "Reviewing your content…"
-                        : shownPoints.length > 0
+                        : allShown.length > 0
                           ? "Open a card to jump to its section."
                           : "Run a review to see suggestions here."}
                   </p>
@@ -2201,7 +3027,7 @@ export default function EditEditor({
                     {feedbackUpToDate ? <Check size={13} /> : <ListChecks size={13} />}{" "}
                     {feedbackLoading
                       ? "Reviewing…"
-                      : !shownPoints.length
+                      : !allShown.length
                         ? "Get feedback"
                         : feedbackUpToDate
                           ? "Up to date"
@@ -2276,15 +3102,43 @@ export default function EditEditor({
                   </div>
                 </div>
               )}
+              {/* Summary across all categories: counts per section (same circled
+                  badge as the nav), each jumping into that section to act. */}
+              {sectionsWithChanges.length > 0 && (
+                <div className="tmE-fixsum">
+                  <p className="tmE-fixsum-head">
+                    {totalOpenChanges} suggestion{totalOpenChanges === 1 ? "" : "s"} across{" "}
+                    {sectionsWithChanges.length} section
+                    {sectionsWithChanges.length === 1 ? "" : "s"}
+                  </p>
+                  <div className="tmE-fixsum-grid">
+                    {sectionsWithChanges.map((n) => (
+                      <button
+                        key={n.key}
+                        type="button"
+                        className="tmE-fixsum-row"
+                        onClick={() => {
+                          setMode("edit");
+                          setSection(n.key);
+                        }}
+                      >
+                        <span className="tmE-fixsum-label">{n.label}</span>
+                        <span className="tmE-tree-badge">{n.badge}</span>
+                        <ArrowRight size={13} className="tmE-fixsum-arrow" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {(["high", "medium", "low"] as const).map((sev) => {
-                const group = shownPoints.filter((p) => p.severity === sev);
+                const group = allShown.filter((p) => p.severity === sev);
                 if (group.length === 0) return null;
                 // Global running index so cards fade in one after another across all
                 // three severity groups (not restarting the stagger per group).
                 const offset =
                   sev === "high"
                     ? 0
-                    : shownPoints.filter(
+                    : allShown.filter(
                         (p) =>
                           p.severity === "high" ||
                           (sev === "low" && p.severity === "medium"),
@@ -2295,141 +3149,7 @@ export default function EditEditor({
                       {SEV[sev].label}
                       <span style={{ background: SEV[sev].bg, color: SEV[sev].color }}>{group.length}</span>
                     </p>
-                    {group.map((p, i) => {
-                      const target = suggestionTarget(p);
-                      const id = suggestionId(p);
-                      const draft = suggestionDrafts[id];
-                      const rewriting = rewritingIds.has(id);
-                      // "Adds content" = net-new text (keywords, a summary), not a
-                      // rework of existing text. A quote means there's text to
-                      // rewrite; mechanics fixes (spacing/formatting/punctuation)
-                      // also rework existing text even when they carry no quote.
-                      const addsContent =
-                        !p.quote &&
-                        !/spac|whitespace|format|capitali|casing|punctuat|consisten|alignment|typo|grammar/i.test(
-                          `${p.title} ${p.category ?? ""} ${p.summary ?? ""}`,
-                        );
-                      return (
-                        <div
-                          key={i}
-                          className="tmE-fix tmE-fix--in"
-                          style={{ animationDelay: `${Math.min((offset + i) * 70, 700)}ms` }}
-                          data-testid="feedback-suggestion"
-                          data-suggestion-title={p.title}
-                          data-rule-id={p.ruleId ?? ""}
-                          onMouseEnter={() => highlightFinding(p.quote, target)}
-                          onMouseLeave={clearHighlight}
-                        >
-                          <div className="tmE-fix-titlerow">
-                            <b>{p.title}</b>
-                            <span
-                              className={
-                                "tmE-fix-kind " +
-                                (addsContent ? "tmE-fix-kind--add" : "tmE-fix-kind--edit")
-                              }
-                              title={
-                                addsContent
-                                  ? "Adds new content — nothing in your resume is replaced"
-                                  : "Reworks text already in your resume"
-                              }
-                            >
-                              {addsContent ? (
-                                <>
-                                  <Plus size={11} /> Adds content
-                                </>
-                              ) : (
-                                <>
-                                  <PenLine size={11} /> Rewrites
-                                </>
-                              )}
-                            </span>
-                          </div>
-                          {p.summary && <p className="tmE-fix-sum">{p.summary}</p>}
-                          {p.quote && (
-                            <p
-                              className="tmE-fix-quote"
-                              title={`From your ${SECTION_LABEL[target]} section`}
-                            >
-                              “{p.quote}”
-                            </p>
-                          )}
-                          {p.fix && <p className="tmE-fix-fix"><span>Fix:</span> {p.fix}</p>}
-                          <div className="tmE-fix-card-actions">
-                            <button
-                              type="button"
-                              className="tmE-fix-apply"
-                              onClick={() => openSuggestionDraft(p, target)}
-                            >
-                              <PenLine size={13} /> {draft == null ? "Draft fix with AI" : "Edit draft"}
-                            </button>
-                            <button
-                              type="button"
-                              className="tmE-fix-goto"
-                              onClick={() => {
-                                // Per-suggestion telemetry — counts/ids/categories
-                                // only, never résumé content. rule_id is present
-                                // only for rules-engine findings; sanitizeProps
-                                // drops it when undefined (legacy LLM points).
-                                track("resume_feedback_suggestion_clicked", {
-                                  rule_id: p.ruleId,
-                                  category: p.category,
-                                  severity: p.severity,
-                                  section: target,
-                                });
-                                setMode("edit");
-                                setSection(target);
-                              }}
-                            >
-                              Edit {SECTION_LABEL[target]} →
-                            </button>
-                          </div>
-                          {draft != null && (
-                            <div className="tmE-suggestion-draft">
-                              <label>Draft</label>
-                              {rewriting ? (
-                                <p className="tmE-draft-hint tmE-draft-hint--ai">
-                                  <Loader2 size={12} className="tmE-draft-spin" /> Drafting a rewrite
-                                  with AI…
-                                </p>
-                              ) : (
-                                /\[[^\]]+\]/.test(draft) && (
-                                  <p className="tmE-draft-hint">
-                                    <span className="tmE-draft-token">[ ]</span>
-                                    Replace anything in brackets with your own details before
-                                    applying.
-                                  </p>
-                                )
-                              )}
-                              <textarea
-                                className={
-                                  "tmE-textarea" +
-                                  (/\[[^\]]+\]/.test(draft) ? " tmE-textarea--hasplaceholder" : "")
-                                }
-                                value={draft}
-                                onChange={(e) => updateSuggestionDraft(id, e.target.value)}
-                              />
-                              <div className="tmE-fix-card-actions">
-                                <button
-                                  type="button"
-                                  className="tmE-fix-apply is-primary"
-                                  onClick={() => applySuggestionDraft(p, target, draft)}
-                                  disabled={!draft.trim() || rewriting}
-                                >
-                                  <Check size={13} /> Apply to {SECTION_LABEL[target]}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="tmE-fix-goto"
-                                  onClick={() => closeSuggestionDraft(id)}
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {group.map((p, i) => renderFix(p, offset + i))}
                   </div>
                 );
               })}
@@ -2440,9 +3160,14 @@ export default function EditEditor({
         {/* ---- wide résumé-only preview ---- */}
         <div className="tmE-preview" ref={previewRef} data-testid="resume-live-preview">
           {hlDir === "up" && (
-            <div className="tmE-hl-arrow tmE-hl-arrow--up" aria-hidden="true">
-              <ChevronUp size={14} /> Highlighted above
-            </div>
+            <button
+              type="button"
+              className="tmE-hl-arrow tmE-hl-arrow--up"
+              onClick={jumpToArrowTarget}
+              title="Scroll up to it"
+            >
+              <ChevronUp size={14} /> Jump to it
+            </button>
           )}
           <div className="tmE-preview-head">
             <p className="tmE-preview-label">Live preview</p>
@@ -2477,42 +3202,40 @@ export default function EditEditor({
               </span>
             </p>
           )}
-          <div
-            className="tmE-doc-viewport"
-            ref={viewportRef}
-            style={{
-              height: paged
-                ? `${pageHeightScaled}px`
-                : docHeight != null
-                  ? `${docHeight}px`
-                  : undefined,
-            }}
-          >
-            <div
-              ref={docWrapRef}
-              className="tmE-doc-scaler"
-              style={{
-                transform: `scale(${docScale}) translateY(${-pageTranslate}px)`,
-                transition: "transform 0.3s ease",
-              }}
-            >
-              <PrintDoc doc={doc} id={id} resumeOnly hideToolbar highlightKeywords={showMatches ? previewKeywords : undefined} />
-            </div>
-            {cursorTop != null && (
-              <div className="tmE-cursor" style={{ top: `${cursorTop}px` }} aria-hidden="true">
-                <span className="tmE-cursor-badge">{avatarInitials}</span>
+          <div className="tmE-preview-stage">
+            <div className="tmE-doc-viewport" ref={viewportRef}>
+              <div
+                className="tmE-doc-sizer"
+                style={{
+                  width: docHeight != null ? `${docWidthScaled}px` : undefined,
+                  height: docHeight != null ? `${docHeight}px` : undefined,
+                }}
+              >
+                <div
+                  ref={docWrapRef}
+                  className="tmE-doc-scaler"
+                  style={{ transform: `scale(${docScale})` }}
+                >
+                  <PrintDoc doc={doc} id={id} resumeOnly hideToolbar markPlaceholders highlightKeywords={showMatches ? previewKeywords : undefined} />
+                </div>
+                {cursorTop != null && (
+                  <div className="tmE-cursor" style={{ top: `${cursorTop}px` }} aria-hidden="true">
+                    <span className="tmE-cursor-badge">{avatarInitials}</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          {hlDir === "down" && (
-            <div className="tmE-hl-arrow tmE-hl-arrow--down" aria-hidden="true">
-              <ChevronDown size={14} /> Highlighted below
             </div>
-          )}
-          <div className="tmE-preview-foot">
-            <span
-              className={`tmE-saved ${saving ? "is-saving" : dirty ? "is-dirty" : "is-saved"}`}
+            {/* Saved pill floats over the scrolling résumé, bottom-right, so it
+                stays visible without taking a row of its own. */}
+            <button
+              type="button"
+              className={`tmE-saved tmE-saved--float ${saving ? "is-saving" : dirty ? "is-dirty" : "is-saved"}`}
+              onClick={() => {
+                if (dirty && !saving) void save();
+              }}
+              disabled={saving || !dirty}
               aria-live="polite"
+              title={dirty ? "Save your changes" : "All changes saved"}
             >
               {saving ? (
                 <>
@@ -2520,42 +3243,201 @@ export default function EditEditor({
                 </>
               ) : dirty ? (
                 <>
-                  <span className="tmE-saved-dot" aria-hidden="true" /> Unsaved changes
+                  <span className="tmE-saved-dot" aria-hidden="true" />{" "}
+                  {kind === "resume" ? "Save resume" : "Save edits"}
                 </>
               ) : (
                 <>
                   <Check size={12} /> Saved
                 </>
               )}
-            </span>
-            {totalPages > 1 && (
-              <div className="tmE-pager">
-                <button
-                  type="button"
-                  className="tmE-pager-btn"
-                  onClick={() => goToPage(safePage - 1)}
-                  disabled={safePage <= 1}
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft size={15} />
-                </button>
-                <span className="tmE-pager-count">
-                  {safePage} / {totalPages}
-                </span>
-                <button
-                  type="button"
-                  className="tmE-pager-btn"
-                  onClick={() => goToPage(safePage + 1)}
-                  disabled={safePage >= totalPages}
-                  aria-label="Next page"
-                >
-                  <ChevronRight size={15} />
-                </button>
-              </div>
+            </button>
+            {hlDir === "down" && (
+              <button
+                type="button"
+                className="tmE-hl-arrow tmE-hl-arrow--down"
+                onClick={jumpToArrowTarget}
+                title="Scroll down to it"
+              >
+                <ChevronDown size={14} /> Jump to it
+              </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* Batch reviewer for multi-bullet fixes (shorten / add metrics): review a
+          revised version of each bullet, then apply the accepted ones at once. */}
+      {shortenReview &&
+        (() => {
+          const acc = shortenReview.rows.filter(
+            (r) => r.accepted && r.shortened.trim() && r.shortened.trim() !== r.original.trim(),
+          ).length;
+          const mode = shortenReview.mode;
+          const title = mode === "shorten" ? "Shorten long bullets" : "Add metrics to bullets";
+          const loadingText =
+            mode === "shorten"
+              ? "Finding and shortening your longest bullets…"
+              : "Finding bullets that need a measurable result…";
+          const emptyText =
+            mode === "shorten"
+              ? "These bullets are already concise. Nothing to shorten."
+              : "Your bullets already carry numbers. Nothing to add.";
+          const hasPlaceholders = shortenReview.rows.some((r) => /\[[^\]]+\]/.test(r.shortened));
+          return (
+            <div className="tmE-cover-backdrop" onClick={cancelShorten} role="presentation">
+              <div
+                className="tmE-cover-modal tmE-shorten-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label={title}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="tmE-cover-head">
+                  <div>
+                    <b>{title}</b>
+                    <span className="tmE-shorten-sub">
+                      {shortenLoading
+                        ? "Drafting revised versions…"
+                        : shortenReview.rows.length
+                          ? `${acc} of ${shortenReview.rows.length} selected. Edit any before applying.`
+                          : emptyText}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="tmE-review-x"
+                    onClick={cancelShorten}
+                    aria-label="Close"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="tmE-shorten-list">
+                  {shortenLoading && !shortenReview.rows.length && (
+                    <p className="tmE-draft-hint tmE-draft-hint--ai">
+                      <Loader2 size={12} className="tmE-draft-spin" /> {loadingText}
+                    </p>
+                  )}
+                  {!shortenLoading && mode === "quantify" && shortenReview.rows.length > 0 && (
+                    <p className="tmE-draft-hint">
+                      <Info size={12} /> These figures are AI estimates. Review and adjust to your
+                      real numbers, then accept the ones that fit.
+                    </p>
+                  )}
+                  {!shortenLoading && hasPlaceholders && (
+                    <p className="tmE-draft-hint">
+                      <span className="tmE-draft-token">[ ]</span> Fill the bracketed spots with your
+                      real numbers before applying.
+                    </p>
+                  )}
+                  {!shortenLoading && shortenReview.rows.length > 1 && (
+                    <div className="tmE-shorten-bulk">
+                      <button
+                        type="button"
+                        className="tmE-shorten-bulkbtn"
+                        onClick={() => setAllShortenAccepted(true)}
+                      >
+                        Use all
+                      </button>
+                      <button
+                        type="button"
+                        className="tmE-shorten-bulkbtn"
+                        onClick={() => setAllShortenAccepted(false)}
+                      >
+                        Keep all original
+                      </button>
+                    </div>
+                  )}
+                  {shortenReview.rows.map((r, i) => (
+                    <div
+                      key={`${r.ei}-${r.bi}`}
+                      className={"tmE-shorten-row" + (r.accepted ? "" : " is-off")}
+                    >
+                      <div className="tmE-shorten-ctx">
+                        {doc.experience[r.ei]?.role || "Role"}
+                        {doc.experience[r.ei]?.company ? ` · ${doc.experience[r.ei].company}` : ""}
+                      </div>
+                      <p className="tmE-shorten-before">{r.original}</p>
+                      {(() => {
+                        const hasPh = /\[[^\]]+\]/.test(r.shortened);
+                        return (
+                          <div className={"tmE-draft-input" + (hasPh ? " has-ph" : "")}>
+                            {hasPh && (
+                              <div className="tmE-draft-marks" aria-hidden="true">
+                                {r.shortened.split(/(\[[^\]]+\])/g).map((seg, j) =>
+                                  /^\[[^\]]+\]$/.test(seg) ? (
+                                    <mark key={j} className="tmE-ph">
+                                      {seg}
+                                    </mark>
+                                  ) : (
+                                    <span key={j}>{seg}</span>
+                                  ),
+                                )}
+                                {"\n"}
+                              </div>
+                            )}
+                            <textarea
+                              className={
+                                "tmE-textarea tmE-draft-ta tmE-shorten-after" +
+                                (hasPh ? " tmE-textarea--hasplaceholder" : "")
+                              }
+                              value={r.shortened}
+                              onChange={(e) => patchShortenRow(i, { shortened: e.target.value })}
+                              onScroll={(e) => {
+                                const marks =
+                                  e.currentTarget.parentElement?.querySelector(".tmE-draft-marks");
+                                if (marks instanceof HTMLElement) {
+                                  marks.scrollTop = e.currentTarget.scrollTop;
+                                  marks.scrollLeft = e.currentTarget.scrollLeft;
+                                }
+                              }}
+                              rows={2}
+                            />
+                          </div>
+                        );
+                      })()}
+                      <div className="tmE-shorten-rowactions">
+                        <button
+                          type="button"
+                          className={"tmE-diff-btn is-accept" + (r.accepted ? " is-on" : "")}
+                          onClick={() => patchShortenRow(i, { accepted: true })}
+                        >
+                          <Check size={13} /> Use
+                        </button>
+                        <button
+                          type="button"
+                          className={"tmE-diff-btn is-reject" + (!r.accepted ? " is-on" : "")}
+                          onClick={() => patchShortenRow(i, { accepted: false })}
+                        >
+                          <X size={13} /> Keep original
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {!shortenLoading && !shortenReview.rows.length && (
+                    <p className="tmE-shorten-empty">{emptyText}</p>
+                  )}
+                </div>
+
+                <div className="tmE-shorten-foot">
+                  <button
+                    type="button"
+                    className="tmE-fix-apply is-primary"
+                    onClick={applyShorten}
+                    disabled={shortenLoading || acc === 0}
+                  >
+                    <Check size={13} /> Apply {acc} {acc === 1 ? "change" : "changes"}
+                  </button>
+                  <button type="button" className="tmE-fix-goto" onClick={cancelShorten}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
       {/* Cover letter — review-first (read by default), light edit behind a toggle. */}
       {coverOpen && (

@@ -61,7 +61,12 @@ function titleCaseShort(value: string): string {
 function compactHeadline(value: string): string {
   let headline = value
     .replace(/\s+/g, " ")
-    .replace(/\s*[,;:|\u2022\u00b7]\s*.*$/, "")
+    // Drop buzzword piles / clarifier tails after a HARD separator. Comma is
+    // intentionally excluded: structural role titles ("Lead, Product Management")
+    // depend on it. We only strip a comma when a clarifier phrase clearly follows
+    // (", with 10 years\u2026", ", specializing in\u2026"), never a multi-part title.
+    .replace(/\s*[;:|\u2022\u00b7]\s*.*$/, "")
+    .replace(/\s*,\s*(?:with\b|specializing\b|experienced\b|formerly\b|previously\b|\d).*$/i, "")
     .trim();
   const withMatch = headline.match(/^(.+?)\s+with\s+(.+)$/i);
   if (withMatch) {
@@ -107,7 +112,56 @@ export function normalizeHeadline(input: unknown, fallback?: string): string {
     return compactFallback;
   }
 
-  return compactHeadline(raw);
+  const compacted = compactHeadline(raw);
+  // Recover a truncated title: if the headline is just a short prefix of the
+  // fuller target role (e.g. "Lead" of "Lead, Product Management" — an older
+  // import truncated it at the comma), prefer the role so the real title shows.
+  if (
+    compactFallback &&
+    compactFallback.length <= HEADLINE_MAX_CHARS &&
+    words(compactFallback).length <= HEADLINE_MAX_WORDS &&
+    compacted.length < compactFallback.length &&
+    compactFallback.toLowerCase().startsWith(compacted.toLowerCase()) &&
+    // The prefix must end on a word boundary, so "Lead" recovers "Lead, Product
+    // Management" but NOT "Leadership Coach" (a different title sharing a prefix).
+    !/[a-z0-9]/i.test(compactFallback.charAt(compacted.length))
+  ) {
+    return compactFallback;
+  }
+
+  return compacted;
+}
+
+// An AI skills rewrite can prefix a segment with its group label ("Solution
+// Design & Architecture: Solution Architecture"). Strip a multi-word "Label: "
+// prefix so a group label never lands in the list as if it were a skill.
+// Single-word prefixes (e.g. "C++: x") are left alone.
+export function stripSkillLabel(s: string): string {
+  const m = (s ?? "").match(/^([A-Za-z][A-Za-z0-9&/+ ]{2,48}):\s+(.+)$/);
+  return m && /\s/.test(m[1]) ? m[2].trim() : (s ?? "").trim();
+}
+
+// Self-heal a skill-groups array: strip stray "Label: " prefixes, drop empties,
+// and de-dupe (case-insensitive) ACROSS groups, then drop any group left empty.
+// Repairs drafts an earlier bad apply mangled (every group's skills dumped into
+// one, labels included), and is a no-op on clean groups.
+export function cleanSkillGroups(
+  groups: { label: string; skills: string[] }[] | undefined,
+): { label: string; skills: string[] }[] {
+  const seen = new Set<string>();
+  const out: { label: string; skills: string[] }[] = [];
+  for (const g of groups ?? []) {
+    const skills: string[] = [];
+    for (const raw of g?.skills ?? []) {
+      const s = stripSkillLabel(raw);
+      const key = s.toLowerCase();
+      if (!s || seen.has(key)) continue;
+      seen.add(key);
+      skills.push(s);
+    }
+    if (skills.length) out.push({ label: g.label, skills });
+  }
+  return out;
 }
 
 // Validate + bound an incoming (client-edited or builder-assembled) doc so a
@@ -176,19 +230,20 @@ export function sanitizeDoc(input: unknown): TailoredDoc | null {
   // Optional categorized skills. Bound count/labels; drop empty groups. When
   // present, the flat `skills` is re-derived from the groups so every flat
   // reader (serialize/score/ATS) stays consistent with what's rendered.
-  const skillGroups = (Array.isArray(d.skillGroups) ? d.skillGroups : [])
-    .slice(0, 6)
-    .map((g) => {
-      const x = (g ?? {}) as Record<string, unknown>;
-      return {
-        label: str(x.label, 50).trim(),
-        skills: (Array.isArray(x.skills) ? x.skills : [])
-          .map((s) => str(s, 80).trim())
-          .filter(Boolean)
-          .slice(0, 14),
-      };
-    })
-    .filter((g) => g.label && g.skills.length > 0);
+  const skillGroups = cleanSkillGroups(
+    (Array.isArray(d.skillGroups) ? d.skillGroups : [])
+      .slice(0, 6)
+      .map((g) => {
+        const x = (g ?? {}) as Record<string, unknown>;
+        return {
+          label: str(x.label, 50).trim(),
+          skills: (Array.isArray(x.skills) ? x.skills : [])
+            .map((s) => str(s, 80).trim())
+            .filter(Boolean)
+            .slice(0, 14),
+        };
+      }),
+  ).filter((g) => g.label && g.skills.length > 0);
 
   const doc: TailoredDoc = {
     name: str(d.name, 120).trim(),

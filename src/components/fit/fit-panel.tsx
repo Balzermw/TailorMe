@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, RefreshCw, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, TrendingDown, TrendingUp } from "lucide-react";
 import type { FitBreakdown, FitHistoryEntry } from "@/lib/types";
 import { fitTier } from "@/lib/apply/fit-tier";
 import { shouldEscalateToMichael } from "@/lib/apply/fit-history";
@@ -39,6 +39,7 @@ export function FitPanel({
   rechecking,
   pendingChanges = true,
   demoNote,
+  onReviewKeywords,
 }: {
   fit: FitBreakdown;
   history: FitHistoryEntry[];
@@ -48,12 +49,16 @@ export function FitPanel({
   // disabled, so the score only moves when the resume actually changed.
   pendingChanges?: boolean;
   demoNote?: boolean;
+  // Jump to the Skills section, where the missing-keyword suggestion now lives
+  // (the lever points to its section instead of being a global apply button).
+  onReviewKeywords?: () => void;
 }) {
   const tier = fitTier(fit.overall);
   const color = TONE_COLOR[tier.tone] ?? "var(--tm-ink)";
   const scores = history.map((h) => h.overall);
   const delta = scores.length > 1 ? scores[scores.length - 1] - scores[scores.length - 2] : 0;
   const escalate = shouldEscalateToMichael(history);
+  const missingKeywords = (fit.keywords ?? []).filter((k) => !k.inResume).map((k) => k.term).slice(0, 8);
 
   return (
     <div className="tmFit-panel">
@@ -68,39 +73,55 @@ export function FitPanel({
             {scores.join(" → ")}
           </span>
         )}
-        <span className="tmFit-track" aria-hidden="true">
-          <span className="tmFit-fill" style={{ width: `${fit.overall}%`, background: color }} />
-        </span>
+        {onRecheck && (
+          <button
+            type="button"
+            className="tm-btn tm-btn--primary tm-btn--sm tmFit-recheck"
+            onClick={onRecheck}
+            disabled={rechecking || !pendingChanges}
+            title={
+              pendingChanges
+                ? "Re-scores your current draft against this job and saves it. Free, no credit."
+                : "Edit a line to improve your resume, then re-check to move your fit."
+            }
+          >
+            {rechecking ? <Loader2 size={14} className="tmFit-spin" /> : <RefreshCw size={14} />}
+            {rechecking ? "Re-checking..." : "Re-check"}
+          </button>
+        )}
       </div>
+      <span className="tmFit-track" aria-hidden="true">
+        <span className="tmFit-fill" style={{ width: `${fit.overall}%`, background: color }} />
+      </span>
 
-      <p className="tmFit-lever">
-        <b>Biggest lever:</b> {biggestLever(fit)}
-      </p>
+      {missingKeywords.length > 0 ? (
+        <div className="tmFit-leverbox">
+          <p className="tmFit-lever">
+            <b>Biggest lever:</b> add the {missingKeywords.length} must-have keyword
+            {missingKeywords.length === 1 ? "" : "s"} this posting screens for, where you genuinely
+            have them.
+          </p>
+          {onReviewKeywords && (
+            <button
+              type="button"
+              className="tm-btn tm-btn--outline tm-btn--sm tmFit-kwadd"
+              onClick={onReviewKeywords}
+            >
+              Review in Skills <ArrowRight size={13} />
+            </button>
+          )}
+        </div>
+      ) : (
+        <p className="tmFit-lever">
+          <b>Biggest lever:</b> {biggestLever(fit)}
+        </p>
+      )}
 
       {delta < 0 && scores.length > 1 && (
         <p className="tmFit-note">
           The score dipped on your last re-check, usually because an edit removed matched evidence.
           Add it back or strengthen it, then re-check.
         </p>
-      )}
-
-      {onRecheck && (
-        <div className="tmFit-actions">
-          <button
-            type="button"
-            className="tm-btn tm-btn--primary tm-btn--sm"
-            onClick={onRecheck}
-            disabled={rechecking || !pendingChanges}
-          >
-            {rechecking ? <Loader2 size={14} className="tmFit-spin" /> : <RefreshCw size={14} />}
-            {rechecking ? "Re-checking..." : "Re-check fit"}
-          </button>
-          <span className="tm-small tmFit-hint">
-            {pendingChanges
-              ? "Re-scores your current draft against this job and saves it. Free, no credit."
-              : "Edit a line to improve your resume, then re-check to move your fit."}
-          </span>
-        </div>
       )}
 
       {demoNote && (

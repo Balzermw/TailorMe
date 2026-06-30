@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { normalizeHeadline, sanitizeDoc, stripTemplateGuidance } from "./sanitize-doc";
+import {
+  cleanSkillGroups,
+  normalizeHeadline,
+  sanitizeDoc,
+  stripSkillLabel,
+  stripTemplateGuidance,
+} from "./sanitize-doc";
 
 describe("normalizeHeadline", () => {
   it("uses the target role when an AI headline is a mini summary", () => {
@@ -21,6 +27,30 @@ describe("normalizeHeadline", () => {
 
   it("keeps concise role titles intact", () => {
     expect(normalizeHeadline("Senior Platform Engineer")).toBe("Senior Platform Engineer");
+  });
+
+  it("preserves a multi-part role title (does not truncate at the comma)", () => {
+    expect(normalizeHeadline("Lead, Product Management")).toBe("Lead, Product Management");
+  });
+
+  it("still collapses a pipe-separated buzzword pile to the lead role", () => {
+    expect(
+      normalizeHeadline("Senior Product Leader | SaaS & AI Innovator | Growth Driver"),
+    ).toBe("Senior Product Leader");
+  });
+
+  it("recovers a title truncated to a prefix of the target role", () => {
+    expect(normalizeHeadline("Lead", "Lead, Product Management")).toBe("Lead, Product Management");
+  });
+
+  it("does not over-extend an unrelated longer headline", () => {
+    expect(normalizeHeadline("Senior Platform Engineer", "Engineer")).toBe("Senior Platform Engineer");
+  });
+
+  it("does not recover a fallback that only shares a character prefix", () => {
+    // "Lead" must not become "Leadership Coach" (different title); the prefix
+    // has to end on a word boundary to count as a truncation.
+    expect(normalizeHeadline("Lead", "Leadership Coach")).toBe("Lead");
   });
 });
 
@@ -87,5 +117,49 @@ describe("stripTemplateGuidance", () => {
     expect(stripTemplateGuidance(a)).toBe(a);
     const b = "Highlight of my career was leading the billing rewrite. Bilingual in two languages.";
     expect(stripTemplateGuidance(b)).toContain("Highlight of my career");
+  });
+});
+
+describe("stripSkillLabel", () => {
+  it("strips a multi-word group-label prefix from a skill", () => {
+    expect(stripSkillLabel("Solution Design & Architecture: Solution Architecture")).toBe(
+      "Solution Architecture",
+    );
+  });
+  it("leaves a colon-less or single-word-prefixed skill alone", () => {
+    expect(stripSkillLabel("Kubernetes")).toBe("Kubernetes");
+    expect(stripSkillLabel("C++: advanced")).toBe("C++: advanced");
+  });
+});
+
+describe("cleanSkillGroups", () => {
+  it("heals a mangled group: strips labels, de-dupes across groups, drops empties", () => {
+    const healed = cleanSkillGroups([
+      {
+        label: "Sales & Engagement",
+        skills: [
+          "Technical sales engineering",
+          "Pre-call planning",
+          "Solution Design & Architecture: Solution Architecture",
+          "Technical sales engineering", // duplicate
+        ],
+      },
+      { label: "Blank", skills: [] },
+      { label: "Other", skills: ["Solution Architecture"] }, // dup of the stripped skill above
+    ]);
+    expect(healed).toEqual([
+      {
+        label: "Sales & Engagement",
+        skills: ["Technical sales engineering", "Pre-call planning", "Solution Architecture"],
+      },
+    ]);
+  });
+
+  it("is a no-op on already-clean groups", () => {
+    const groups = [
+      { label: "Cloud", skills: ["AWS", "Kubernetes"] },
+      { label: "Languages", skills: ["TypeScript", "Go"] },
+    ];
+    expect(cleanSkillGroups(groups)).toEqual(groups);
   });
 });

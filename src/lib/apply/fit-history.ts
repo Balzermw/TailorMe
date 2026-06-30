@@ -5,6 +5,18 @@ import type { ApplyResult, FitHistoryEntry } from "@/lib/types";
 // timeline lives inside ApplyResult.fitHistory; persistence writers (DB + local
 // storage) just call these and store the result.
 
+// Honest re-score: a single re-check can lift the score by at most this much.
+// Real improvement is incremental, so capping the per-re-check jump keeps the
+// number trustworthy — a one-line edit can't leap double digits (which reads as
+// too generous). Drops (edits that genuinely hurt fit) pass through uncapped.
+export const RECHECK_DELTA_CAP = 8;
+
+/** Clamp an upward re-score to the per-re-check cap; declines pass through. */
+export function capRecheckScore(prevOverall: number, nextOverall: number): number {
+  if (nextOverall <= prevOverall) return nextOverall;
+  return Math.min(nextOverall, prevOverall + RECHECK_DELTA_CAP);
+}
+
 /**
  * Append a new point to the timeline without mutating the input array. `at` is
  * passed in (callers stamp it) so this stays pure and test-stable.
@@ -76,7 +88,9 @@ export function simulateRecheckScore(
   for (let i = 0; i < docText.length; i++) {
     hash = (hash * 31 + docText.charCodeAt(i)) | 0;
   }
-  // 4–12 point bump, deterministic for a given (prevOverall, docText).
-  const bump = 4 + (Math.abs(hash) % 9);
+  // 2–8 point bump, deterministic for a given (prevOverall, docText). Modest by
+  // design (matches the real re-score's RECHECK_DELTA_CAP) so demo runs don't
+  // promise unrealistic leaps.
+  const bump = 2 + (Math.abs(hash) % (RECHECK_DELTA_CAP - 1));
   return Math.min(96, prevOverall + bump);
 }

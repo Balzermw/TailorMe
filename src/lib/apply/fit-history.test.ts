@@ -4,6 +4,8 @@ import {
   ensureInitialHistory,
   shouldEscalateToMichael,
   simulateRecheckScore,
+  capRecheckScore,
+  RECHECK_DELTA_CAP,
 } from "./fit-history";
 import type { FitBreakdown, FitHistoryEntry } from "@/lib/types";
 
@@ -98,5 +100,23 @@ describe("simulateRecheckScore", () => {
 
   it("never exceeds 96", () => {
     expect(simulateRecheckScore(95, "resume text", true)).toBeLessThanOrEqual(96);
+  });
+
+  it("never bumps more than the re-check cap", () => {
+    for (const txt of ["a", "abc", "hello world resume", "x".repeat(120)]) {
+      expect(simulateRecheckScore(50, txt, true) - 50).toBeLessThanOrEqual(RECHECK_DELTA_CAP);
+    }
+  });
+});
+
+describe("capRecheckScore", () => {
+  it("caps an upward jump to the delta cap", () => {
+    expect(capRecheckScore(65, 85)).toBe(65 + RECHECK_DELTA_CAP);
+  });
+  it("lets a small gain through unchanged", () => {
+    expect(capRecheckScore(65, 70)).toBe(70);
+  });
+  it("passes a decline through uncapped (honest about worse edits)", () => {
+    expect(capRecheckScore(65, 58)).toBe(58);
   });
 });

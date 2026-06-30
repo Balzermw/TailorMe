@@ -148,7 +148,6 @@ export interface AuditAgent {
   subtitle: string;
   footer: string;
   detail: string; // deep-dive: how this agent reached its conclusion
-  chip?: string; // ranking only ("Hard limit · 2 pages")
   // kind: "coverage"
   matched?: number;
   total?: number;
@@ -158,6 +157,8 @@ export interface AuditAgent {
   after?: string;
   stats?: { value: string; label: string }[];
   quantified?: { count: number; total: number }; // experience lines carrying a hard number, of total
+  needsMetric?: { text: string; hint: string }[]; // bullets with no number yet + the metric that fits
+  needsMetricMore?: number; // count of further metric-less bullets beyond the shown sample
   // kind: "ranking"
   lines?: {
     rank: number;
