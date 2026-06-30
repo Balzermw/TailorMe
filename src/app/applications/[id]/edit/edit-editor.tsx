@@ -100,6 +100,10 @@ function pruneResolvedFindings(
 ): ProofPoint[] {
   const hay = normForMatch(docPlainText(doc));
   return points.filter((p) => {
+    // Contact gaps resolve live: once the email/phone is in the header, the ask is
+    // done and the suggestion checks itself off (no quote to match on these).
+    if (p.ruleId === "header_missing_email") return !parseContact(doc.contact).email;
+    if (p.ruleId === "header_missing_phone") return !parseContact(doc.contact).phone;
     if (!p.quote) return true; // "missing section" issues have no quote to verify
     let q = normForMatch(p.quote);
     // Drop a leading section-header word (e.g. "Skills") that isn't in the body.
@@ -898,6 +902,28 @@ export default function EditEditor({
     setContactFields(next);
     patch({ contact: composeContact(next) });
   }
+  // After "Edit manually" on a contact gap, focus the matching header input so the
+  // user lands directly on the field to fill (and the gap checks off once it has a
+  // value, via pruneResolvedFindings). The intent lives in a ref (cleared in the
+  // effect without a re-render); a tick triggers the effect once the field mounts.
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const pendingFocusRef = useRef<"phone" | "email" | null>(null);
+  const [focusTick, setFocusTick] = useState(0);
+  function focusContactField(field: "phone" | "email") {
+    pendingFocusRef.current = field;
+    setFocusTick((t) => t + 1);
+  }
+  useEffect(() => {
+    const field = pendingFocusRef.current;
+    if (!field || mode !== "edit" || section !== "header") return;
+    const el = (field === "phone" ? phoneInputRef : emailInputRef).current;
+    if (el) {
+      el.focus();
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    pendingFocusRef.current = null;
+  }, [focusTick, mode, section]);
 
   const diffs = diffMap(bulletDiffs);
   const totalPending = bulletDiffs.filter((d) => !decisions[bulletKey(d.entry, d.bullet)]).length;
@@ -2060,6 +2086,9 @@ export default function EditEditor({
               });
               setMode("edit");
               setSection(target);
+              // Contact gaps point at a specific field — land the cursor there.
+              if (p.ruleId === "header_missing_phone") focusContactField("phone");
+              else if (p.ruleId === "header_missing_email") focusContactField("email");
             }}
           >
             Edit manually →
@@ -2379,11 +2408,11 @@ export default function EditEditor({
               <div className="tmE-contact-grid">
                 <div className="tmE-field" style={{ marginBottom: 0 }}>
                   <label>Phone</label>
-                  <input className="tmE-input" value={contactFields.phone} placeholder="612-227-1149" onChange={(e) => updateContact({ phone: e.target.value })} />
+                  <input ref={phoneInputRef} className="tmE-input" value={contactFields.phone} placeholder="612-227-1149" onChange={(e) => updateContact({ phone: e.target.value })} />
                 </div>
                 <div className="tmE-field" style={{ marginBottom: 0 }}>
                   <label>Email</label>
-                  <input className="tmE-input" type="email" value={contactFields.email} placeholder="you@email.com" onChange={(e) => updateContact({ email: e.target.value })} />
+                  <input ref={emailInputRef} className="tmE-input" type="email" value={contactFields.email} placeholder="you@email.com" onChange={(e) => updateContact({ email: e.target.value })} />
                 </div>
                 <div className="tmE-field" style={{ marginBottom: 0 }}>
                   <label>City / State</label>
