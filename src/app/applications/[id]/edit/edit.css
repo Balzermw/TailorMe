@@ -1812,6 +1812,35 @@
 .tmE-secsug.is-done .tmE-secsug-eyebrow {
   color: var(--tm-mint-700);
 }
+/* Review state: keywords are added (mint) but awaiting keep/remove sign-off. */
+.tmE-secsug.is-review {
+  border-color: rgba(33, 146, 107, 0.3);
+  background: linear-gradient(180deg, var(--tm-mint-50), #fff);
+}
+.tmE-secsug.is-review .tmE-secsug-eyebrow {
+  color: var(--tm-mint-700);
+}
+/* Remove (revert) control on a pending keyword chip. */
+.tmE-kw-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  padding: 0;
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+.tmE-kw-x:hover {
+  opacity: 1;
+  background: rgba(33, 146, 107, 0.16);
+}
 .tmE-secsug-done {
   display: inline-flex;
   align-items: center;

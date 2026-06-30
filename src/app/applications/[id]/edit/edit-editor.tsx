@@ -632,6 +632,10 @@ export default function EditEditor({
   // Posting keywords the user has added to Skills this session — so the keyword
   // suggestion card can show them as done instead of still prompting.
   const [addedKeywords, setAddedKeywords] = useState<Set<string>>(() => new Set());
+  // Adding a keyword is an AI-driven change, so each one is reviewable (kept or
+  // removed) and counts in the review banner alongside the bullet rewrites, until
+  // the user signs off on it. Session-local, like addedKeywords.
+  const [keywordDecisions, setKeywordDecisions] = useState<Record<string, "kept" | "removed">>({});
   const [dirty, setDirty] = useState(initialDocNormalized);
   const [review, setReview] = useState<{ items: ReviewItem[] } | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -1314,7 +1318,32 @@ export default function EditEditor({
       return { ...d, skills: merged };
     });
     touch();
-    flashApplied(`Added ${fresh.length} keyword${fresh.length === 1 ? "" : "s"} to Skills`);
+    flashApplied(`Added ${fresh.length} keyword${fresh.length === 1 ? "" : "s"} to Skills, review them below`);
+  }
+
+  // Review an added keyword: keep it (sign-off) or remove it (revert from Skills).
+  // Either way it counts as reviewed in the change banner.
+  function keepAllKeywords(terms: string[]) {
+    setKeywordDecisions((prev) => {
+      const next = { ...prev };
+      for (const t of terms) if (!next[t]) next[t] = "kept";
+      return next;
+    });
+    flashApplied(`Kept ${terms.length} keyword${terms.length === 1 ? "" : "s"} in Skills`);
+  }
+  function removeAddedKeyword(term: string) {
+    const low = term.trim().toLowerCase();
+    setKeywordDecisions((prev) => ({ ...prev, [term]: "removed" }));
+    setDoc((d) => ({
+      ...d,
+      skills: (d.skills ?? []).filter((s) => s.trim().toLowerCase() !== low),
+      skillGroups: d.skillGroups?.map((g) => ({
+        ...g,
+        skills: g.skills.filter((s) => s.trim().toLowerCase() !== low),
+      })),
+    }));
+    touch();
+    flashApplied(`Removed "${term}" from Skills`);
   }
 
   function applySuggestionDraft(p: ProofPoint, target: EditableSection, draft: string) {
@@ -1741,18 +1770,48 @@ export default function EditEditor({
     .filter((k) => !k.inResume)
     .map((k) => k.term)
     .slice(0, 8);
+  // Keywords already added to Skills this session are AI changes pending review
+  // (keep / remove); the rest are still unadded suggestions.
+  const unaddedKeywords = missingKeywords.filter((t) => !addedKeywords.has(t));
+  const addedKwList = missingKeywords.filter((t) => addedKeywords.has(t));
+  const kwPending = addedKwList.filter((t) => !keywordDecisions[t]);
+
+  // A posting-aware Summary suggestion: rework the summary to target the role and
+  // its must-have keywords. Synthesized from the fit (the rules engine is résumé-
+  // only) and threaded through the normal suggestion card, so "Draft fix with AI"
+  // rewrites the summary toward the posting. Dropped once applied.
+  const summaryFitPoint: ProofPoint | null =
+    kind === "application" && missingKeywords.length > 0 && (doc.summary?.trim()?.length ?? 0) > 0
+      ? {
+          title: "Tailor your summary to this posting",
+          summary:
+            "Your summary reads generically. It is the first thing a recruiter reads, so pointing it at this role (and the keywords it screens for) lifts your fit right away.",
+          why: "Recruiters and ATS weigh the summary heavily; one aimed at the posting signals fit in the first few seconds.",
+          fix: `Rework your summary to target ${role || "this role"}, working in the keywords this posting screens for where you genuinely have them: ${missingKeywords.slice(0, 6).join(", ")}.`,
+          severity: "high",
+          ruleId: "summary_tailor_to_posting",
+          category: "summary",
+          targetSection: "summary",
+        }
+      : null;
+  // The full surfaced set = deterministic findings + the synthesized summary point.
+  const allShown =
+    summaryFitPoint && !appliedSuggestionIds.has(suggestionId(summaryFitPoint))
+      ? [summaryFitPoint, ...shownPoints]
+      : shownPoints;
+
   // Suggestions that belong to a given section (deterministic findings carry a
   // targetSection), rendered inline at the top of that section's panel.
   const sectionFixes = (s: Section): ProofPoint[] =>
-    shownPoints.filter((p) => suggestionTarget(p) === s);
-  // Nav badges count what each section surfaces inline: its suggestions, plus the
-  // Experience AI rewrites (diffs) and the Skills missing-keyword card.
-  const skillsKwPending = missingKeywords.some((t) => !addedKeywords.has(t)) ? 1 : 0;
+    allShown.filter((p) => suggestionTarget(p) === s);
+  // Nav badges count what each section surfaces inline: its suggestions, the
+  // Experience AI rewrites (diffs), and the Skills keyword suggestions + reviews.
+  const skillsKwAttention = unaddedKeywords.length + kwPending.length;
   const sectionBadge = (s: Section): number | undefined => {
     const n =
       sectionFixes(s).length +
       (s === "experience" ? totalPending : 0) +
-      (s === "skills" ? skillsKwPending : 0);
+      (s === "skills" ? skillsKwAttention : 0);
     return n || undefined;
   };
   const NAV: { key: Section; label: string; badge?: number }[] = [
@@ -1766,7 +1825,7 @@ export default function EditEditor({
   ];
   // Feedback is a top-level tab now (not a nav row); its label/badge live there.
   const feedbackLabel = onGetFeedback ? "Feedback" : "Suggestions";
-  const showFeedbackTab = shownPoints.length > 0 || Boolean(onGetFeedback);
+  const showFeedbackTab = allShown.length > 0 || Boolean(onGetFeedback);
 
   // Keywords to tint green in the preview: the posting's role keywords when this
   // résumé is targeted at a job, else the résumé's own skills/tools (the terms an
@@ -1870,24 +1929,27 @@ export default function EditEditor({
   const reviewableChangeCount = collectChanges().length;
   // AI-changes review progress — surfaced in a banner across the top of the editor
   // (above the mode tabs) so "review your changes" is the first thing you see.
+  // The review banner spans every AI-driven change: bullet rewrites AND keywords
+  // added to Skills. Each added keyword is "pending" until kept or removed, so the
+  // count reads e.g. "0 of 8 reviewed" right after a bulk keyword add.
+  const totalChanges = bulletDiffs.length + addedKwList.length;
+  const pendingChanges = totalPending + kwPending.length;
+  const reviewedChanges = totalChanges - pendingChanges;
   const reviewProgressNode =
-    bulletDiffs.length > 0 ? (
+    totalChanges > 0 ? (
       <span
-        className={"tmE-reviewprog" + (totalPending === 0 ? " is-done" : "")}
+        className={"tmE-reviewprog" + (pendingChanges === 0 ? " is-done" : "")}
         data-testid="revision-reviewed-count"
-        title={`${bulletDiffs.length - totalPending} of ${bulletDiffs.length} AI changes reviewed`}
+        title={`${reviewedChanges} of ${totalChanges} AI changes reviewed`}
       >
-        {totalPending === 0 ? <Check size={13} /> : <ListChecks size={13} />}
+        {pendingChanges === 0 ? <Check size={13} /> : <ListChecks size={13} />}
         <span className="tmE-reviewprog-dots" aria-hidden="true">
-          {bulletDiffs.map((d, i) => (
-            <i
-              key={bulletKey(d.entry, d.bullet)}
-              className={i < bulletDiffs.length - totalPending ? "is-done" : ""}
-            />
+          {Array.from({ length: totalChanges }).map((_, i) => (
+            <i key={i} className={i < reviewedChanges ? "is-done" : ""} />
           ))}
         </span>
         <span className="tmE-reviewprog-label">
-          {bulletDiffs.length - totalPending} of {bulletDiffs.length} AI changes reviewed
+          {reviewedChanges} of {totalChanges} AI changes reviewed
         </span>
       </span>
     ) : null;
@@ -2078,7 +2140,7 @@ export default function EditEditor({
             {kind === "resume" ? doc.headline?.trim() || "Base resume" : role}
             {company && <span className="tmE-head-co"> at {company}</span>}
           </h1>
-          {(shownPoints.length > 0 || originalDoc) && (
+          {(allShown.length > 0 || originalDoc) && (
             <button
               type="button"
               className="tmE-optimized"
@@ -2149,18 +2211,18 @@ export default function EditEditor({
       </div>
 
       {kind === "application" && reviewProgressNode && (
-        <div className={"tmE-reviewbar tmF-anim" + (totalPending === 0 ? " is-done" : "")}>
+        <div className={"tmE-reviewbar tmF-anim" + (pendingChanges === 0 ? " is-done" : "")}>
           {reviewProgressNode}
-          {totalPending > 0 && (
+          {pendingChanges > 0 && (
             <button
               type="button"
               className="tm-btn tm-btn--primary tm-btn--sm tmE-reviewbar-cta"
               onClick={() => {
                 setMode("edit");
-                setSection("experience");
+                setSection(totalPending > 0 ? "experience" : "skills");
               }}
             >
-              Review {totalPending} change{totalPending === 1 ? "" : "s"} <ArrowRight size={14} />
+              Review {pendingChanges} change{pendingChanges === 1 ? "" : "s"} <ArrowRight size={14} />
             </button>
           )}
         </div>
@@ -2194,8 +2256,8 @@ export default function EditEditor({
             onClick={() => setMode("feedback")}
           >
             <ListChecks size={14} /> {feedbackLabel}
-            {shownPoints.length > 0 && (
-              <span className="tmE-modetab-badge">{shownPoints.length}</span>
+            {allShown.length > 0 && (
+              <span className="tmE-modetab-badge">{allShown.length}</span>
             )}
           </button>
         )}
@@ -2662,62 +2724,101 @@ export default function EditEditor({
               <h2 className="tmE-panel-title">Skills</h2>
               {missingKeywords.length > 0 &&
                 (() => {
-                  const unadded = missingKeywords.filter((t) => !addedKeywords.has(t));
-                  const allAdded = unadded.length === 0;
+                  // Three states: add (some still unadded) -> review (added,
+                  // pending keep/remove) -> done (all reviewed). Added keywords
+                  // count as AI changes in the banner until reviewed here.
+                  const reviewing = unaddedKeywords.length === 0 && kwPending.length > 0;
+                  const allReviewed = unaddedKeywords.length === 0 && kwPending.length === 0;
+                  const keptCount = addedKwList.filter((t) => keywordDecisions[t] !== "removed").length;
                   return (
-                    <div className={"tmE-secsug" + (allAdded ? " is-done" : "")}>
+                    <div
+                      className={
+                        "tmE-secsug" + (allReviewed ? " is-done" : reviewing ? " is-review" : "")
+                      }
+                    >
                       <div className="tmE-secsug-head">
                         <span className="tmE-secsug-eyebrow">
-                          {allAdded ? <Check size={12} /> : <Sparkles size={12} />}{" "}
-                          {allAdded ? "Added" : "Suggestion"}
+                          {allReviewed ? (
+                            <Check size={12} />
+                          ) : reviewing ? (
+                            <ListChecks size={12} />
+                          ) : (
+                            <Sparkles size={12} />
+                          )}{" "}
+                          {allReviewed ? "Added" : reviewing ? "Review" : "Suggestion"}
                         </span>
                         <b>
-                          {allAdded
-                            ? `${missingKeywords.length} keyword${missingKeywords.length === 1 ? "" : "s"} added to Skills`
-                            : `Add ${unadded.length} keyword${unadded.length === 1 ? "" : "s"} the posting screens for`}
+                          {allReviewed
+                            ? `${keptCount} keyword${keptCount === 1 ? "" : "s"} added to Skills`
+                            : reviewing
+                              ? `Review ${kwPending.length} added keyword${kwPending.length === 1 ? "" : "s"}`
+                              : `Add ${unaddedKeywords.length} keyword${unaddedKeywords.length === 1 ? "" : "s"} the posting screens for`}
                         </b>
                       </div>
                       <div className="tmF-chips">
-                        {missingKeywords.map((t) => {
-                          const done = addedKeywords.has(t);
-                          return (
-                            <span
-                              key={t}
-                              className="tmEv-pill"
-                              style={
-                                done
-                                  ? {
-                                      color: "var(--tm-mint-700)",
-                                      background: "var(--tm-mint-50)",
-                                      border: "0.5px solid rgba(33,146,107,.28)",
-                                    }
-                                  : {
-                                      color: "#854f0b",
-                                      background: "#fff",
-                                      border: "0.5px solid rgba(133,79,11,.3)",
-                                    }
-                              }
-                            >
-                              {done ? <Check size={11} /> : <Plus size={11} />} {t}
-                            </span>
-                          );
-                        })}
+                        {missingKeywords
+                          .filter((t) => keywordDecisions[t] !== "removed")
+                          .map((t) => {
+                            const added = addedKeywords.has(t);
+                            const canRemove = added && keywordDecisions[t] !== "kept";
+                            return (
+                              <span
+                                key={t}
+                                className="tmEv-pill"
+                                style={
+                                  added
+                                    ? {
+                                        color: "var(--tm-mint-700)",
+                                        background: "var(--tm-mint-50)",
+                                        border: "0.5px solid rgba(33,146,107,.28)",
+                                      }
+                                    : {
+                                        color: "#854f0b",
+                                        background: "#fff",
+                                        border: "0.5px solid rgba(133,79,11,.3)",
+                                      }
+                                }
+                              >
+                                {added ? <Check size={11} /> : <Plus size={11} />} {t}
+                                {canRemove && (
+                                  <button
+                                    type="button"
+                                    className="tmE-kw-x"
+                                    aria-label={`Remove ${t} from Skills`}
+                                    onClick={() => removeAddedKeyword(t)}
+                                  >
+                                    <X size={11} />
+                                  </button>
+                                )}
+                              </span>
+                            );
+                          })}
                       </div>
-                      {!allAdded && (
-                        <p className="tmE-secsug-note">
-                          Add these only where your experience genuinely backs them.
-                        </p>
-                      )}
+                      <p className="tmE-secsug-note">
+                        {allReviewed
+                          ? "Added to your Skills below."
+                          : reviewing
+                            ? "Keep the ones your experience backs up; remove any it doesn't."
+                            : "Add these only where your experience genuinely backs them."}
+                      </p>
                       <div className="tmE-fix-card-actions">
-                        {allAdded ? (
+                        {allReviewed ? (
                           <span className="tmE-secsug-done">
-                            <Check size={13} /> Added to your Skills below
+                            <Check size={13} /> Reviewed
                           </span>
+                        ) : reviewing ? (
+                          <button
+                            type="button"
+                            className="tmE-fix-apply"
+                            onClick={() => keepAllKeywords(kwPending)}
+                          >
+                            <Check size={13} /> Keep all ({kwPending.length})
+                          </button>
                         ) : (
                           <button
                             type="button"
                             className="tmE-fix-apply"
-                            onClick={() => addKeywordsToSkills(unadded)}
+                            onClick={() => addKeywordsToSkills(unaddedKeywords)}
                           >
                             <Plus size={13} /> Add to skills
                           </button>
@@ -2868,7 +2969,7 @@ export default function EditEditor({
                       ? "Open a card to jump to its section."
                       : feedbackLoading
                         ? "Reviewing your content…"
-                        : shownPoints.length > 0
+                        : allShown.length > 0
                           ? "Open a card to jump to its section."
                           : "Run a review to see suggestions here."}
                   </p>
@@ -2892,7 +2993,7 @@ export default function EditEditor({
                     {feedbackUpToDate ? <Check size={13} /> : <ListChecks size={13} />}{" "}
                     {feedbackLoading
                       ? "Reviewing…"
-                      : !shownPoints.length
+                      : !allShown.length
                         ? "Get feedback"
                         : feedbackUpToDate
                           ? "Up to date"
@@ -2968,14 +3069,14 @@ export default function EditEditor({
                 </div>
               )}
               {(["high", "medium", "low"] as const).map((sev) => {
-                const group = shownPoints.filter((p) => p.severity === sev);
+                const group = allShown.filter((p) => p.severity === sev);
                 if (group.length === 0) return null;
                 // Global running index so cards fade in one after another across all
                 // three severity groups (not restarting the stagger per group).
                 const offset =
                   sev === "high"
                     ? 0
-                    : shownPoints.filter(
+                    : allShown.filter(
                         (p) =>
                           p.severity === "high" ||
                           (sev === "low" && p.severity === "medium"),
